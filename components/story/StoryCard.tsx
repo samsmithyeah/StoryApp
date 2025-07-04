@@ -15,10 +15,13 @@ import { IconSymbol } from "../ui/IconSymbol";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
-const COLS = 3; // 3-up grid (tweak if you want 2-up on phones)
+const COLS = width >= 768 ? 3 : 2; // 3 on tablets, 2 on phones
 const GAP = 20; // must match LibraryScreen.grid.gap
 const CARD_W = (width - 2 * 24 - (COLS - 1) * GAP) / COLS;
 const CARD_H = CARD_W * 1.46; // ≈ 2 : 3 portrait ratio
+const TITLE_SIZE = width >= 768 ? 36 : width < 360 ? 14 : width < 390 ? 16 : 18;
+const SUBTITLE_SIZE =
+  width >= 768 ? 18 : width < 360 ? 10 : width < 390 ? 11 : 12;
 
 /* ---------- component ---------- */
 interface StoryCardProps {
@@ -30,7 +33,6 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
   const [imageError, setImageError] = React.useState(false);
   const imageUrl = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
 
-  /* helpers */
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString("en-GB", {
       month: "long",
@@ -61,52 +63,47 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
         </View>
       )}
 
-      {/* status badge (top-right) */}
-      {["generating", "failed"].includes(story.imageGenerationStatus) && (
-        <View
-          style={[
-            styles.imageStatusBadge,
-            story.imageGenerationStatus === "failed" && styles.imageStatusError,
-          ]}
-        >
-          {story.imageGenerationStatus === "generating" ? (
-            <>
-              <ActivityIndicator size="small" color="#6366F1" />
-              <Text style={styles.imageStatusText}>
-                {story.imagesGenerated}/{story.totalImages}
-              </Text>
-            </>
-          ) : (
-            <IconSymbol
-              name="exclamationmark.circle.fill"
-              size={16}
-              color="#EF4444"
-            />
-          )}
-        </View>
-      )}
+      {/* status badge -------------------------------------------------- */}
+      {story.imageGenerationStatus &&
+        ["generating", "failed"].includes(story.imageGenerationStatus) && (
+          <View
+            style={[
+              styles.imageStatusBadge,
+              story.imageGenerationStatus === "failed" &&
+                styles.imageStatusError,
+            ]}
+          >
+            {story.imageGenerationStatus === "generating" ? (
+              <>
+                <ActivityIndicator size="small" color="#6366F1" />
+                <Text style={styles.imageStatusText}>
+                  {story.imagesGenerated}/{story.totalImages}
+                </Text>
+              </>
+            ) : (
+              <IconSymbol
+                name="exclamationmark.circle.fill"
+                size={16}
+                color="#EF4444"
+              />
+            )}
+          </View>
+        )}
 
-      {/* bottom vignette for legibility */}
+      {/* vignette for legibility -------------------------------------- */}
       <LinearGradient
         colors={["transparent", "rgba(15,17,41,0.96)"]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* meta */}
+      {/* meta block ---------------------------------------------------- */}
       <View style={styles.meta}>
-        <Text numberOfLines={2} style={styles.title}>
+        <Text numberOfLines={4} style={styles.title}>
           {story.title}
         </Text>
         <Text style={styles.subtitle}>
           {formatDate(story.createdAt)} – {pageCount} pages
         </Text>
-        {!!story.storyConfiguration.theme && (
-          <View style={styles.tag}>
-            <Text style={styles.tagTxt}>
-              Theme: {story.storyConfiguration.theme}
-            </Text>
-          </View>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -132,7 +129,6 @@ const styles = StyleSheet.create({
     ...glow,
   },
 
-  /* placeholder cover */
   placeholder: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(26,27,58,0.5)",
@@ -156,16 +152,16 @@ const styles = StyleSheet.create({
   imageStatusError: { paddingHorizontal: 4 },
   imageStatusText: { fontSize: 12, color: "#D4AF37", fontWeight: "500" },
 
-  /* meta block (bottom) */
+  /* meta */
   meta: { position: "absolute", left: 18, right: 18, bottom: 20 },
   title: {
     fontFamily: "PlayfairDisplay-Regular",
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: TITLE_SIZE,
+    lineHeight: TITLE_SIZE + 2,
     color: "#D4AF37",
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  subtitle: { fontSize: 14, color: "#fff", marginBottom: 10 },
+  subtitle: { fontSize: SUBTITLE_SIZE, color: "#fff" },
   tag: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.14)",

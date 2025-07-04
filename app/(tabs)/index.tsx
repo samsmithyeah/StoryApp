@@ -38,6 +38,9 @@ import { Story } from "../../types/story.types";
 
 const { width, height } = Dimensions.get("window");
 const isTablet = width >= 768;
+const isPhoneMiddle = width < 430; // iPhone 14/15, Pixel 7
+const isPhoneSmall = width < 380; // iPhone SE / 13 mini
+const GAP = isTablet ? 20 : 16;
 const emptyTop = Math.round(height * (isTablet ? 0.25 : 0.18));
 
 /* --------------------------------------------------------------------- */
@@ -50,42 +53,39 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* realtime listener -------------------------------------------------- */
   useEffect(() => {
     if (!user) return;
-
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
-
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate() || new Date(),
       })) as Story[];
-
       setStories(list);
       setLoading(false);
     });
-
-    return unsubscribe;
+    return unsub;
   }, [user]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const list = await getStories();
-      setStories(list);
+      setStories(await getStories());
     } finally {
       setRefreshing(false);
     }
   }, []);
 
-  const openStory = (story: Story) =>
-    router.push({ pathname: "/story/[id]", params: { id: story.id } });
+  const openStory = (s: Story) =>
+    router.push({ pathname: "/story/[id]", params: { id: s.id } });
 
+  /* ------------------------------------------------------------------ */
   if (loading) {
     return (
       <View style={styles.loadingScreen}>
@@ -93,6 +93,9 @@ export default function LibraryScreen() {
       </View>
     );
   }
+
+  /* hero offset so it never sits under the CTA */
+  const heroTop = isTablet ? 32 : insets.top + 32;
 
   return (
     <ImageBackground
@@ -108,6 +111,7 @@ export default function LibraryScreen() {
       <Decorations />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* floating CTA -------------------------------------------------- */}
         <TouchableOpacity
           style={[styles.cta, { top: insets.top + 12 }]}
           activeOpacity={0.85}
@@ -130,7 +134,7 @@ export default function LibraryScreen() {
             <EmptyState />
           ) : (
             <>
-              <View style={styles.hero}>
+              <View style={[styles.hero, { marginTop: heroTop }]}>
                 <Text style={styles.brand}>DreamWeaver</Text>
                 <Text style={styles.tagline}>Your bedtime adventures</Text>
               </View>
@@ -138,11 +142,11 @@ export default function LibraryScreen() {
               <Text style={styles.sectionLabel}>LIBRARY</Text>
 
               <View style={styles.grid}>
-                {stories.map((story) => (
+                {stories.map((s) => (
                   <StoryCard
-                    key={story.id}
-                    story={story}
-                    onPress={() => openStory(story)}
+                    key={s.id}
+                    story={s}
+                    onPress={() => openStory(s)}
                   />
                 ))}
               </View>
@@ -155,36 +159,37 @@ export default function LibraryScreen() {
 }
 
 /* --------------------------------------------------------------------- */
+/* decorations (moon, stars, etc.)                                       */
+/* --------------------------------------------------------------------- */
 
 function Decorations() {
+  const moonSize = isTablet ? 160 : 120;
   return (
     <>
       <Image
         source={require("../../assets/images/moon.png")}
-        style={styles.moon}
+        style={[styles.moon, { width: moonSize, height: moonSize }]}
       />
 
-      {STAR_COORDS.map((pos, i) => (
+      {STAR_COORDS.map((p, i) => (
         <Image
-          key={`star-${i}`}
+          key={i}
           source={require("../../assets/images/star.png")}
-          style={[styles.star, pos]}
+          style={[styles.star, p]}
         />
       ))}
-
-      {DANDELION_COORDS.map((pos, i) => (
+      {DANDELION_COORDS.map((p, i) => (
         <Image
-          key={`seed-${i}`}
+          key={i}
           source={require("../../assets/images/dandelion.png")}
-          style={[styles.seed, pos]}
+          style={[styles.seed, p]}
         />
       ))}
-
-      {LEAF_COORDS.map((pos, i) => (
+      {LEAF_COORDS.map((p, i) => (
         <Image
-          key={`leaf-${i}`}
+          key={i}
           source={require("../../assets/images/leaves.png")}
-          style={[styles.leaf, pos]}
+          style={[styles.leaf, p]}
         />
       ))}
     </>
@@ -192,10 +197,11 @@ function Decorations() {
 }
 
 /* --------------------------------------------------------------------- */
+/* empty-state component (unchanged)                                     */
+/* --------------------------------------------------------------------- */
 
 function EmptyState() {
   const drift = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -226,15 +232,12 @@ function EmptyState() {
         source={require("../../assets/images/butterfly.png")}
         style={butterflyStyle}
       />
-
       <Image
         source={require("../../assets/images/teddy.png")}
         style={styles.emptyBear}
       />
-
       <Text style={styles.emptyBrand}>DreamWeaver</Text>
       <Text style={styles.emptyText}>No stories yet</Text>
-
       <TouchableOpacity
         style={styles.emptyBtn}
         onPress={() => router.push("/create")}
@@ -247,6 +250,8 @@ function EmptyState() {
 }
 
 /* --------------------------------------------------------------------- */
+/* asset placement arrays                                                */
+/* --------------------------------------------------------------------- */
 
 const STAR_COORDS = [
   { top: 120, left: 40 },
@@ -255,18 +260,18 @@ const STAR_COORDS = [
   { top: 210, right: 140 },
   { top: 260, left: 120 },
 ];
-
 const DANDELION_COORDS = [
   { top: 140, left: 100, width: 28, height: 28, opacity: 0.25 },
   { top: 60, right: 80, width: 32, height: 32, opacity: 0.3 },
   { top: 220, right: 40, width: 24, height: 24, opacity: 0.2 },
 ];
-
 const LEAF_COORDS = [
   { top: 20, right: -30, width: 220, height: 220, opacity: 0.12 },
   { bottom: -40, left: -60, width: 260, height: 260, opacity: 0.12 },
 ];
 
+/* --------------------------------------------------------------------- */
+/* styles                                                                */
 /* --------------------------------------------------------------------- */
 
 const glow = {
@@ -288,18 +293,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f1129",
   },
 
-  hero: { alignItems: "center", marginTop: 32, marginBottom: 48 },
+  /* hero -------------------------------------------------------------- */
+  hero: { alignItems: "center", marginBottom: isTablet ? 48 : 32 },
   brand: {
     fontFamily: "PlayfairDisplay-Regular",
-    fontSize: width > 700 ? 64 : 56,
+    fontSize: isTablet ? 64 : isPhoneSmall ? 34 : isPhoneMiddle ? 40 : 48,
     color: "#D4AF37",
   },
   tagline: {
-    fontSize: width > 700 ? 24 : 20,
+    fontSize: isTablet ? 24 : isPhoneSmall ? 14 : 18,
     color: "#B8B8B8",
     marginTop: 6,
   },
 
+  /* floating CTA ------------------------------------------------------ */
   cta: {
     position: "absolute",
     right: 24,
@@ -312,8 +319,10 @@ const styles = StyleSheet.create({
   },
   ctaTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
 
+  /* library grid ------------------------------------------------------ */
   sectionLabel: {
-    fontSize: 20,
+    //fontSize: 20,
+    fontSize: isTablet ? 20 : isPhoneSmall ? 14 : 16,
     color: "#FFF",
     letterSpacing: 1.6,
     marginBottom: 24,
@@ -322,49 +331,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 20,
+    gap: GAP,
   },
 
-  moon: {
-    position: "absolute",
-    top: 36,
-    left: 24,
-    width: 160,
-    height: 160,
-    opacity: 0.7,
-  },
-  star: {
-    position: "absolute",
-    width: 15,
-    height: 15,
-    opacity: 0.8,
-  },
+  /* decorative sprites ------------------------------------------------ */
+  moon: { position: "absolute", top: 36, left: 24, opacity: 0.7 },
+  star: { position: "absolute", width: 15, height: 15, opacity: 0.8 },
   seed: { position: "absolute" },
   leaf: { position: "absolute" },
 
+  /* empty-state ------------------------------------------------------- */
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
     paddingBottom: 80,
   },
-  emptyBear: {
-    width: 140,
-    height: 140,
-    marginBottom: 24,
-    opacity: 0.95,
-  },
+  emptyBear: { width: 140, height: 140, marginBottom: 24, opacity: 0.95 },
   emptyBrand: {
     fontSize: 48,
     fontFamily: "PlayfairDisplay-Regular",
     color: "#FCD34D",
     marginBottom: 6,
   },
-  emptyText: {
-    fontSize: 20,
-    color: "#fff",
-    marginBottom: 32,
-  },
+  emptyText: { fontSize: 20, color: "#fff", marginBottom: 32 },
   emptyBtn: {
     backgroundColor: "#FBBF24",
     paddingHorizontal: 36,
@@ -376,11 +366,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  emptyBtnTxt: {
-    fontSize: 18,
-    color: "#1a1b3a",
-    fontWeight: "600",
-  },
+  emptyBtnTxt: { fontSize: 18, color: "#1a1b3a", fontWeight: "600" },
   emptyButterfly: {
     position: "absolute",
     top: 30,
