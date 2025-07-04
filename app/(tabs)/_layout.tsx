@@ -6,6 +6,7 @@ import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
+import { Colors as ThemeColors } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
@@ -14,13 +15,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#D4AF37',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: ThemeColors.primary,
+        tabBarInactiveTintColor: ThemeColors.textMuted,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#0f1129',
-          borderTopColor: '#3a3b5a',
+          backgroundColor: ThemeColors.background,
+          borderTopColor: ThemeColors.border,
           borderTopWidth: 1,
           ...Platform.select({
             ios: {

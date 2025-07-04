@@ -8,6 +8,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, {
   useCallback,
   useEffect,
@@ -109,6 +110,8 @@ export default function LibraryScreen() {
       />
 
       <Decorations />
+
+      <StatusBar style="light" />
 
       <SafeAreaView style={styles.safeArea}>
         {/* floating CTA -------------------------------------------------- */}
