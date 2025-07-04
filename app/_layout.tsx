@@ -14,6 +14,7 @@ export default function RootLayout() {
   
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    'PlayfairDisplay-Regular': require('../assets/fonts/PlayfairDisplay-Regular.ttf'),
   });
 
   console.log('RootLayout render - user:', user ? 'logged in' : 'logged out', 'loading:', loading);

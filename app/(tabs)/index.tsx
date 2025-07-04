@@ -1,171 +1,318 @@
-import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  RefreshControl,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "@react-native-firebase/firestore";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import {
   ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import { IconSymbol } from '../../components/ui/IconSymbol';
-import { StoryCard } from '../../components/story/StoryCard';
-import { getStories } from '../../services/firebase/stories';
-import { Story } from '../../types/story.types';
-import { db } from '../../services/firebase/config';
-import { collection, query, where, onSnapshot, orderBy } from '@react-native-firebase/firestore';
-import { useAuth } from '../../hooks/useAuth';
+  Dimensions,
+  ImageBackground,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StoryCard } from "../../components/story/StoryCard";
+import { useAuth } from "../../hooks/useAuth";
+import { db } from "../../services/firebase/config";
+import { getStories } from "../../services/firebase/stories";
+import { Story } from "../../types/story.types";
+
+const { width } = Dimensions.get("window");
 
 export default function LibraryScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* realtime listener ----------------------------------------------------- */
   useEffect(() => {
     if (!user) return;
 
-    // Set up real-time listener for stories
     const q = query(
-      collection(db, 'stories'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      collection(db, "stories"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updatedStories = snapshot.docs.map(doc => ({
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as Story[];
-      
-      setStories(updatedStories);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error listening to stories:', error);
+
+      setStories(list);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, [user]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const fetchedStories = await getStories();
-      setStories(fetchedStories);
-    } catch (error) {
-      console.error('Error refreshing stories:', error);
+      const list = await getStories();
+      setStories(list);
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  const handleStoryPress = (story: Story) => {
-    router.push({
-      pathname: '/story/[id]',
-      params: { id: story.id }
-    });
-  };
+  const openStory = (story: Story) =>
+    router.push({ pathname: "/story/[id]", params: { id: story.id } });
 
+  /* render ---------------------------------------------------------------- */
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>My Stories</Text>
-          <Text style={styles.subtitle}>Your magical collection of bedtime stories</Text>
-        </View>
+    <ImageBackground
+      source={require("../../assets/images/background-landscape.png")}
+      resizeMode="cover"
+      style={styles.bg}
+    >
+      {/* radial dim to keep centre legible */}
+      <LinearGradient
+        colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {stories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <IconSymbol name="book.closed.fill" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyStateTitle}>No stories yet</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first magical story by tapping the Create tab below
-            </Text>
+      <Decorations />
+
+      <SafeAreaView style={styles.safeArea}>
+        {/* floating CTA */}
+        <TouchableOpacity
+          style={[styles.cta, { top: insets.top + 12 }]}
+          activeOpacity={0.85}
+          onPress={() => router.push("/create")}
+        >
+          <Text style={styles.ctaTxt}>Create Story</Text>
+        </TouchableOpacity>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#D4AF37"
+            />
+          }
+        >
+          <View style={styles.hero}>
+            <Text style={styles.brand}>DreamWeaver</Text>
+            <Text style={styles.tagline}>Your bedtime adventures</Text>
           </View>
-        ) : (
-          <View style={styles.storiesContainer}>
-            {stories.map((story) => (
-              <StoryCard
-                key={story.id}
-                story={story}
-                onPress={() => handleStoryPress(story)}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+          <Text style={styles.sectionLabel}>LIBRARY</Text>
+
+          {stories.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <View style={styles.grid}>
+              {stories.map((story) => (
+                <View key={story.id} style={styles.cardWrap}>
+                  <StoryCard story={story} onPress={() => openStory(story)} />
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
+/* decorations ----------------------------------------------------------- */
+function Decorations() {
+  return (
+    <>
+      <Image
+        source={require("../../assets/images/moon.png")}
+        style={styles.moon}
+      />
+
+      {STAR_COORDS.map((pos, i) => (
+        <Image
+          key={`star-${i}`}
+          source={require("../../assets/images/star.png")}
+          style={[styles.star, pos]}
+        />
+      ))}
+
+      {DANDELION_COORDS.map((pos, i) => (
+        <Image
+          key={`seed-${i}`}
+          source={require("../../assets/images/dandelion.png")}
+          style={[styles.seed, pos]}
+        />
+      ))}
+
+      {LEAF_COORDS.map((pos, i) => (
+        <Image
+          key={`leaf-${i}`}
+          source={require("../../assets/images/leaves.png")}
+          style={[styles.leaf, pos]}
+        />
+      ))}
+    </>
+  );
+}
+
+/* empty-state component ------------------------------------------------- */
+function EmptyState() {
+  return (
+    <View style={styles.emptyWrap}>
+      <Text style={styles.emptyTitle}>No stories yet</Text>
+      <TouchableOpacity
+        style={styles.emptyBtn}
+        onPress={() => router.push("/create")}
+      >
+        <Text style={styles.emptyBtnTxt}>Create Story</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+/* asset placement data -------------------------------------------------- */
+const STAR_COORDS = [
+  { top: 120, left: 40 },
+  { top: 160, left: 220 },
+  { top: 90, right: 60 },
+  { top: 210, right: 140 },
+  { top: 260, left: 120 },
+];
+
+const DANDELION_COORDS = [
+  { top: 140, left: 100, width: 28, height: 28, opacity: 0.25 },
+  { top: 60, right: 80, width: 32, height: 32, opacity: 0.3 },
+  { top: 220, right: 40, width: 24, height: 24, opacity: 0.2 },
+];
+
+const LEAF_COORDS = [
+  { top: 20, right: -30, width: 220, height: 220, opacity: 0.12 },
+  { bottom: -40, left: -60, width: 260, height: 260, opacity: 0.12 },
+];
+
+/* styles ---------------------------------------------------------------- */
+const glow = {
+  shadowColor: "#D4AF37",
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.55,
+  shadowRadius: 10,
+  elevation: 8,
+};
+
 const styles = StyleSheet.create({
-  container: {
+  bg: { flex: 1, backgroundColor: "#0f1129" },
+  safeArea: { flex: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 56 },
+  loadingScreen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0f1129",
   },
-  scrollView: {
-    flex: 1,
+
+  /* hero */
+  hero: { alignItems: "center", marginTop: 32, marginBottom: 48 },
+  brand: {
+    fontFamily: "PlayfairDisplay-Regular",
+    fontSize: width > 700 ? 64 : 56,
+    color: "#D4AF37",
   },
-  scrollContent: {
+  tagline: {
+    fontSize: width > 700 ? 24 : 20,
+    color: "#B8B8B8",
+    marginTop: 6,
+  },
+
+  /* CTA */
+  cta: {
+    position: "absolute",
+    right: 24,
+    backgroundColor: "#D4AF37",
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingVertical: 12,
+    borderRadius: 26,
+    zIndex: 20,
+    ...glow,
   },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 24,
-  },
-  emptyStateTitle: {
+  ctaTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
+
+  /* library */
+  sectionLabel: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
+    color: "#FFF",
+    letterSpacing: 1.6,
+    marginBottom: 24,
   },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
-  storiesContainer: {
-    paddingBottom: 24,
+  cardWrap: {
+    width: "32%",
+    marginBottom: 32,
+    borderColor: "#D4AF37",
+    borderWidth: 2,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.02)",
+    ...glow,
   },
+
+  /* empty state */
+  emptyWrap: { alignItems: "center", marginTop: 120 },
+  emptyTitle: {
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay-Regular",
+    color: "#D4AF37",
+    marginBottom: 24,
+  },
+  emptyBtn: {
+    backgroundColor: "#D4AF37",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 25,
+    ...glow,
+  },
+  emptyBtnTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
+
+  /* decorative sprites */
+  moon: {
+    position: "absolute",
+    top: 56,
+    left: 24,
+    width: 120,
+    height: 120,
+  },
+  star: {
+    position: "absolute",
+    width: 15,
+    height: 15,
+    opacity: 0.8,
+  },
+  seed: { position: "absolute" },
+  leaf: { position: "absolute" },
 });
