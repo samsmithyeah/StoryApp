@@ -8,10 +8,18 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
+  Easing,
   ImageBackground,
   RefreshControl,
   SafeAreaView,
@@ -28,7 +36,11 @@ import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+const isTablet = width >= 768;
+const emptyTop = Math.round(height * (isTablet ? 0.25 : 0.18));
+
+/* --------------------------------------------------------------------- */
 
 export default function LibraryScreen() {
   const { user } = useAuth();
@@ -38,7 +50,6 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  /* realtime listener ----------------------------------------------------- */
   useEffect(() => {
     if (!user) return;
 
@@ -75,7 +86,6 @@ export default function LibraryScreen() {
   const openStory = (story: Story) =>
     router.push({ pathname: "/story/[id]", params: { id: story.id } });
 
-  /* render ---------------------------------------------------------------- */
   if (loading) {
     return (
       <View style={styles.loadingScreen}>
@@ -90,7 +100,6 @@ export default function LibraryScreen() {
       resizeMode="cover"
       style={styles.bg}
     >
-      {/* radial dim to keep centre legible */}
       <LinearGradient
         colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
         style={StyleSheet.absoluteFill}
@@ -99,7 +108,6 @@ export default function LibraryScreen() {
       <Decorations />
 
       <SafeAreaView style={styles.safeArea}>
-        {/* floating CTA */}
         <TouchableOpacity
           style={[styles.cta, { top: insets.top + 12 }]}
           activeOpacity={0.85}
@@ -118,25 +126,27 @@ export default function LibraryScreen() {
             />
           }
         >
-          <View style={styles.hero}>
-            <Text style={styles.brand}>DreamWeaver</Text>
-            <Text style={styles.tagline}>Your bedtime adventures</Text>
-          </View>
-
-          <Text style={styles.sectionLabel}>LIBRARY</Text>
-
           {stories.length === 0 ? (
             <EmptyState />
           ) : (
-            <View style={styles.grid}>
-              {stories.map((story) => (
-                <StoryCard
-                  key={story.id}
-                  story={story}
-                  onPress={() => openStory(story)}
-                />
-              ))}
-            </View>
+            <>
+              <View style={styles.hero}>
+                <Text style={styles.brand}>DreamWeaver</Text>
+                <Text style={styles.tagline}>Your bedtime adventures</Text>
+              </View>
+
+              <Text style={styles.sectionLabel}>LIBRARY</Text>
+
+              <View style={styles.grid}>
+                {stories.map((story) => (
+                  <StoryCard
+                    key={story.id}
+                    story={story}
+                    onPress={() => openStory(story)}
+                  />
+                ))}
+              </View>
+            </>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -144,7 +154,8 @@ export default function LibraryScreen() {
   );
 }
 
-/* decorations ----------------------------------------------------------- */
+/* --------------------------------------------------------------------- */
+
 function Decorations() {
   return (
     <>
@@ -180,14 +191,54 @@ function Decorations() {
   );
 }
 
-/* empty-state component ------------------------------------------------- */
+/* --------------------------------------------------------------------- */
+
 function EmptyState() {
+  const drift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(drift, {
+          toValue: -8,
+          duration: 3500,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(drift, {
+          toValue: 0,
+          duration: 3500,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [drift]);
+
+  const butterflyStyle = useMemo(
+    () => [{ transform: [{ translateY: drift }] }, styles.emptyButterfly],
+    [drift]
+  );
+
   return (
-    <View style={styles.emptyWrap}>
-      <Text style={styles.emptyTitle}>No stories yet</Text>
+    <View style={[styles.emptyContainer, { paddingTop: emptyTop }]}>
+      <Animated.Image
+        source={require("../../assets/images/butterfly.png")}
+        style={butterflyStyle}
+      />
+
+      <Image
+        source={require("../../assets/images/teddy.png")}
+        style={styles.emptyBear}
+      />
+
+      <Text style={styles.emptyBrand}>DreamWeaver</Text>
+      <Text style={styles.emptyText}>No stories yet</Text>
+
       <TouchableOpacity
         style={styles.emptyBtn}
         onPress={() => router.push("/create")}
+        activeOpacity={0.85}
       >
         <Text style={styles.emptyBtnTxt}>Create Story</Text>
       </TouchableOpacity>
@@ -195,7 +246,8 @@ function EmptyState() {
   );
 }
 
-/* asset placement data -------------------------------------------------- */
+/* --------------------------------------------------------------------- */
+
 const STAR_COORDS = [
   { top: 120, left: 40 },
   { top: 160, left: 220 },
@@ -215,7 +267,8 @@ const LEAF_COORDS = [
   { bottom: -40, left: -60, width: 260, height: 260, opacity: 0.12 },
 ];
 
-/* styles ---------------------------------------------------------------- */
+/* --------------------------------------------------------------------- */
+
 const glow = {
   shadowColor: "#D4AF37",
   shadowOffset: { width: 0, height: 0 },
@@ -235,7 +288,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f1129",
   },
 
-  /* hero */
   hero: { alignItems: "center", marginTop: 32, marginBottom: 48 },
   brand: {
     fontFamily: "PlayfairDisplay-Regular",
@@ -248,7 +300,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* CTA */
   cta: {
     position: "absolute",
     right: 24,
@@ -261,7 +312,6 @@ const styles = StyleSheet.create({
   },
   ctaTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
 
-  /* library */
   sectionLabel: {
     fontSize: 20,
     color: "#FFF",
@@ -275,24 +325,6 @@ const styles = StyleSheet.create({
     gap: 20,
   },
 
-  /* empty state */
-  emptyWrap: { alignItems: "center", marginTop: 120 },
-  emptyTitle: {
-    fontSize: 28,
-    fontFamily: "PlayfairDisplay-Regular",
-    color: "#D4AF37",
-    marginBottom: 24,
-  },
-  emptyBtn: {
-    backgroundColor: "#D4AF37",
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 25,
-    ...glow,
-  },
-  emptyBtnTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
-
-  /* decorative sprites */
   moon: {
     position: "absolute",
     top: 36,
@@ -309,4 +341,52 @@ const styles = StyleSheet.create({
   },
   seed: { position: "absolute" },
   leaf: { position: "absolute" },
+
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingBottom: 80,
+  },
+  emptyBear: {
+    width: 140,
+    height: 140,
+    marginBottom: 24,
+    opacity: 0.95,
+  },
+  emptyBrand: {
+    fontSize: 48,
+    fontFamily: "PlayfairDisplay-Regular",
+    color: "#FCD34D",
+    marginBottom: 6,
+  },
+  emptyText: {
+    fontSize: 20,
+    color: "#fff",
+    marginBottom: 32,
+  },
+  emptyBtn: {
+    backgroundColor: "#FBBF24",
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+    borderRadius: 999,
+    shadowColor: "#FCD34D",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  emptyBtnTxt: {
+    fontSize: 18,
+    color: "#1a1b3a",
+    fontWeight: "600",
+  },
+  emptyButterfly: {
+    position: "absolute",
+    top: 30,
+    right: 36,
+    width: 48,
+    height: 48,
+    opacity: 0.9,
+  },
 });
