@@ -130,9 +130,11 @@ export default function LibraryScreen() {
           ) : (
             <View style={styles.grid}>
               {stories.map((story) => (
-                <View key={story.id} style={styles.cardWrap}>
-                  <StoryCard story={story} onPress={() => openStory(story)} />
-                </View>
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  onPress={() => openStory(story)}
+                />
               ))}
             </View>
           )}
@@ -270,16 +272,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-  cardWrap: {
-    width: "32%",
-    marginBottom: 32,
-    borderColor: "#D4AF37",
-    borderWidth: 2,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.02)",
-    ...glow,
+    gap: 20,
   },
 
   /* empty state */
@@ -302,10 +295,11 @@ const styles = StyleSheet.create({
   /* decorative sprites */
   moon: {
     position: "absolute",
-    top: 56,
+    top: 36,
     left: 24,
-    width: 120,
-    height: 120,
+    width: 160,
+    height: 160,
+    opacity: 0.7,
   },
   star: {
     position: "absolute",
