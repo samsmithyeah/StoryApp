@@ -1,6 +1,8 @@
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Button } from '../../ui/Button';
+import { Spacing } from '../../../constants/Theme';
 
 interface WizardFooterProps {
   onNext: () => void;
@@ -17,51 +19,20 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
 
   return (
     <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
-      <TouchableOpacity
-        style={[styles.nextButton, nextDisabled && styles.nextButtonDisabled]}
+      <Button
+        title={nextText}
         onPress={onNext}
         disabled={nextDisabled}
-      >
-        <Text
-          style={[
-            styles.nextButtonText,
-            nextDisabled && styles.nextButtonTextDisabled,
-          ]}
-        >
-          {nextText}
-        </Text>
-      </TouchableOpacity>
+        variant="wizard"
+        size="large"
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   footer: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  nextButton: {
-    backgroundColor: "#D4AF37",
-    borderRadius: 25,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  nextButtonDisabled: {
-    backgroundColor: "#374151",
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  nextButtonText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1a1b3a",
-  },
-  nextButtonTextDisabled: {
-    color: "#6B7280",
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.xl,
   },
 });

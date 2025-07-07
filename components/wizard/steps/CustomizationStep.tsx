@@ -73,6 +73,11 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
     name: "Minimalist",
     description: "Simple, clean designs",
   },
+  {
+    id: "custom",
+    name: "Custom",
+    description: "Create your own unique illustration style",
+  },
 ];
 
 interface CustomizationStepProps {
@@ -98,30 +103,50 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
   onBack,
   onCancel,
 }) => {
-  const [customStyle, setCustomStyle] = useState("");
+  // Check if the current style is a custom one (not in predefined list)
+  const isCurrentStyleCustom =
+    illustrationStyle &&
+    !ILLUSTRATION_STYLES.slice(0, -1).find((s) => s.id === illustrationStyle);
+
+  const [customStyle, setCustomStyle] = useState(
+    isCurrentStyleCustom ? illustrationStyle : ""
+  );
+  const [isCustomStyleSelected, setIsCustomStyleSelected] = useState(
+    isCurrentStyleCustom || illustrationStyle === "custom"
+  );
+
   const handleLengthSelect = (selectedLength: "short" | "medium" | "long") => {
     onUpdate({ length: selectedLength });
   };
 
   const handleStyleSelect = (selectedStyle: string) => {
-    onUpdate({ illustrationStyle: selectedStyle });
-    setCustomStyle(""); // Clear custom style when selecting predefined
+    if (selectedStyle === "custom") {
+      setIsCustomStyleSelected(true);
+      // If there's custom text, use it; otherwise use "custom" as placeholder
+      onUpdate({ illustrationStyle: customStyle.trim() || "custom" });
+    } else {
+      setIsCustomStyleSelected(false);
+      setCustomStyle(""); // Clear custom style when selecting predefined
+      onUpdate({ illustrationStyle: selectedStyle });
+    }
   };
 
   const handleIllustrationsToggle = (value: boolean) => {
     onUpdate({ enableIllustrations: value });
   };
 
-  const handleCustomStyleSubmit = () => {
-    if (customStyle.trim()) {
-      onUpdate({ illustrationStyle: customStyle.trim() });
+  const handleCustomStyleChange = (text: string) => {
+    setCustomStyle(text);
+    if (isCustomStyleSelected) {
+      // Update the selection with the typed text
+      onUpdate({ illustrationStyle: text.trim() || "custom" });
     }
   };
 
   return (
     <WizardContainer>
       <WizardStepHeader
-        title="Customize Story"
+        title="Customise story"
         subtitle="Choose the perfect length and illustration style"
         stepNumber={3}
         totalSteps={3}
@@ -198,7 +223,9 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                     false: "#374151",
                     true: "rgba(212, 175, 55, 0.3)",
                   }}
-                  thumbColor={enableIllustrations ? Colors.primary : Colors.textSecondary}
+                  thumbColor={
+                    enableIllustrations ? Colors.primary : Colors.textSecondary
+                  }
                 />
               </View>
             </View>
@@ -206,13 +233,18 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
 
           {enableIllustrations && (
             <>
-              <Text style={styles.subSectionTitle}>Choose a Style</Text>
+              <Text style={styles.subSectionTitle}>
+                Choose an illustration style
+              </Text>
               <View
                 style={isTablet ? styles.stylesListTablet : styles.stylesList}
               >
                 {ILLUSTRATION_STYLES.map((style) => {
                   const isSelected =
-                    style.id === illustrationStyle && !customStyle;
+                    style.id === "custom"
+                      ? isCustomStyleSelected
+                      : style.id === illustrationStyle &&
+                        !isCustomStyleSelected;
 
                   return (
                     <TouchableOpacity
@@ -240,7 +272,9 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                             isSelected && styles.selectedDescription,
                           ]}
                         >
-                          {style.description}
+                          {style.id === "custom" && customStyle
+                            ? customStyle
+                            : style.description}
                         </Text>
                       </View>
                       {isSelected && (
@@ -253,50 +287,27 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                 })}
               </View>
 
-              <View style={styles.customStyleSection}>
-                <Text style={styles.customStyleLabel}>
-                  Or describe your own style
-                </Text>
-                <View style={styles.customStyleInput}>
+              {isCustomStyleSelected && (
+                <View style={styles.customInputContainer}>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="e.g., vintage comic book style, hand-drawn sketches..."
+                    style={styles.customInput}
+                    placeholder="E.g. vintage comic book style, hand-drawn sketches..."
                     placeholderTextColor={Colors.textSecondary}
                     value={customStyle}
-                    onChangeText={setCustomStyle}
-                    onSubmitEditing={handleCustomStyleSubmit}
+                    onChangeText={handleCustomStyleChange}
                     returnKeyType="done"
+                    autoFocus={!customStyle}
                     multiline
                   />
-                  {customStyle.trim() && (
-                    <TouchableOpacity
-                      style={styles.customStyleButton}
-                      onPress={handleCustomStyleSubmit}
-                    >
-                      <IconSymbol name="checkmark" size={16} color={Colors.primary} />
-                    </TouchableOpacity>
-                  )}
                 </View>
-                {customStyle && illustrationStyle === customStyle.trim() && (
-                  <View style={styles.customStyleSelected}>
-                    <IconSymbol
-                      name="checkmark.circle.fill"
-                      size={16}
-                      color="#10B981"
-                    />
-                    <Text style={styles.customStyleSelectedText}>
-                      Custom style applied
-                    </Text>
-                  </View>
-                )}
-              </View>
+              )}
             </>
           )}
         </View>
       </ScrollView>
 
       {/* Footer */}
-      <WizardFooter onNext={onNext} nextText="Create Story" />
+      <WizardFooter onNext={onNext} nextText="Create story" />
     </WizardContainer>
   );
 };
@@ -475,46 +486,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 8,
   },
-  customStyleSection: {
-    marginTop: 20,
+  customInputContainer: {
+    marginTop: 12,
   },
-  customStyleLabel: {
-    fontSize: isTablet ? 16 : 14,
-    fontWeight: "500",
-    color: Colors.primary,
-    marginBottom: 8,
-  },
-  customStyleInput: {
-    flexDirection: "row",
-    alignItems: "flex-end",
+  customInput: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    minHeight: 44,
-  },
-  textInput: {
-    flex: 1,
     fontSize: 16,
     color: Colors.text,
-    paddingVertical: 4,
-    maxHeight: 80,
-  },
-  customStyleButton: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  customStyleSelected: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    gap: 6,
-  },
-  customStyleSelectedText: {
-    fontSize: isTablet ? 14 : 12,
-    color: "#10B981",
-    fontWeight: "500",
+    minHeight: 80,
   },
 });

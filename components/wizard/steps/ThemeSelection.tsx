@@ -1,18 +1,11 @@
+import { Colors } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import {
   generateThemeSuggestions,
   ThemeSuggestion,
 } from "@/services/firebase/stories";
-import { Colors } from "@/constants/Theme";
 import React, { useEffect, useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AISuggestedThemes } from "../shared/AISuggestedThemes";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";

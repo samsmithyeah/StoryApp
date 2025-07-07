@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
-import { DatePicker } from '../ui/DatePicker';
-import { Child } from '../../types/child.types';
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { Child } from "../../types/child.types";
+import { Button } from "../ui/Button";
+import { DatePicker } from "../ui/DatePicker";
+import { Input } from "../ui/Input";
 
 interface ChildProfileFormProps {
   child?: Child;
-  onSave: (child: Omit<Child, 'id'>) => Promise<void>;
+  onSave: (child: Omit<Child, "id">) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -26,9 +27,13 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [childName, setChildName] = useState(child?.childName || '');
-  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(child?.dateOfBirth);
-  const [childPreferences, setChildPreferences] = useState(child?.childPreferences || '');
+  const [childName, setChildName] = useState(child?.childName || "");
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
+    child?.dateOfBirth
+  );
+  const [childPreferences, setChildPreferences] = useState(
+    child?.childPreferences || ""
+  );
 
   const isEditing = !!child;
 
@@ -42,12 +47,12 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
 
   const validateForm = () => {
     if (!childName.trim()) {
-      Alert.alert('Error', 'Please enter the child\'s name');
+      Alert.alert("Error", "Please enter the child's name");
       return false;
     }
 
     if (!dateOfBirth) {
-      Alert.alert('Error', 'Please select the child\'s date of birth');
+      Alert.alert("Error", "Please select the child's date of birth");
       return false;
     }
 
@@ -55,12 +60,13 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
     const age = today.getFullYear() - dateOfBirth.getFullYear();
     const monthDiff = today.getMonth() - dateOfBirth.getMonth();
     const dayDiff = today.getDate() - dateOfBirth.getDate();
-    
+
     // Check if birthday hasn't occurred this year
-    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
-    
+    const actualAge =
+      monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
     if (actualAge < 0 || actualAge > 18) {
-      Alert.alert('Error', 'Child must be between 0 and 18 years old');
+      Alert.alert("Error", "Child must be between 0 and 18 years old");
       return false;
     }
 
@@ -80,37 +86,36 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
       await onSave(childData);
     } catch (error) {
       Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to save child profile'
+        "Error",
+        error instanceof Error ? error.message : "Failed to save child profile"
       );
     }
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.title}>
-            {isEditing ? 'Edit Profile' : 'Add New Child'}
+            {isEditing ? "Edit Profile" : "Add New Child"}
           </Text>
           <Text style={styles.subtitle}>
-            {isEditing 
-              ? 'Update your child\'s information'
-              : 'Tell us about your little one to create personalized stories'
-            }
+            {isEditing
+              ? "Update your child's information"
+              : "Tell us about your little one to create personalized stories"}
           </Text>
         </View>
 
         <View style={styles.form}>
           <Input
-            label="Child's Name"
+            label="Child's name"
             placeholder="Enter your child's name"
             value={childName}
             onChangeText={setChildName}
@@ -119,7 +124,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
           />
 
           <DatePicker
-            label="Date of Birth"
+            label="Date of birth"
             placeholder="Select your child's date of birth"
             value={dateOfBirth}
             onChange={setDateOfBirth}
@@ -130,7 +135,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
 
           <View style={styles.preferencesContainer}>
             <Input
-              label="Interests & Preferences"
+              label="Interests & preferences"
               placeholder="What does your child love? (e.g., dinosaurs, princesses, space, animals)"
               value={childPreferences}
               onChangeText={setChildPreferences}
@@ -138,7 +143,8 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
               style={styles.preferencesInput}
             />
             <Text style={styles.preferencesHint}>
-              This helps us create more personalized and engaging stories that your child will love!
+              This helps us create more personalized and engaging stories that
+              your child will love!
             </Text>
           </View>
         </View>
@@ -150,11 +156,12 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
             variant="outline"
             style={styles.cancelButton}
           />
-          
+
           <Button
-            title={isEditing ? 'Update Profile' : 'Add Child'}
+            title={isEditing ? "Update profile" : "Add child"}
             onPress={handleSave}
             loading={loading}
+            variant="primary"
             style={styles.saveButton}
           />
         </View>
@@ -166,49 +173,54 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "transparent",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.screenPadding,
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: Spacing.xxxl,
+    alignItems: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    fontSize: Typography.fontSize.h2,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+    fontFamily: Typography.fontFamily.primary,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
     lineHeight: 24,
+    textAlign: "center",
   },
   form: {
     flex: 1,
-    marginBottom: 32,
+    marginBottom: Spacing.xxxl,
   },
   preferencesContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   preferencesInput: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   preferencesHint: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.primary,
     lineHeight: 16,
-    marginLeft: 4,
+    marginLeft: Spacing.xs,
+    opacity: 0.8,
   },
   actions: {
-    flexDirection: 'row',
-    gap: 12,
+    flexDirection: "row",
+    gap: Spacing.md,
   },
   cancelButton: {
     flex: 1,

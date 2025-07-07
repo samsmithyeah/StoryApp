@@ -120,7 +120,7 @@ export default function LibraryScreen() {
           activeOpacity={0.85}
           onPress={() => router.push("/create")}
         >
-          <Text style={styles.ctaTxt}>Create Story</Text>
+          <Text style={styles.ctaTxt}>Create story</Text>
         </TouchableOpacity>
 
         <ScrollView
@@ -246,7 +246,7 @@ function EmptyState() {
         onPress={() => router.push("/create")}
         activeOpacity={0.85}
       >
-        <Text style={styles.emptyBtnTxt}>Create Story</Text>
+        <Text style={styles.emptyBtnTxt}>Create story</Text>
       </TouchableOpacity>
     </View>
   );

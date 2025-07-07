@@ -9,17 +9,25 @@ import {
   View 
 } from 'react-native';
 import { IconSymbol } from './IconSymbol';
+import {
+  Colors,
+  Typography,
+  Spacing,
+  CommonStyles,
+  Shadows,
+} from '../../constants/Theme';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'wizard' | 'danger';
   size?: 'small' | 'medium' | 'large';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   leftIcon?: string;
+  rightIcon?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -32,6 +40,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   leftIcon,
+  rightIcon,
 }) => {
   const buttonStyle = [
     styles.base,
@@ -58,7 +67,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'primary' ? '#FFFFFF' : '#6366F1'} 
+          color={getLoadingColor(variant)} 
           size="small" 
         />
       ) : (
@@ -67,15 +76,54 @@ export const Button: React.FC<ButtonProps> = ({
             <IconSymbol 
               name={leftIcon} 
               size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
-              color={variant === 'primary' ? '#FFFFFF' : '#6366F1'} 
+              color={getIconColor(variant)} 
               style={styles.leftIcon}
             />
           )}
           <Text style={textStyles}>{title}</Text>
+          {rightIcon && (
+            <IconSymbol 
+              name={rightIcon} 
+              size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
+              color={getIconColor(variant)} 
+              style={styles.rightIcon}
+            />
+          )}
         </View>
       )}
     </TouchableOpacity>
   );
+};
+
+const getLoadingColor = (variant: string) => {
+  switch (variant) {
+    case 'primary':
+    case 'wizard':
+      return Colors.textDark;
+    case 'secondary':
+      return Colors.primary;
+    case 'outline':
+    case 'danger':
+      return Colors.primary;
+    default:
+      return Colors.primary;
+  }
+};
+
+const getIconColor = (variant: string) => {
+  switch (variant) {
+    case 'primary':
+    case 'wizard':
+      return Colors.textDark;
+    case 'secondary':
+      return Colors.primary;
+    case 'outline':
+      return Colors.primary;
+    case 'danger':
+      return Colors.error;
+    default:
+      return Colors.primary;
+  }
 };
 
 const styles = StyleSheet.create({
@@ -88,68 +136,90 @@ const styles = StyleSheet.create({
   
   // Variants
   primary: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.primary,
     borderWidth: 0,
+    ...Shadows.glow,
   },
   secondary: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#6366F1',
+    borderColor: Colors.primary,
+  },
+  wizard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 25,
+    ...Shadows.glow,
+    borderWidth: 0,
+  },
+  danger: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: Colors.error,
   },
   
   // Sizes
   smallSize: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: Spacing.buttonPaddingSmall.horizontal,
+    paddingVertical: Spacing.buttonPaddingSmall.vertical,
     minHeight: 36,
   },
   mediumSize: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     minHeight: 44,
   },
   largeSize: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.buttonPadding.horizontal,
+    paddingVertical: Spacing.buttonPadding.vertical,
     minHeight: 52,
   },
   
   // Text styles
   text: {
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     textAlign: 'center',
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: Colors.textDark,
   },
   secondaryText: {
-    color: '#374151',
+    color: Colors.primary,
   },
   outlineText: {
-    color: '#6366F1',
+    color: Colors.primary,
+  },
+  wizardText: {
+    color: Colors.textDark,
+  },
+  dangerText: {
+    color: Colors.error,
   },
   
   // Text sizes
   smallText: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.buttonSmall,
   },
   mediumText: {
-    fontSize: 16,
+    fontSize: Typography.fontSize.button,
   },
   largeText: {
-    fontSize: 18,
+    fontSize: Typography.fontSize.large,
   },
   
   // Disabled states
   disabled: {
-    opacity: 0.5,
+    backgroundColor: '#374151',
+    shadowOpacity: 0,
+    elevation: 0,
+    borderColor: '#374151',
   },
   disabledText: {
-    opacity: 0.7,
+    color: Colors.textMuted,
   },
   
   // Content and icon styles
@@ -159,6 +229,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   leftIcon: {
-    marginRight: 8,
+    marginRight: Spacing.sm,
+  },
+  rightIcon: {
+    marginLeft: Spacing.sm,
   },
 });

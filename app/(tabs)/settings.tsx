@@ -1,32 +1,44 @@
-import React, { useState } from 'react';
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
   Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { IconSymbol } from '../../components/ui/IconSymbol';
-import { Button } from '../../components/ui/Button';
-import { ChildProfileCard } from '../../components/settings/ChildProfileCard';
-import { ChildProfileForm } from '../../components/settings/ChildProfileForm';
-import { useAuth } from '../../hooks/useAuth';
-import { useChildren } from '../../hooks/useChildren';
-import { Child } from '../../types/child.types';
+  Dimensions,
+  ImageBackground,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
+import { ChildProfileForm } from "../../components/settings/ChildProfileForm";
+import { Button } from "../../components/ui/Button";
+import { IconSymbol } from "../../components/ui/IconSymbol";
+import {
+  Colors,
+  CommonStyles,
+  Spacing,
+  Typography,
+} from "../../constants/Theme";
+import { useAuth } from "../../hooks/useAuth";
+import { useChildren } from "../../hooks/useChildren";
+import { Child } from "../../types/child.types";
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  const { 
-    children, 
-    loading, 
-    error, 
-    addChild, 
-    updateChild, 
+  const {
+    children,
+    loading,
+    error,
+    addChild,
+    updateChild,
     deleteChild,
-    clearError 
+    clearError,
   } = useChildren();
 
   const [showForm, setShowForm] = useState(false);
@@ -42,7 +54,7 @@ export default function SettingsScreen() {
     setShowForm(true);
   };
 
-  const handleSaveChild = async (childData: Omit<Child, 'id'>) => {
+  const handleSaveChild = async (childData: Omit<Child, "id">) => {
     try {
       if (editingChild) {
         await updateChild(editingChild.id, childData);
@@ -53,7 +65,7 @@ export default function SettingsScreen() {
       setEditingChild(null);
     } catch (error) {
       // Error handled in hook
-      console.error('Save child error:', error);
+      console.error("Save child error:", error);
     }
   };
 
@@ -61,7 +73,7 @@ export default function SettingsScreen() {
     try {
       await deleteChild(childId);
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete child profile');
+      Alert.alert("Error", "Failed to delete child profile");
     }
   };
 
@@ -71,164 +83,222 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: signOut,
-        },
-      ]
-    );
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: signOut,
+      },
+    ]);
   };
 
   if (showForm) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.formHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleCancelForm}
-          >
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-        
-        <ChildProfileForm
-          child={editingChild}
-          onSave={handleSaveChild}
-          onCancel={handleCancelForm}
-          loading={loading}
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
         />
-      </SafeAreaView>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.formHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleCancelForm}
+            >
+              <IconSymbol
+                name="chevron.left"
+                size={24}
+                color={Colors.primary}
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Settings</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          <ChildProfileForm
+            child={editingChild || undefined}
+            onSave={handleSaveChild}
+            onCancel={handleCancelForm}
+            loading={loading}
+          />
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>Manage your family and app preferences</Text>
-        </View>
+    <ImageBackground
+      source={require("../../assets/images/background-landscape.png")}
+      resizeMode="cover"
+      style={styles.container}
+    >
+      <LinearGradient
+        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={clearError}>
-              <IconSymbol name="xmark.circle" size={20} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
-        )}
+      <Decorations />
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Children's Profiles</Text>
-            <Text style={styles.sectionDescription}>
-              Add your children to create personalized stories
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.subtitle}>
+              Manage your family and app preferences
             </Text>
           </View>
 
-          {children.length === 0 ? (
-            <View style={styles.emptyState}>
-              <IconSymbol name="figure.child.circle" size={64} color="#D1D5DB" />
-              <Text style={styles.emptyStateTitle}>No children added yet</Text>
-              <Text style={styles.emptyStateText}>
-                Add your first child to start creating magical personalized stories
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.childrenList}>
-              {children.map((child) => (
-                <ChildProfileCard
-                  key={child.id}
-                  child={child}
-                  onEdit={handleEditChild}
-                  onDelete={handleDeleteChild}
-                />
-              ))}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={clearError}>
+                <IconSymbol name="xmark.circle" size={20} color="#EF4444" />
+              </TouchableOpacity>
             </View>
           )}
 
-          <Button
-            title="Add New Child"
-            onPress={handleAddChild}
-            leftIcon="plus"
-            variant="secondary"
-            style={styles.addButton}
-          />
-        </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Children's profiles</Text>
+              <Text style={styles.sectionDescription}>
+                Add your children to create personalised stories
+              </Text>
+            </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <View style={styles.accountInfo}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>
-                {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?'}
-              </Text>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>
-                {user?.displayName || 'User'}
-              </Text>
-              <Text style={styles.userEmail}>
-                {user?.email}
-              </Text>
-            </View>
+            {children.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  name="figure.child.circle"
+                  size={64}
+                  color="#D1D5DB"
+                />
+                <Text style={styles.emptyStateTitle}>
+                  No children added yet
+                </Text>
+                <Text style={styles.emptyStateText}>
+                  Add your first child to start creating magical personalized
+                  stories
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.childrenList}>
+                {children.map((child) => (
+                  <ChildProfileCard
+                    key={child.id}
+                    child={child}
+                    onEdit={handleEditChild}
+                    onDelete={handleDeleteChild}
+                  />
+                ))}
+              </View>
+            )}
+
+            <Button
+              title="Add another child"
+              onPress={handleAddChild}
+              leftIcon="plus"
+              variant="outline"
+              style={styles.addButton}
+            />
           </View>
 
-          <Button
-            title="Sign Out"
-            onPress={handleSignOut}
-            variant="outline"
-            style={styles.signOutButton}
-          />
-        </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account</Text>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            DreamWeaver v1.0.0
-          </Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            <View style={styles.accountInfo}>
+              <View style={styles.userAvatar}>
+                <Text style={styles.userAvatarText}>
+                  {user?.displayName?.charAt(0).toUpperCase() ||
+                    user?.email?.charAt(0).toUpperCase() ||
+                    "?"}
+                </Text>
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>
+                  {user?.displayName || "User"}
+                </Text>
+                <Text style={styles.userEmail}>{user?.email}</Text>
+              </View>
+            </View>
+
+            <Button
+              title="Sign Out"
+              onPress={handleSignOut}
+              variant="danger"
+              style={styles.signOutButton}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
+
+// Decorations component for background elements
+function Decorations() {
+  return (
+    <>
+      {/* Stars */}
+      {STAR_POSITIONS.map((pos, i) => (
+        <Image
+          key={`star-${i}`}
+          source={require("../../assets/images/star.png")}
+          style={[styles.star, pos]}
+        />
+      ))}
+    </>
+  );
+}
+
+const STAR_POSITIONS = [
+  { top: 80, left: 40 },
+  { top: 120, right: 60 },
+  { top: 200, left: 100 },
+  { bottom: 150, left: 60 },
+  { bottom: 100, right: 80 },
+];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
+  },
+  safeArea: {
+    flex: 1,
   },
   formHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.lg,
+    backgroundColor: "transparent",
   },
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: Typography.fontSize.h3,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.primary,
   },
   headerSpacer: {
     width: 40,
@@ -237,125 +307,132 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.screenPadding,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: Spacing.xxxl,
+    alignItems: "center",
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    ...CommonStyles.brandTitle,
+    fontSize: isTablet
+      ? Typography.fontSize.h1Tablet
+      : Typography.fontSize.h1Phone,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    padding: Spacing.md,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    marginBottom: 24,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    marginBottom: Spacing.screenPadding,
   },
   errorText: {
     flex: 1,
-    fontSize: 14,
-    color: '#EF4444',
+    fontSize: Typography.fontSize.small,
+    color: Colors.error,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: Spacing.xxxl,
   },
   sectionHeader: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.h4,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.xs,
+    fontFamily: Typography.fontFamily.primary,
   },
   sectionDescription: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 24,
+    alignItems: "center",
+    paddingVertical: Spacing.huge,
+    paddingHorizontal: Spacing.screenPadding,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: Typography.fontSize.large,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   emptyStateText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    textAlign: "center",
     lineHeight: 20,
   },
   childrenList: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   addButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
     borderWidth: 2,
-    borderColor: '#6366F1',
-    borderStyle: 'dashed',
+    borderColor: Colors.primary,
+    borderStyle: "dashed",
   },
   accountInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    padding: Spacing.lg,
+    borderRadius: 16,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
   },
   userAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
   },
   userAvatarText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: Typography.fontSize.large,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textDark,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: Typography.fontSize.medium,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
     marginBottom: 2,
   },
   userEmail: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
   },
   signOutButton: {
-    borderColor: '#EF4444',
+    borderColor: Colors.error,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
   },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+  star: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    opacity: 0.6,
   },
 });
