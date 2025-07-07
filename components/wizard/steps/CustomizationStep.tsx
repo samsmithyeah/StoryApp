@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Colors } from "@/constants/Theme";
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
   Switch,
+  Text,
   TextInput,
-} from 'react-native';
-import { Button } from '@/components/ui/Button';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { WizardContainer } from "../shared/WizardContainer";
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 interface Length {
-  id: 'short' | 'medium' | 'long';
+  id: "short" | "medium" | "long";
   name: string;
   description: string;
   pages: string;
@@ -26,59 +33,60 @@ interface IllustrationStyle {
 
 const LENGTHS: Length[] = [
   {
-    id: 'short',
-    name: 'Short',
-    description: 'Quick bedtime story',
-    pages: '3-4 pages',
+    id: "short",
+    name: "Short",
+    description: "Quick bedtime story",
+    pages: "3-4 pages",
   },
   {
-    id: 'medium',
-    name: 'Medium',
-    description: 'Perfect for most nights',
-    pages: '5-6 pages',
+    id: "medium",
+    name: "Medium",
+    description: "Perfect for most nights",
+    pages: "5-6 pages",
   },
   {
-    id: 'long',
-    name: 'Long',
-    description: 'Extended adventure',
-    pages: '7-8 pages',
+    id: "long",
+    name: "Long",
+    description: "Extended adventure",
+    pages: "7-8 pages",
   },
 ];
 
 const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   {
-    id: 'watercolor',
-    name: 'Watercolor',
-    description: 'Soft, dreamy paintings',
+    id: "watercolor",
+    name: "Watercolor",
+    description: "Soft, dreamy paintings",
   },
   {
-    id: 'cartoon',
-    name: 'Cartoon',
-    description: 'Playful, colorful drawings',
+    id: "cartoon",
+    name: "Cartoon",
+    description: "Playful, colorful drawings",
   },
   {
-    id: 'realistic',
-    name: 'Realistic',
-    description: 'Detailed, lifelike art',
+    id: "realistic",
+    name: "Realistic",
+    description: "Detailed, lifelike art",
   },
   {
-    id: 'minimalist',
-    name: 'Minimalist',
-    description: 'Simple, clean designs',
+    id: "minimalist",
+    name: "Minimalist",
+    description: "Simple, clean designs",
   },
 ];
 
 interface CustomizationStepProps {
-  length: 'short' | 'medium' | 'long';
+  length: "short" | "medium" | "long";
   illustrationStyle: string;
   enableIllustrations?: boolean;
-  onUpdate: (data: { 
-    length?: 'short' | 'medium' | 'long'; 
+  onUpdate: (data: {
+    length?: "short" | "medium" | "long";
     illustrationStyle?: string;
     enableIllustrations?: boolean;
   }) => void;
   onNext: () => void;
   onBack: () => void;
+  onCancel?: () => void;
 }
 
 export const CustomizationStep: React.FC<CustomizationStepProps> = ({
@@ -88,15 +96,16 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
   onUpdate,
   onNext,
   onBack,
+  onCancel,
 }) => {
-  const [customStyle, setCustomStyle] = useState('');
-  const handleLengthSelect = (selectedLength: 'short' | 'medium' | 'long') => {
+  const [customStyle, setCustomStyle] = useState("");
+  const handleLengthSelect = (selectedLength: "short" | "medium" | "long") => {
     onUpdate({ length: selectedLength });
   };
 
   const handleStyleSelect = (selectedStyle: string) => {
     onUpdate({ illustrationStyle: selectedStyle });
-    setCustomStyle(''); // Clear custom style when selecting predefined
+    setCustomStyle(""); // Clear custom style when selecting predefined
   };
 
   const handleIllustrationsToggle = (value: boolean) => {
@@ -110,34 +119,57 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Customize your story</Text>
-        <Text style={styles.subtitle}>
-          Choose the perfect length and illustration style
-        </Text>
-      </View>
+    <WizardContainer>
+      <WizardStepHeader
+        title="Customize Story"
+        subtitle="Choose the perfect length and illustration style"
+        stepNumber={3}
+        totalSteps={3}
+        onBack={onBack}
+        onCancel={onCancel}
+      />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Story Length</Text>
-          <View style={styles.lengthGrid}>
+          <View style={isTablet ? styles.lengthRow : styles.lengthColumn}>
             {LENGTHS.map((lengthOption) => {
               const isSelected = lengthOption.id === length;
-              
+
               return (
                 <TouchableOpacity
                   key={lengthOption.id}
-                  style={[styles.lengthCard, isSelected && styles.selectedCard]}
+                  style={[
+                    isTablet ? styles.lengthCardTablet : styles.lengthCard,
+                    isSelected && styles.selectedCard,
+                  ]}
                   onPress={() => handleLengthSelect(lengthOption.id)}
                 >
-                  <Text style={[styles.lengthName, isSelected && styles.selectedText]}>
+                  <Text
+                    style={[
+                      styles.lengthName,
+                      isSelected && styles.selectedText,
+                    ]}
+                  >
                     {lengthOption.name}
                   </Text>
-                  <Text style={[styles.lengthDescription, isSelected && styles.selectedDescription]}>
+                  <Text
+                    style={[
+                      styles.lengthDescription,
+                      isSelected && styles.selectedDescription,
+                    ]}
+                  >
                     {lengthOption.description}
                   </Text>
-                  <Text style={[styles.lengthPages, isSelected && styles.selectedText]}>
+                  <Text
+                    style={[
+                      styles.lengthPages,
+                      isSelected && styles.selectedText,
+                    ]}
+                  >
                     {lengthOption.pages}
                   </Text>
                   {isSelected && (
@@ -155,40 +187,65 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
           <View style={styles.toggleSection}>
             <View style={styles.toggleInfo}>
               <Text style={styles.sectionTitle}>Illustrations</Text>
-              <Text style={styles.toggleDescription}>
-                Add beautiful AI-generated illustrations to your story
-              </Text>
+              <View style={styles.descriptionRow}>
+                <Text style={styles.toggleDescription}>
+                  Add beautiful AI-generated illustrations to your story
+                </Text>
+                <Switch
+                  value={enableIllustrations}
+                  onValueChange={handleIllustrationsToggle}
+                  trackColor={{
+                    false: "#374151",
+                    true: "rgba(212, 175, 55, 0.3)",
+                  }}
+                  thumbColor={enableIllustrations ? Colors.primary : Colors.textSecondary}
+                />
+              </View>
             </View>
-            <Switch
-              value={enableIllustrations}
-              onValueChange={handleIllustrationsToggle}
-              trackColor={{ false: '#E5E7EB', true: '#C7D2FE' }}
-              thumbColor={enableIllustrations ? '#6366F1' : '#9CA3AF'}
-            />
           </View>
 
           {enableIllustrations && (
             <>
               <Text style={styles.subSectionTitle}>Choose a Style</Text>
-              <View style={styles.stylesGrid}>
+              <View
+                style={isTablet ? styles.stylesListTablet : styles.stylesList}
+              >
                 {ILLUSTRATION_STYLES.map((style) => {
-                  const isSelected = style.id === illustrationStyle && !customStyle;
-                  
+                  const isSelected =
+                    style.id === illustrationStyle && !customStyle;
+
                   return (
                     <TouchableOpacity
                       key={style.id}
-                      style={[styles.styleCard, isSelected && styles.selectedCard]}
+                      style={[
+                        isTablet
+                          ? styles.styleListCardTablet
+                          : styles.styleListCard,
+                        isSelected && styles.selectedCard,
+                      ]}
                       onPress={() => handleStyleSelect(style.id)}
                     >
-                      <Text style={[styles.styleName, isSelected && styles.selectedText]}>
-                        {style.name}
-                      </Text>
-                      <Text style={[styles.styleDescription, isSelected && styles.selectedDescription]}>
-                        {style.description}
-                      </Text>
+                      <View style={styles.styleInfo}>
+                        <Text
+                          style={[
+                            styles.styleName,
+                            isSelected && styles.selectedText,
+                          ]}
+                        >
+                          {style.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.styleDescription,
+                            isSelected && styles.selectedDescription,
+                          ]}
+                        >
+                          {style.description}
+                        </Text>
+                      </View>
                       {isSelected && (
-                        <View style={styles.selectedIndicator}>
-                          <IconSymbol name="checkmark" size={16} color="#FFFFFF" />
+                        <View style={styles.checkmark}>
+                          <Text style={styles.checkmarkText}>✓</Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -197,11 +254,14 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
               </View>
 
               <View style={styles.customStyleSection}>
-                <Text style={styles.customStyleLabel}>Or describe your own style</Text>
+                <Text style={styles.customStyleLabel}>
+                  Or describe your own style
+                </Text>
                 <View style={styles.customStyleInput}>
                   <TextInput
                     style={styles.textInput}
                     placeholder="e.g., vintage comic book style, hand-drawn sketches..."
+                    placeholderTextColor={Colors.textSecondary}
                     value={customStyle}
                     onChangeText={setCustomStyle}
                     onSubmitEditing={handleCustomStyleSubmit}
@@ -209,77 +269,39 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                     multiline
                   />
                   {customStyle.trim() && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.customStyleButton}
                       onPress={handleCustomStyleSubmit}
                     >
-                      <IconSymbol name="checkmark" size={16} color="#6366F1" />
+                      <IconSymbol name="checkmark" size={16} color={Colors.primary} />
                     </TouchableOpacity>
                   )}
                 </View>
                 {customStyle && illustrationStyle === customStyle.trim() && (
                   <View style={styles.customStyleSelected}>
-                    <IconSymbol name="checkmark.circle.fill" size={16} color="#10B981" />
-                    <Text style={styles.customStyleSelectedText}>Custom style applied</Text>
+                    <IconSymbol
+                      name="checkmark.circle.fill"
+                      size={16}
+                      color="#10B981"
+                    />
+                    <Text style={styles.customStyleSelectedText}>
+                      Custom style applied
+                    </Text>
                   </View>
                 )}
               </View>
             </>
           )}
         </View>
-
-        <View style={styles.infoSection}>
-          <IconSymbol name="info.circle" size={20} color="#6366F1" />
-          <Text style={styles.infoText}>
-            {enableIllustrations 
-              ? "Images are generated in the background so you can start reading immediately"
-              : "Text-only stories generate faster and are perfect for quick bedtime reading"
-            }
-          </Text>
-        </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          title="Back"
-          onPress={onBack}
-          variant="outline"
-          size="large"
-          style={styles.backButton}
-        />
-        <Button
-          title="Create Story"
-          onPress={onNext}
-          size="large"
-          leftIcon="sparkles"
-          style={styles.nextButton}
-        />
-      </View>
-    </View>
+      {/* Footer */}
+      <WizardFooter onNext={onNext} nextText="Create Story" />
+    </WizardContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FEFEFE',
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    lineHeight: 24,
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
@@ -288,127 +310,168 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: "600",
+    color: Colors.primary,
     marginBottom: 16,
   },
-  lengthGrid: {
+  lengthRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  lengthColumn: {
     gap: 12,
   },
   lengthCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
+    borderColor: "transparent",
+    position: "relative",
+  },
+  lengthCardTablet: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "transparent",
+    position: "relative",
   },
   selectedCard: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: "rgba(212, 175, 55, 0.2)",
+    borderColor: Colors.primary,
   },
   lengthName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 4,
   },
   lengthDescription: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: isTablet ? 16 : 14,
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   lengthPages: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#9CA3AF',
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: "500",
+    color: Colors.textSecondary,
   },
-  stylesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  stylesList: {
+    gap: 12,
+  },
+  stylesListTablet: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
     marginHorizontal: -6,
   },
-  styleCard: {
-    width: '50%',
-    padding: 6,
+  styleListCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  styleListCardTablet: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "transparent",
+    width: "48%",
+    marginHorizontal: 6,
+  },
+  styleInfo: {
+    flex: 1,
   },
   styleName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 4,
   },
   styleDescription: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: isTablet ? 15 : 13,
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
   selectedText: {
-    color: '#6366F1',
+    color: Colors.primary,
   },
   selectedDescription: {
-    color: '#6366F1',
+    color: Colors.primary,
   },
   selectedIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 12,
     right: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+  checkmarkText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: "bold",
   },
   infoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F9FF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
     padding: 16,
     borderRadius: 12,
     marginBottom: 32,
     gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
-    color: '#0369A1',
+    fontSize: isTablet ? 16 : 14,
+    color: Colors.primary,
     lineHeight: 20,
   },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-  },
-  nextButton: {
-    flex: 2,
-  },
   toggleSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 16,
     paddingVertical: 8,
   },
   toggleInfo: {
     flex: 1,
   },
+  descriptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   toggleDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
+    fontSize: isTablet ? 16 : 14,
+    color: Colors.textSecondary,
+    flex: 1,
+    paddingRight: 16,
   },
   subSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+    color: Colors.primary,
     marginBottom: 12,
     marginTop: 8,
   },
@@ -416,26 +479,26 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   customStyleLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: "500",
+    color: Colors.primary,
     marginBottom: 8,
   },
   customStyleInput: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     minHeight: 44,
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#111827',
+    fontSize: 16,
+    color: Colors.text,
     paddingVertical: 4,
     maxHeight: 80,
   },
@@ -444,14 +507,14 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   customStyleSelected: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
     gap: 6,
   },
   customStyleSelectedText: {
-    fontSize: 12,
-    color: '#059669',
-    fontWeight: '500',
+    fontSize: isTablet ? 14 : 12,
+    color: "#10B981",
+    fontWeight: "500",
   },
 });

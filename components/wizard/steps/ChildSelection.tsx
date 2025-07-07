@@ -1,6 +1,8 @@
 import { useChildren } from "@/hooks/useChildren";
 import { Child } from "@/types/child.types";
+import { Colors } from "@/constants/Theme";
 import { WizardFooter } from '../shared/WizardFooter';
+import { WizardStepHeader } from '../shared/WizardStepHeader';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
@@ -69,23 +71,14 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
           style={StyleSheet.absoluteFill}
         />
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.brand}>DreamWeaver</Text>
-            <Text style={styles.stepIndicator}>Step 1 of 4</Text>
-          </View>
-
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>Who's the story for?</Text>
-          <Text style={styles.subtitle}>Select one or more children</Text>
-        </View>
+        <WizardStepHeader
+          title="Who's the story for?"
+          subtitle="Select one or more children"
+          stepNumber={1}
+          totalSteps={3}
+          onBack={() => {}}
+          onCancel={onCancel}
+        />
 
         {/* Children List */}
         <ScrollView
@@ -161,8 +154,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                   onValueChange={(value) =>
                     onUpdate({ childrenAsCharacters: value })
                   }
-                  trackColor={{ false: "#374151", true: "#D4AF37" }}
-                  thumbColor={childrenAsCharacters ? "#FFFFFF" : "#9CA3AF"}
+                  trackColor={{ false: "#374151", true: Colors.primary }}
+                  thumbColor={childrenAsCharacters ? "#FFFFFF" : Colors.textSecondary}
                 />
               </View>
             </View>
@@ -189,58 +182,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f1129",
-  },
-  header: {
-    position: "relative",
-    paddingHorizontal: 24,
-    paddingTop: isTablet ? 60 : 10,
-    paddingBottom: 8,
-  },
-  cancelButton: {
-    position: "absolute",
-    top: isTablet ? 10 : -10,
-    right: 24,
-    padding: 8,
-  },
-  cancelText: {
-    color: "#D4AF37",
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
-  },
-  headerContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brand: {
-    fontSize: isTablet ? 48 : 32,
-    fontWeight: "600",
-    color: "#D4AF37",
-    fontFamily: "PlayfairDisplay-Regular",
-  },
-  stepIndicator: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 2,
-  },
-  titleSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "600",
-    color: "#D4AF37",
-    marginBottom: 4,
-    textAlign: "center",
-    fontFamily: "PlayfairDisplay-Regular",
-  },
-  subtitle: {
-    fontSize: isTablet ? 20 : 14,
-    color: "#9CA3AF",
-    textAlign: "center",
-    lineHeight: 22,
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
@@ -273,13 +215,13 @@ const styles = StyleSheet.create({
     width: isTablet ? 100 : 70,
     height: isTablet ? 100 : 70,
     borderRadius: isTablet ? 50 : 35,
-    backgroundColor: "#D4AF37",
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   selectedAvatar: {
-    backgroundColor: "#D4AF37",
-    shadowColor: "#D4AF37",
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -292,38 +234,38 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#D4AF37",
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   checkmarkText: {
-    color: "#1a1b3a",
+    color: Colors.textDark,
     fontSize: 14,
     fontWeight: "bold",
   },
   avatarText: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#1a1b3a",
+    color: Colors.textDark,
   },
   selectedAvatarText: {
-    color: "#1a1b3a",
+    color: Colors.textDark,
   },
   childName: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: Colors.text,
     textAlign: "center",
     marginBottom: 4,
   },
   childAge: {
     fontSize: isTablet ? 14 : 12,
-    color: "#9CA3AF",
+    color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 16,
   },
   selectedText: {
-    color: "#D4AF37",
+    color: Colors.primary,
   },
   addChildLink: {
     alignSelf: "center",
@@ -331,7 +273,7 @@ const styles = StyleSheet.create({
   },
   addChildText: {
     fontSize: 16,
-    color: "#D4AF37",
+    color: Colors.primary,
     fontWeight: "600",
     textAlign: "center",
   },
@@ -349,6 +291,6 @@ const styles = StyleSheet.create({
   switchTitle: {
     fontSize: isTablet ? 20 : 16,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: Colors.text,
   },
 });

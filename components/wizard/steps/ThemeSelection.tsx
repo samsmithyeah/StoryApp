@@ -3,6 +3,7 @@ import {
   generateThemeSuggestions,
   ThemeSuggestion,
 } from "@/services/firebase/stories";
+import { Colors } from "@/constants/Theme";
 import React, { useEffect, useState } from "react";
 import {
   Dimensions,
@@ -17,6 +18,7 @@ import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -183,29 +185,14 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 
   return (
     <WizardContainer>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-
-        <View style={styles.headerContent}>
-          <Text style={styles.brand}>DreamWeaver</Text>
-          <Text style={styles.stepIndicator}>Step 2 of 4</Text>
-        </View>
-
-        {onCancel && (
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelText}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Title */}
-      <View style={styles.titleSection}>
-        <Text style={styles.title}>Choose theme</Text>
-        <Text style={styles.subtitle}>What kind of story shall we create?</Text>
-      </View>
+      <WizardStepHeader
+        title="Choose Theme"
+        subtitle="What kind of story shall we create?"
+        stepNumber={2}
+        totalSteps={3}
+        onBack={onBack}
+        onCancel={onCancel}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -259,68 +246,6 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  header: {
-    position: "relative",
-    paddingHorizontal: 24,
-    paddingTop: isTablet ? 60 : 10,
-    paddingBottom: 8,
-  },
-  backButton: {
-    position: "absolute",
-    top: isTablet ? 10 : -10,
-    left: 24,
-    padding: 8,
-  },
-  backText: {
-    color: "#D4AF37",
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
-  },
-  cancelButton: {
-    position: "absolute",
-    top: isTablet ? 10 : -10,
-    right: 24,
-    padding: 8,
-  },
-  cancelText: {
-    color: "#D4AF37",
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
-  },
-  headerContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brand: {
-    fontSize: isTablet ? 48 : 32,
-    fontWeight: "600",
-    color: "#D4AF37",
-    fontFamily: "PlayfairDisplay-Regular",
-  },
-  stepIndicator: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 2,
-  },
-  titleSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "600",
-    color: "#D4AF37",
-    marginBottom: 4,
-    textAlign: "center",
-    fontFamily: "PlayfairDisplay-Regular",
-  },
-  subtitle: {
-    fontSize: isTablet ? 20 : 14,
-    color: "#9CA3AF",
-    textAlign: "center",
-    lineHeight: 22,
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
@@ -334,7 +259,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "600",
-    color: "#D4AF37",
+    color: Colors.primary,
     marginBottom: 12,
     textAlign: "left",
   },

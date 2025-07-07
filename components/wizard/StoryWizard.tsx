@@ -139,6 +139,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
+            onCancel={onCancel}
           />
         );
       case "generation":
@@ -154,7 +155,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {currentStep !== 'child' && currentStep !== 'theme' && (
+        {currentStep !== 'child' && currentStep !== 'theme' && currentStep !== 'customization' && (
           <WizardHeader
             title="Create Your Story"
             progress={progress}
