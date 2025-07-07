@@ -1,32 +1,46 @@
-import React, { useState } from 'react';
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
   Alert,
-} from 'react-native';
-import { IconSymbol } from '../../components/ui/IconSymbol';
-import { Button } from '../../components/ui/Button';
-import { StoryWizard } from '../../components/wizard/StoryWizard';
-import { useChildren } from '../../hooks/useChildren';
-import { StoryConfiguration } from '../../types/story.types';
-import { router } from 'expo-router';
+  Dimensions,
+  ImageBackground,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { StoryWizard } from "../../components/wizard/StoryWizard";
+import {
+  Colors,
+  CommonStyles,
+  Spacing,
+  Typography,
+} from "../../constants/Theme";
+import { useChildren } from "../../hooks/useChildren";
+import { StoryConfiguration } from "../../types/story.types";
+
+const { width } = Dimensions.get("window");
 
 export default function CreateScreen() {
   const { children } = useChildren();
   const [showWizard, setShowWizard] = useState(false);
 
-
   const handleCreateStory = () => {
     if (children.length === 0) {
       Alert.alert(
-        'No Children Added',
-        'Please add at least one child profile in Settings before creating a story.',
+        "No Children Added",
+        "Please add at least one child profile in Settings before creating a story.",
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Go to Settings', onPress: () => router.push('/(tabs)/settings') },
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Go to Settings",
+            onPress: () => router.push("/(tabs)/settings"),
+          },
         ]
       );
       return;
@@ -36,26 +50,27 @@ export default function CreateScreen() {
 
   const handleWizardComplete = async (wizardData: StoryConfiguration) => {
     setShowWizard(false);
-    
+
     try {
       // If we have a storyId, the story was already generated
       if (wizardData.storyId) {
         // Navigate directly to the story viewer
         router.push({
-          pathname: '/story/[id]',
-          params: { id: wizardData.storyId }
+          pathname: "/story/[id]",
+          params: { id: wizardData.storyId },
         });
       }
     } catch (error) {
-      console.error('Error navigating to story:', error);
+      console.error("Error navigating to story:", error);
       Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to load story. Please try again.',
-        [{ text: 'OK' }]
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to load story. Please try again.",
+        [{ text: "OK" }]
       );
     }
   };
-
 
   if (showWizard) {
     return (
@@ -67,113 +82,211 @@ export default function CreateScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Story</Text>
-          <Text style={styles.subtitle}>Let&apos;s create a magical bedtime story</Text>
-        </View>
+    <ImageBackground
+      source={require("../../assets/images/background-landscape.png")}
+      resizeMode="cover"
+      style={styles.container}
+    >
+      <LinearGradient
+        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        <View style={styles.mainContent}>
-          <View style={styles.illustrationContainer}>
-            <IconSymbol name="wand.and.stars" size={80} color="#6366F1" />
+      <Decorations />
+
+      <StatusBar style="light" />
+
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Create a story</Text>
+            <Text style={styles.subtitle}>
+              Create a personalised bedtime story for your child
+            </Text>
+
+            <TouchableOpacity
+              style={styles.wizardButton}
+              onPress={handleCreateStory}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.wizardButtonText}>Start</Text>
+            </TouchableOpacity>
+
+            <View style={styles.features}>
+              <View style={styles.featureItem}>
+                <Text style={styles.bullet}>●</Text>
+                <Text style={styles.featureText}>
+                  Feature your children in the story
+                </Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Text style={styles.bullet}>●</Text>
+                <Text style={styles.featureText}>
+                  Choose the theme and characters
+                </Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Text style={styles.bullet}>●</Text>
+                <Text style={styles.featureText}>
+                  Customise the length and illustrations
+                </Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Text style={styles.bullet}>●</Text>
+                <Text style={styles.featureText}>AI-powered creativity</Text>
+              </View>
+            </View>
           </View>
-
-          <Text style={styles.mainTitle}>Ready to create magic?</Text>
-          <Text style={styles.mainText}>
-            Our story wizard will help you craft a personalized bedtime adventure that your little one will love.
-          </Text>
-
-          <Button
-            title="Start Creating"
-            onPress={handleCreateStory}
-            size="large"
-            leftIcon="sparkles"
-            style={styles.createButton}
-          />
-
-          <View style={styles.features}>
-            <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color="#10B981" />
-              <Text style={styles.featureText}>Personalized for your child</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color="#10B981" />
-              <Text style={styles.featureText}>AI-generated illustrations</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <IconSymbol name="checkmark.circle.fill" size={20} color="#10B981" />
-              <Text style={styles.featureText}>6-8 page adventures</Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
+
+// Decorations component for background elements
+function Decorations() {
+  return (
+    <>
+      {/* Butterfly - top right */}
+      <Image
+        source={require("../../assets/images/butterfly.png")}
+        style={styles.butterfly}
+      />
+
+      {/* Leaves - various positions */}
+      <Image
+        source={require("../../assets/images/leaves.png")}
+        style={[styles.leaves, styles.leaves1]}
+      />
+      <Image
+        source={require("../../assets/images/leaves.png")}
+        style={[styles.leaves, styles.leaves2]}
+      />
+
+      {/* Stars */}
+      {STAR_POSITIONS.map((pos, i) => (
+        <Image
+          key={`star-${i}`}
+          source={require("../../assets/images/star.png")}
+          style={[styles.star, pos]}
+        />
+      ))}
+    </>
+  );
+}
+
+const STAR_POSITIONS = [
+  { top: 80, left: 40 },
+  { top: 120, right: 60 },
+  { top: 200, left: 100 },
+  { top: 250, right: 40 },
+  { bottom: 150, left: 60 },
+  { bottom: 100, right: 80 },
+];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
+  },
+  safeArea: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.screenPadding,
+    alignItems: "center",
   },
-  header: {
-    marginBottom: 32,
+  content: {
+    alignItems: "center",
+    paddingTop: 60,
+    maxWidth: 400,
+    width: "100%",
   },
+
+  // Header
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    ...CommonStyles.brandTitle,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.large,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.huge,
+    lineHeight: 26,
   },
-  mainContent: {
-    alignItems: 'center',
-    paddingVertical: 32,
+
+  // Wizard button
+  wizardButton: {
+    ...CommonStyles.primaryButton,
+    paddingHorizontal: Spacing.huge,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.huge,
   },
-  illustrationContainer: {
-    marginBottom: 32,
+  wizardButtonText: {
+    ...CommonStyles.buttonText,
+    fontSize: Typography.fontSize.large,
   },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  mainText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 24,
-  },
-  createButton: {
-    paddingHorizontal: 48,
-    marginBottom: 48,
-  },
+
+  // Features section
   features: {
-    width: '100%',
+    width: "100%",
+    maxWidth: 300,
   },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.lg,
+  },
+  bullet: {
+    color: Colors.primary,
+    fontSize: Typography.fontSize.small,
+    marginRight: Spacing.md,
+    marginTop: 2,
   },
   featureText: {
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 12,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    flex: 1,
+    lineHeight: 22,
+  },
+
+  // Decorative elements
+  butterfly: {
+    position: "absolute",
+    top: 60,
+    right: 30,
+    width: 100,
+    height: 100,
+    opacity: 0.8,
+  },
+  leaves: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    opacity: 0.3,
+  },
+  leaves1: {
+    top: 100,
+    left: -30,
+  },
+  leaves2: {
+    bottom: 80,
+    right: -20,
+  },
+  star: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    opacity: 0.6,
   },
 });
