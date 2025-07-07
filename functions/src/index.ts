@@ -12,6 +12,48 @@ setGlobalOptions({ maxInstances: 10 });
 
 admin.initializeApp();
 
+// Initialize storage bucket
+const bucket = admin.storage().bucket();
+
+// Function to upload image from URL to Firebase Storage
+async function uploadImageToStorage(
+  imageUrl: string,
+  userId: string,
+  storyId: string,
+  imageName: string
+): Promise<string> {
+  try {
+    // Fetch the image
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    const file = bucket.file(`stories/${userId}/${storyId}/${imageName}.png`);
+    
+    // Upload to Firebase Storage
+    await file.save(Buffer.from(buffer), {
+      metadata: {
+        contentType: 'image/png',
+      },
+      public: false, // Keep images private
+      validation: false, // Skip validation for performance
+    });
+    
+    // Get a signed URL that expires in 100 years (effectively permanent)
+    const [signedUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
+    });
+    
+    return signedUrl;
+  } catch (error) {
+    console.error('Error uploading image to Firebase Storage:', error);
+    throw error;
+  }
+}
+
 // Initialize OpenAI client lazily
 const getOpenAIClient = () => {
   const apiKey = openaiApiKey.value();
@@ -61,7 +103,8 @@ async function generateImagesInBackground(
   storyPages: StoryPage[],
   config: StoryGenerationRequest,
   averageAge: number,
-  openai: OpenAI
+  openai: OpenAI,
+  userId: string
 ): Promise<void> {
   const storyRef = admin.firestore().collection("stories").doc(storyId);
   let imagesGenerated = 0;
@@ -85,15 +128,32 @@ async function generateImagesInBackground(
       })
     );
 
-    const coverImageUrl = coverImageResponse.data?.[0]?.url || "";
+    const tempCoverImageUrl = coverImageResponse.data?.[0]?.url || "";
 
-    // Update cover image immediately
-    if (coverImageUrl) {
-      imagesGenerated++;
-      await storyRef.update({
-        coverImageUrl,
-        imagesGenerated,
-      });
+    // Upload to Firebase Storage and update immediately
+    if (tempCoverImageUrl) {
+      try {
+        const coverImageUrl = await uploadImageToStorage(
+          tempCoverImageUrl,
+          userId,
+          storyId,
+          'cover'
+        );
+        
+        imagesGenerated++;
+        await storyRef.update({
+          coverImageUrl,
+          imagesGenerated,
+        });
+      } catch (uploadError) {
+        console.error('Failed to upload cover image to storage:', uploadError);
+        // Still update with temporary URL as fallback
+        imagesGenerated++;
+        await storyRef.update({
+          coverImageUrl: tempCoverImageUrl,
+          imagesGenerated,
+        });
+      }
     }
 
     // Generate page images one by one
@@ -119,18 +179,38 @@ async function generateImagesInBackground(
             })
           );
 
-          const imageUrl = imageResponse.data?.[0]?.url || "";
+          const tempImageUrl = imageResponse.data?.[0]?.url || "";
 
-          if (imageUrl) {
-            // Update the specific page with the image
-            storyPages[i].imageUrl = imageUrl;
-            imagesGenerated++;
+          if (tempImageUrl) {
+            try {
+              // Upload to Firebase Storage
+              const imageUrl = await uploadImageToStorage(
+                tempImageUrl,
+                userId,
+                storyId,
+                `page-${i + 1}`
+              );
+              
+              // Update the specific page with the Firebase Storage URL
+              storyPages[i].imageUrl = imageUrl;
+              imagesGenerated++;
 
-            // Update Firestore with the new image
-            await storyRef.update({
-              [`storyContent.${i}.imageUrl`]: imageUrl,
-              imagesGenerated,
-            });
+              // Update Firestore with the new image
+              await storyRef.update({
+                [`storyContent.${i}.imageUrl`]: imageUrl,
+                imagesGenerated,
+              });
+            } catch (uploadError) {
+              console.error(`Failed to upload page ${i + 1} image to storage:`, uploadError);
+              // Still update with temporary URL as fallback
+              storyPages[i].imageUrl = tempImageUrl;
+              imagesGenerated++;
+              
+              await storyRef.update({
+                [`storyContent.${i}.imageUrl`]: tempImageUrl,
+                imagesGenerated,
+              });
+            }
           }
         } catch (error) {
           console.error(`Failed to generate image for page ${i + 1}:`, error);
@@ -341,7 +421,8 @@ Return the story in this JSON format:
           storyPages,
           data,
           averageAge,
-          openai
+          openai,
+          userId
         ).catch((error) => {
           console.error(
             `Background image generation failed for story ${storyRef.id}:`,

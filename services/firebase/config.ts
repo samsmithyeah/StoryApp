@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
 import { getFirestore } from '@react-native-firebase/firestore';
 import { getFunctions } from '@react-native-firebase/functions';
+import { getStorage } from '@react-native-firebase/storage';
 
 // Initialize Firebase app if not already initialized
 let app;
@@ -15,6 +16,7 @@ if (getApps().length === 0) {
 export const authService = getAuth(app);
 export const db = getFirestore(app);
 export const functionsService = getFunctions(app, 'us-central1');
+export const storageService = getStorage(app);
 
 // For development, you might want to use emulator
 // if (__DEV__) {

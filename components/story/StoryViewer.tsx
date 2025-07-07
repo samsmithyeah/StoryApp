@@ -139,7 +139,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             Generating illustrations... {story.imagesGenerated || 0} of {story.totalImages || 0}
           </Text>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.progressFill, { flex: progress }]} />
+            <View style={{ flex: 1 - progress }} />
           </View>
         </View>
       );
@@ -311,9 +312,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     borderRadius: 2,
     overflow: 'hidden',
+    flexDirection: 'row',
   },
   progressFill: {
-    height: '100%',
+    height: 4,
     backgroundColor: '#6366F1',
     borderRadius: 2,
   },

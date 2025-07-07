@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { usePathname, router } from 'expo-router';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { StoryViewer } from '../../components/story/StoryViewer';
 import { StoryTitleScreen } from '../../components/story/StoryTitleScreen';
@@ -11,7 +11,9 @@ import { Button } from '../../components/ui/Button';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 
 export default function StoryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const pathname = usePathname();
+  // Extract ID from pathname like "/story/abc123"
+  const id = pathname.split('/').pop() || '';
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

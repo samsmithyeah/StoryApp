@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 // Firebase web SDK configuration
 const firebaseConfig = {
@@ -25,6 +26,7 @@ if (!getApps().length) {
 export const webAuth = getAuth(app);
 export const webFirestore = getFirestore(app);
 export const webFunctions = getFunctions(app);
+export const webStorage = getStorage(app);
 
 // For development - connect to emulators if running locally
 if (__DEV__) {
@@ -32,6 +34,7 @@ if (__DEV__) {
   // connectAuthEmulator(webAuth, 'http://localhost:9099');
   // connectFirestoreEmulator(webFirestore, 'localhost', 8080);
   // connectFunctionsEmulator(webFunctions, 'localhost', 5001);
+  // connectStorageEmulator(webStorage, 'localhost', 9199);
 }
 
 export default app;
