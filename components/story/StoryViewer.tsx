@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { Story } from '@/types/story.types';
 import { IconSymbol } from '../ui/IconSymbol';
 import { Button } from '../ui/Button';
+import { useStorageUrls } from '@/hooks/useStorageUrl';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -25,6 +26,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Get authenticated URLs for all page images
+  const imagePaths = story.storyContent?.map(page => page.imageUrl) || [];
+  const imageUrls = useStorageUrls(imagePaths);
   
   // Calculate responsive image height
   const isLandscape = screenWidth > screenHeight;
@@ -66,16 +71,18 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   };
 
   const renderPage = (page: any, index: number) => {
+    const imageUrl = imageUrls[index];
+    
     return (
       <View key={index} style={styles.pageContainer}>
         <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
-          {page.imageUrl ? (
+          {imageUrl ? (
             <View style={[styles.imageContainer, { height: imageHeight }]}>
               {imageLoading[index] && (
                 <ActivityIndicator size="large" color="#6366F1" style={styles.imageLoader} />
               )}
               <Image
-                source={{ uri: page.imageUrl }}
+                source={{ uri: imageUrl }}
                 style={styles.pageImage}
                 onLoad={() => handleImageLoad(index)}
                 resizeMode="cover"

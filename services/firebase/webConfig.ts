@@ -1,8 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { initializeAuth, getAuth, connectAuthEmulator, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase web SDK configuration
 const firebaseConfig = {
@@ -23,7 +24,9 @@ if (!getApps().length) {
 }
 
 // Get Firebase services
-export const webAuth = getAuth(app);
+export const webAuth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 export const webFirestore = getFirestore(app);
 export const webFunctions = getFunctions(app);
 export const webStorage = getStorage(app);

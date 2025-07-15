@@ -70,3 +70,51 @@ export async function deleteImage(path: string): Promise<void> {
 export function getStoryImagePath(userId: string, storyId: string, imageName: string): string {
   return `stories/${userId}/${storyId}/${imageName}.png`;
 }
+
+/**
+ * Get an authenticated download URL for a storage path
+ * @param storagePath - The storage path (e.g., from Firestore)
+ * @returns The authenticated download URL
+ */
+export async function getAuthenticatedUrl(storagePath: string | null | undefined): Promise<string | null> {
+  if (!storagePath) return null;
+  
+  try {
+    // Check if it's already a full URL (for backwards compatibility)
+    if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
+      // For old signed URLs, we need to check if they're still valid
+      // If they're expired or invalid, we should return null to trigger fallback
+      try {
+        const response = await fetch(storagePath, { method: 'HEAD' });
+        if (response.ok) {
+          return storagePath;
+        } else {
+          console.warn('Signed URL is no longer valid, status:', response.status);
+          return null;
+        }
+      } catch (fetchError) {
+        console.warn('Error checking signed URL validity:', fetchError);
+        return null;
+      }
+    }
+    
+    // Get authenticated download URL for storage path
+    if (Platform.OS === 'web') {
+      const storageRef = storage.ref(storagePath);
+      return await storageRef.getDownloadURL();
+    } else {
+      const reference = storage.ref(storagePath);
+      return await reference.getDownloadURL();
+    }
+  } catch (error) {
+    console.error('Error getting authenticated URL for path:', storagePath, error);
+    
+    // If we get a "not found" error, it might mean the file doesn't exist
+    if (error.code === 'storage/object-not-found') {
+      console.error('Storage object not found. Path:', storagePath);
+      console.error('Expected format: stories/{userId}/{storyId}/{imageName}.png');
+    }
+    
+    return null;
+  }
+}

@@ -41,13 +41,11 @@ async function uploadImageToStorage(
       validation: false, // Skip validation for performance
     });
     
-    // Get a signed URL that expires in 100 years (effectively permanent)
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
-    });
+    // Return the storage path instead of a signed URL
+    // The client will use getDownloadURL() to get an authenticated URL
+    const storagePath = `stories/${userId}/${storyId}/${imageName}.png`;
     
-    return signedUrl;
+    return storagePath;
   } catch (error) {
     console.error('Error uploading image to Firebase Storage:', error);
     throw error;

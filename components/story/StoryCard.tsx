@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { IconSymbol } from "../ui/IconSymbol";
+import { useStorageUrl } from "@/hooks/useStorageUrl";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
@@ -31,7 +32,8 @@ interface StoryCardProps {
 
 export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
   const [imageError, setImageError] = React.useState(false);
-  const imageUrl = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
+  const storagePath = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
+  const imageUrl = useStorageUrl(storagePath);
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString("en-GB", {
