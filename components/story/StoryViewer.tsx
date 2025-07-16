@@ -77,7 +77,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [story]);
+  }, [story, fadeAnim, slideAnim]);
 
   const handleImageLoad = (index: number) =>
     setImageLoading((prev) => {

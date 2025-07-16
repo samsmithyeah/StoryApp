@@ -1,8 +1,10 @@
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, usePathname } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  ImageBackground,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -12,6 +14,7 @@ import { StoryTitleScreen } from "../../components/story/StoryTitleScreen";
 import { StoryViewer } from "../../components/story/StoryViewer";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
+import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { db } from "../../services/firebase/config";
 import { getStory } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
@@ -277,54 +280,106 @@ export default function StoryScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading your story...</Text>
-        </View>
-      </SafeAreaView>
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.fullHeight}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading your story...</Text>
+              <Text style={styles.loadingSubtext}>
+                Preparing your magical adventure
+              </Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <IconSymbol
-            name="exclamationmark.triangle"
-            size={64}
-            color="#EF4444"
-          />
-          <Text style={styles.errorTitle}>Oops!</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <Button
-            title="Go Back"
-            onPress={() => router.back()}
-            variant="outline"
-            style={styles.errorButton}
-          />
-        </View>
-      </SafeAreaView>
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.fullHeight}>
+          <View style={styles.errorContainer}>
+            <View style={styles.errorContent}>
+              <IconSymbol
+                name="exclamationmark.triangle"
+                size={64}
+                color={Colors.error}
+              />
+              <Text style={styles.errorTitle}>Oops!</Text>
+              <Text style={styles.errorText}>{error}</Text>
+              <Button
+                title="Go Back"
+                onPress={() => router.back()}
+                variant="outline"
+                style={styles.errorButton}
+              />
+            </View>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   if (!story) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <IconSymbol name="book.closed" size={64} color="#9CA3AF" />
-          <Text style={styles.errorTitle}>Story Not Found</Text>
-          <Text style={styles.errorText}>
-            The story you&apos;re looking for doesn&apos;t exist.
-          </Text>
-          <Button
-            title="Go Back"
-            onPress={() => router.back()}
-            variant="outline"
-            style={styles.errorButton}
-          />
-        </View>
-      </SafeAreaView>
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.fullHeight}>
+          <View style={styles.errorContainer}>
+            <View style={styles.errorContent}>
+              <IconSymbol
+                name="book.closed"
+                size={64}
+                color={Colors.textSecondary}
+              />
+              <Text style={styles.errorTitle}>Story Not Found</Text>
+              <Text style={styles.errorText}>
+                The story you&apos;re looking for doesn&apos;t exist.
+              </Text>
+              <Button
+                title="Go Back"
+                onPress={() => router.back()}
+                variant="outline"
+                style={styles.errorButton}
+              />
+            </View>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
@@ -352,41 +407,76 @@ export default function StoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.background,
+  },
+  fullHeight: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 48,
+    paddingHorizontal: Spacing.screenPadding,
+  },
+  loadingContent: {
+    alignItems: "center",
+    backgroundColor: Colors.cardBackground,
+    paddingVertical: Spacing.huge,
+    paddingHorizontal: Spacing.screenPadding,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    ...Shadows.glow,
   },
   loadingText: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 16,
+    fontSize: Typography.fontSize.large,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    textAlign: "center",
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  loadingSubtext: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
     textAlign: "center",
   },
   errorContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 48,
+    paddingHorizontal: Spacing.screenPadding,
+  },
+  errorContent: {
+    alignItems: "center",
+    backgroundColor: Colors.cardBackground,
+    paddingVertical: Spacing.huge,
+    paddingHorizontal: Spacing.screenPadding,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.error,
+    shadowColor: Colors.error,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#111827",
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: Typography.fontSize.h3,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
   },
   errorText: {
-    fontSize: 16,
-    color: "#6B7280",
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
-    marginBottom: 32,
+    marginBottom: Spacing.xxxl,
   },
   errorButton: {
-    paddingHorizontal: 32,
+    paddingHorizontal: Spacing.xxxl,
   },
 });
