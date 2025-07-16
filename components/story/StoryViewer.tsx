@@ -108,7 +108,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
    * Given the measured number of lines for this page, compute the full panel height.
    */
   const resolvePanelHeight = (lineCount: number, fontLineHeight: number) => {
-    const verticalPadding = isTablet ? Spacing.sm : Spacing.lg;
+    const verticalPadding = isTablet ? Spacing.xl : Spacing.lg;
     const pageNumberBlock = fontLineHeight + Spacing.xs; // number + margin
     return lineCount * fontLineHeight + verticalPadding + pageNumberBlock;
   };
