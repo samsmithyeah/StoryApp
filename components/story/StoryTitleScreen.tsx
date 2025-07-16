@@ -79,7 +79,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
           >
             <Text style={styles.title}>{story.title}</Text>
 
-            {coverImageUrl && (
+            {story.storyConfiguration?.enableIllustrations !== false && coverImageUrl && (
               <View style={styles.coverImageContainer}>
                 <Image
                   source={{ uri: coverImageUrl }}

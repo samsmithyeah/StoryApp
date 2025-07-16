@@ -118,6 +118,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     // Fallback text if page.text is undefined (should not happen in production)
     const pageText = page.text || "";
     const imageUrl = imageUrls[index];
+    const hasImages = story.storyConfiguration?.enableIllustrations !== false;
 
     /**
      * Height of the entire card, minus safe‑area and header
@@ -128,7 +129,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
     // If we haven't measured this page yet, use a placeholder height so layout is predictable.
     const measuredPanelHeight = textHeights[index] ?? 120;
-    const imageDisplayHeight = availableHeight - measuredPanelHeight;
+    const imageDisplayHeight = hasImages ? availableHeight - measuredPanelHeight : 0;
 
     /**
      * Callback invoked after RN lays out the <Text> element. We fire only once per page
@@ -151,61 +152,91 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       <View key={index} style={styles.pageContainer}>
         <View style={styles.pageContent}>
           <View style={[styles.storyCard, { height: availableHeight }]}>
-            {imageUrl ? (
-              <View
-                style={[styles.imageContainer, { height: imageDisplayHeight }]}
-              >
-                {imageLoading[index] && (
-                  <ActivityIndicator
-                    size="large"
-                    color={Colors.primary}
-                    style={styles.imageLoader}
-                  />
-                )}
-                <Image
-                  source={{ uri: imageUrl }}
-                  style={styles.pageImage}
-                  onLoad={() => handleImageLoad(index)}
-                  contentFit="cover"
-                />
-              </View>
-            ) : (
-              <View
-                style={[
-                  styles.placeholderImage,
-                  { height: imageDisplayHeight },
-                ]}
-              >
-                <IconSymbol name="photo" size={48} color={Colors.textMuted} />
-                {(story.imageGenerationStatus === "generating" ||
-                  story.imageGenerationStatus === "pending") && (
-                  <View style={styles.placeholderLoadingContainer}>
-                    <ActivityIndicator
-                      size="small"
-                      color={Colors.primary}
-                      style={styles.placeholderSpinner}
+            {hasImages && (
+              <>
+                {imageUrl ? (
+                  <View
+                    style={[styles.imageContainer, { height: imageDisplayHeight }]}
+                  >
+                    {imageLoading[index] && (
+                      <ActivityIndicator
+                        size="large"
+                        color={Colors.primary}
+                        style={styles.imageLoader}
+                      />
+                    )}
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.pageImage}
+                      onLoad={() => handleImageLoad(index)}
+                      contentFit="cover"
                     />
-                    <Text style={styles.placeholderText}>
-                      Image generating...
-                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.placeholderImage,
+                      { height: imageDisplayHeight },
+                    ]}
+                  >
+                    <IconSymbol name="photo" size={48} color={Colors.textMuted} />
+                    {(story.imageGenerationStatus === "generating" ||
+                      story.imageGenerationStatus === "pending") && (
+                      <View style={styles.placeholderLoadingContainer}>
+                        <ActivityIndicator
+                          size="small"
+                          color={Colors.primary}
+                          style={styles.placeholderSpinner}
+                        />
+                        <Text style={styles.placeholderText}>
+                          Image generating...
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 )}
-              </View>
+              </>
             )}
 
             {/* TEXT PANEL */}
             <View
-              style={[styles.textPanel, { height: measuredPanelHeight }]}
+              style={[
+                styles.textPanel,
+                !hasImages && styles.textPanelFullHeight,
+                !hasImages && styles.textPanelNoImages,
+                { height: hasImages ? measuredPanelHeight : availableHeight }
+              ]}
               /**
                * Hide until we know the actual height to prevent flicker on first render
                */
             >
-              <Text onTextLayout={handleTextLayout} style={styles.pageText}>
-                {pageText}
-              </Text>
-              <Text style={styles.pageNumber}>
-                Page {page.page} of {story.storyContent?.length || 0}
-              </Text>
+              {!hasImages ? (
+                <>
+                  <View style={styles.textContainer}>
+                    <Text 
+                      onTextLayout={handleTextLayout} 
+                      style={[
+                        styles.pageText,
+                        styles.pageTextLarge
+                      ]}
+                    >
+                      {pageText}
+                    </Text>
+                  </View>
+                  <Text style={styles.pageNumber}>
+                    Page {page.page} of {story.storyContent?.length || 0}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text onTextLayout={handleTextLayout} style={styles.pageText}>
+                    {pageText}
+                  </Text>
+                  <Text style={styles.pageNumber}>
+                    Page {page.page} of {story.storyContent?.length || 0}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -218,7 +249,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   const renderImageGenerationStatus = () => {
     if (
       story.imageGenerationStatus === "not_requested" ||
-      !story.storyConfiguration?.illustrationStyle
+      !story.storyConfiguration?.illustrationStyle ||
+      story.storyConfiguration?.enableIllustrations === false
     )
       return null;
 
@@ -475,6 +507,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  textPanelNoImages: {
+    justifyContent: "space-between",
+  },
+  textPanelFullHeight: {
+    paddingVertical: isTablet ? Spacing.xxl : Spacing.lg,
+    paddingHorizontal: isTablet ? Spacing.xl : Spacing.lg,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   pageText: {
     fontFamily: Typography.fontFamily.primary,
     color: Colors.textDark,
@@ -482,6 +526,11 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.regular,
     fontSize: isTablet ? Typography.fontSize.h3 : Typography.fontSize.medium,
     lineHeight: isTablet ? 28 : 22,
+  },
+  pageTextLarge: {
+    fontSize: isTablet ? Typography.fontSize.h1Phone : Typography.fontSize.h3,
+    lineHeight: isTablet ? 50 : 32,
+    fontWeight: Typography.fontWeight.medium,
   },
   pageNumber: {
     fontSize: isTablet ? Typography.fontSize.small : Typography.fontSize.micro,
