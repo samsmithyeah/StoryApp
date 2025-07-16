@@ -23,8 +23,6 @@ import {
   Easing,
   ImageBackground,
   RefreshControl,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -53,6 +51,8 @@ export default function LibraryScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const createButtonTranslateY = useRef(new Animated.Value(0)).current;
 
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
@@ -86,6 +86,32 @@ export default function LibraryScreen() {
   const openStory = (s: Story) =>
     router.push({ pathname: "/story/[id]", params: { id: s.id } });
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        const buttonHeight = 52;
+        const ctaBottomPosition = insets.top + 12 + buttonHeight;
+        // Different trigger points for mobile vs tablet
+        const triggerOffset = isTablet ? 190 : 90;
+        const triggerPoint = heroTop + triggerOffset - ctaBottomPosition;
+
+        if (offsetY > triggerPoint) {
+          const maxPushDistance = buttonHeight + 80;
+          const pushDistance = Math.min(
+            offsetY - triggerPoint,
+            maxPushDistance
+          );
+          createButtonTranslateY.setValue(-pushDistance);
+        } else {
+          createButtonTranslateY.setValue(0);
+        }
+      },
+    }
+  );
+
   /* ------------------------------------------------------------------ */
   if (loading) {
     return (
@@ -96,7 +122,8 @@ export default function LibraryScreen() {
   }
 
   /* hero offset so it never sits under the CTA */
-  const heroTop = isTablet ? 32 : insets.top + 32;
+  const ctaHeight = 52; // button height + padding
+  const heroTop = isTablet ? 120 : insets.top + ctaHeight + 100;
 
   return (
     <ImageBackground
@@ -113,18 +140,35 @@ export default function LibraryScreen() {
 
       <StatusBar style="light" />
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
         {/* floating CTA -------------------------------------------------- */}
-        <TouchableOpacity
-          style={[styles.cta, { top: insets.top + 12 }]}
-          activeOpacity={0.85}
-          onPress={() => router.push("/create")}
+        <Animated.View
+          style={[
+            styles.ctaContainer,
+            {
+              top: insets.top + 12,
+              transform: [{ translateY: createButtonTranslateY }],
+            },
+          ]}
         >
-          <Text style={styles.ctaTxt}>Create story</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cta}
+            activeOpacity={0.85}
+            onPress={() => router.push("/create")}
+          >
+            <Text style={styles.ctaTxt}>Create story</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
+        <Animated.ScrollView
+          style={[styles.scrollView, { marginTop: -insets.top }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: heroTop },
+          ]}
+          contentInsetAdjustmentBehavior="never"
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -137,7 +181,7 @@ export default function LibraryScreen() {
             <EmptyState />
           ) : (
             <>
-              <View style={[styles.hero, { marginTop: heroTop }]}>
+              <View style={styles.hero}>
                 <Text style={styles.brand}>DreamWeaver</Text>
                 <Text style={styles.tagline}>Your bedtime adventures</Text>
               </View>
@@ -155,8 +199,8 @@ export default function LibraryScreen() {
               </View>
             </>
           )}
-        </ScrollView>
-      </SafeAreaView>
+        </Animated.ScrollView>
+      </View>
     </ImageBackground>
   );
 }
@@ -287,8 +331,14 @@ const glow = {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: "#0f1129" },
-  safeArea: { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 56 },
+  container: { flex: 1 },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 56,
+  },
   loadingScreen: {
     flex: 1,
     alignItems: "center",
@@ -310,14 +360,16 @@ const styles = StyleSheet.create({
   },
 
   /* floating CTA ------------------------------------------------------ */
-  cta: {
+  ctaContainer: {
     position: "absolute",
     right: 24,
+    zIndex: 20,
+  },
+  cta: {
     backgroundColor: "#D4AF37",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 26,
-    zIndex: 20,
     ...glow,
   },
   ctaTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
