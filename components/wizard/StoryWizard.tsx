@@ -11,7 +11,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { WizardHeader } from "./WizardHeader";
 import { ChildSelection } from "./steps/ChildSelection";
 import { CustomizationStep } from "./steps/CustomizationStep";
 import { GenerationStep } from "./steps/GenerationStep";
@@ -41,10 +40,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [_isGenerating, setIsGenerating] = useState(false);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
-  const progress =
-    currentStep === "generation"
-      ? 100
-      : ((currentStepIndex + 1) / (WIZARD_STEPS.length - 1)) * 100;
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
     setWizardData((prev) => ({ ...prev, ...data }));
@@ -155,15 +150,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {currentStep !== "child" &&
-          currentStep !== "theme" &&
-          currentStep !== "customization" && (
-            <WizardHeader
-              title="Create Your Story"
-              progress={progress}
-              onClose={onCancel}
-            />
-          )}
         <View style={styles.content}>{renderStep()}</View>
       </KeyboardAvoidingView>
     </SafeAreaView>
