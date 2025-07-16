@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getAuthenticatedUrl } from '../services/firebase/storage';
+import { useEffect, useState } from "react";
+import { getAuthenticatedUrl } from "../services/firebase/storage";
 
 // Cache for download URLs to avoid repeated calls
 const urlCache = new Map<string, string>();
@@ -9,7 +9,9 @@ const urlCache = new Map<string, string>();
  * @param storagePath - The storage path from Firestore
  * @returns The authenticated download URL or null
  */
-export function useStorageUrl(storagePath: string | null | undefined): string | null {
+export function useStorageUrl(
+  storagePath: string | null | undefined
+): string | null {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,9 +32,9 @@ export function useStorageUrl(storagePath: string | null | undefined): string | 
 
     // Fetch the authenticated URL
     let cancelled = false;
-    
+
     getAuthenticatedUrl(storagePath)
-      .then(downloadUrl => {
+      .then((downloadUrl) => {
         if (!cancelled && downloadUrl) {
           urlCache.set(storagePath, downloadUrl);
           setUrl(downloadUrl);
@@ -40,8 +42,8 @@ export function useStorageUrl(storagePath: string | null | undefined): string | 
           setUrl(null);
         }
       })
-      .catch(error => {
-        console.error('Error in useStorageUrl:', error);
+      .catch((error) => {
+        console.error("Error in useStorageUrl:", error);
         if (!cancelled) {
           setUrl(null);
         }
@@ -65,7 +67,9 @@ export function useStorageUrl(storagePath: string | null | undefined): string | 
  * @param storagePaths - Array of storage paths
  * @returns Array of authenticated download URLs
  */
-export function useStorageUrls(storagePaths: (string | null | undefined)[]): (string | null)[] {
+export function useStorageUrls(
+  storagePaths: (string | null | undefined)[]
+): (string | null)[] {
   const [urls, setUrls] = useState<(string | null)[]>([]);
 
   useEffect(() => {
@@ -77,28 +81,30 @@ export function useStorageUrls(storagePaths: (string | null | undefined)[]): (st
     let cancelled = false;
 
     Promise.all(
-      storagePaths.map(path => {
+      storagePaths.map((path) => {
         if (!path) return Promise.resolve(null);
-        
+
         // Check cache first
         const cached = urlCache.get(path);
         if (cached) return Promise.resolve(cached);
-        
-        return getAuthenticatedUrl(path).then(url => {
+
+        return getAuthenticatedUrl(path).then((url) => {
           if (url) urlCache.set(path, url);
           return url;
         });
       })
-    ).then(results => {
-      if (!cancelled) {
-        setUrls(results);
-      }
-    }).catch(error => {
-      console.error('Error in useStorageUrls:', error);
-      if (!cancelled) {
-        setUrls(storagePaths.map(() => null));
-      }
-    });
+    )
+      .then((results) => {
+        if (!cancelled) {
+          setUrls(results);
+        }
+      })
+      .catch((error) => {
+        console.error("Error in useStorageUrls:", error);
+        if (!cancelled) {
+          setUrls(storagePaths.map(() => null));
+        }
+      });
 
     return () => {
       cancelled = true;

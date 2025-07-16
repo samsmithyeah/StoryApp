@@ -1,8 +1,8 @@
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Button } from '../../ui/Button';
-import { Spacing } from '../../../constants/Theme';
+import { Button } from "../../ui/Button";
+import { Spacing } from "../../../constants/Theme";
 
 interface WizardFooterProps {
   onNext: () => void;

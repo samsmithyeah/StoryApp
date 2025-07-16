@@ -19,6 +19,9 @@ interface ChildProfileFormProps {
   onSave: (child: Omit<Child, "id">) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  submitButtonText?: string;
+  showCancelButton?: boolean;
+  cancelButtonText?: string;
 }
 
 export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
@@ -26,6 +29,9 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   onSave,
   onCancel,
   loading = false,
+  submitButtonText = "Save Child",
+  showCancelButton = false,
+  cancelButtonText = "Cancel",
 }) => {
   const [childName, setChildName] = useState(child?.childName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
@@ -150,19 +156,25 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
         </View>
 
         <View style={styles.actions}>
-          <Button
-            title="Cancel"
-            onPress={onCancel}
-            variant="outline"
-            style={styles.cancelButton}
-          />
+          {showCancelButton && (
+            <Button
+              title={cancelButtonText}
+              onPress={onCancel}
+              variant="outline"
+              style={styles.cancelButton}
+            />
+          )}
 
           <Button
-            title={isEditing ? "Update profile" : "Add child"}
+            title={
+              submitButtonText || (isEditing ? "Update profile" : "Add child")
+            }
             onPress={handleSave}
             loading={loading}
             variant="primary"
-            style={styles.saveButton}
+            style={
+              showCancelButton ? styles.saveButton : styles.fullWidthButton
+            }
           />
         </View>
       </ScrollView>
@@ -227,5 +239,8 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 2,
+  },
+  fullWidthButton: {
+    flex: 1,
   },
 });

@@ -38,7 +38,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     illustrationStyle: "watercolor",
     enableIllustrations: true,
   });
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [_isGenerating, setIsGenerating] = useState(false);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
   const progress =
@@ -144,7 +144,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         );
       case "generation":
         return (
-          <GenerationStep isGenerating={isGenerating} onCancel={onCancel} />
+          <GenerationStep isGenerating={_isGenerating} onCancel={onCancel} />
         );
     }
   };
@@ -155,13 +155,15 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {currentStep !== 'child' && currentStep !== 'theme' && currentStep !== 'customization' && (
-          <WizardHeader
-            title="Create Your Story"
-            progress={progress}
-            onClose={onCancel}
-          />
-        )}
+        {currentStep !== "child" &&
+          currentStep !== "theme" &&
+          currentStep !== "customization" && (
+            <WizardHeader
+              title="Create Your Story"
+              progress={progress}
+              onClose={onCancel}
+            />
+          )}
         <View style={styles.content}>{renderStep()}</View>
       </KeyboardAvoidingView>
     </SafeAreaView>

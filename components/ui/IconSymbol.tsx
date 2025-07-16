@@ -1,11 +1,14 @@
 // Fallback for using MaterialIcons on Android and web.
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { SymbolWeight, SymbolViewProps } from "expo-symbols";
+import { ComponentProps } from "react";
+import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+type IconMapping = Record<
+  SymbolViewProps["name"],
+  ComponentProps<typeof MaterialIcons>["name"]
+>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -14,10 +17,23 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
+  "house.fill": "home",
+  "paperplane.fill": "send",
+  "chevron.left.forwardslash.chevron.right": "code",
+  "chevron.right": "chevron-right",
+  "chevron.down": "keyboard-arrow-down",
+  xmark: "close",
+  checkmark: "check",
+  plus: "add",
+  sparkles: "star",
+  "wand.and.stars": "auto-fix-high",
+  "books.vertical.fill": "library-books",
+  "plus.circle.fill": "add-circle",
+  gear: "settings",
+  "person.crop.circle.badge.plus": "person-add",
+  "person.fill": "person",
+  calendar: "calendar-today",
+  "heart.fill": "favorite",
 } as IconMapping;
 
 /**
@@ -31,11 +47,14 @@ export function IconSymbol({
   color,
   style,
 }: {
-  name: IconSymbolName;
+  name: IconSymbolName | string;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconName = MAPPING[name as IconSymbolName] || "help";
+  return (
+    <MaterialIcons color={color} size={size} name={iconName} style={style} />
+  );
 }

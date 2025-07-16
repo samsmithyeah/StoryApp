@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-} from 'react-native';
-import { Button } from '@/components/ui/Button';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+} from "react-native";
+import { Button } from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
 
 interface CharacterSelectionProps {
   selectedCharacters: string[];
@@ -18,18 +18,18 @@ interface CharacterSelectionProps {
 }
 
 const SUGGESTED_CHARACTERS = [
-  'Friendly Dragon',
-  'Wise Owl',
-  'Brave Knight',
-  'Magic Unicorn',
-  'Talking Robot',
-  'Silly Monster',
-  'Flying Fairy',
-  'Pirate Captain',
-  'Space Explorer',
-  'Dinosaur Friend',
-  'Mermaid Princess',
-  'Superhero Cat',
+  "Friendly Dragon",
+  "Wise Owl",
+  "Brave Knight",
+  "Magic Unicorn",
+  "Talking Robot",
+  "Silly Monster",
+  "Flying Fairy",
+  "Pirate Captain",
+  "Space Explorer",
+  "Dinosaur Friend",
+  "Mermaid Princess",
+  "Superhero Cat",
 ];
 
 export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
@@ -38,7 +38,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   onNext,
   onBack,
 }) => {
-  const [customCharacter, setCustomCharacter] = useState('');
+  const [customCharacter, setCustomCharacter] = useState("");
 
   const toggleCharacter = (character: string) => {
     if (selectedCharacters.includes(character)) {
@@ -49,9 +49,12 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   };
 
   const addCustomCharacter = () => {
-    if (customCharacter.trim() && !selectedCharacters.includes(customCharacter.trim())) {
+    if (
+      customCharacter.trim() &&
+      !selectedCharacters.includes(customCharacter.trim())
+    ) {
       onSelect([...selectedCharacters, customCharacter.trim()]);
-      setCustomCharacter('');
+      setCustomCharacter("");
     }
   };
 
@@ -66,20 +69,31 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.suggestedSection}>
           <Text style={styles.sectionTitle}>Suggested Characters</Text>
           <View style={styles.charactersGrid}>
             {SUGGESTED_CHARACTERS.map((character) => {
               const isSelected = selectedCharacters.includes(character);
-              
+
               return (
                 <TouchableOpacity
                   key={character}
-                  style={[styles.characterChip, isSelected && styles.selectedChip]}
+                  style={[
+                    styles.characterChip,
+                    isSelected && styles.selectedChip,
+                  ]}
                   onPress={() => toggleCharacter(character)}
                 >
-                  <Text style={[styles.characterText, isSelected && styles.selectedText]}>
+                  <Text
+                    style={[
+                      styles.characterText,
+                      isSelected && styles.selectedText,
+                    ]}
+                  >
                     {character}
                   </Text>
                   {isSelected && (
@@ -114,7 +128,9 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
 
         {selectedCharacters.length > 0 && (
           <View style={styles.selectedSection}>
-            <Text style={styles.sectionTitle}>Your Characters ({selectedCharacters.length})</Text>
+            <Text style={styles.sectionTitle}>
+              Your Characters ({selectedCharacters.length})
+            </Text>
             <View style={styles.selectedList}>
               {selectedCharacters.map((character) => (
                 <View key={character} style={styles.selectedItem}>
@@ -123,7 +139,11 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
                     onPress={() => toggleCharacter(character)}
                     style={styles.removeButton}
                   >
-                    <IconSymbol name="xmark.circle.fill" size={20} color="#EF4444" />
+                    <IconSymbol
+                      name="xmark.circle.fill"
+                      size={20}
+                      color="#EF4444"
+                    />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -155,7 +175,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "#FEFEFE",
   },
   header: {
     paddingHorizontal: 24,
@@ -164,13 +184,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: "bold",
+    color: "#111827",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 24,
   },
   scrollView: {
@@ -182,52 +202,52 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 16,
   },
   charactersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -4,
   },
   characterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     margin: 4,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: 6,
   },
   selectedChip: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
   },
   characterText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
   },
   selectedText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   customSection: {
     marginBottom: 32,
   },
   customInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   customInput: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -237,11 +257,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
   },
   selectedSection: {
     marginBottom: 32,
@@ -250,26 +270,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   selectedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F9FAFB",
     padding: 12,
     borderRadius: 8,
   },
   selectedItemText: {
     fontSize: 14,
-    color: '#111827',
+    color: "#111827",
   },
   removeButton: {
     padding: 4,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: "#E5E7EB",
     gap: 12,
   },
   backButton: {

@@ -1,6 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
-import { IconSymbol } from '../ui/IconSymbol';
+import React from "react";
+import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 
 interface GoogleSignInButtonProps {
   onPress: () => void;
@@ -25,7 +24,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           <Text style={styles.googleIcon}>G</Text>
         </View>
         <Text style={styles.text}>
-          {loading ? 'Signing in...' : 'Continue with Google'}
+          {loading ? "Signing in..." : "Continue with Google"}
         </Text>
       </View>
     </TouchableOpacity>
@@ -34,15 +33,15 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     minHeight: 48,
     marginVertical: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -55,25 +54,25 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconContainer: {
     width: 20,
     height: 20,
     marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   googleIcon: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4285F4',
+    fontWeight: "bold",
+    color: "#4285F4",
   },
   text: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
 });

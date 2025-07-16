@@ -28,26 +28,26 @@ async function uploadImageToStorage(
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
-    
+
     const buffer = await response.arrayBuffer();
     const file = bucket.file(`stories/${userId}/${storyId}/${imageName}.png`);
-    
+
     // Upload to Firebase Storage
     await file.save(Buffer.from(buffer), {
       metadata: {
-        contentType: 'image/png',
+        contentType: "image/png",
       },
       public: false, // Keep images private
       validation: false, // Skip validation for performance
     });
-    
+
     // Return the storage path instead of a signed URL
     // The client will use getDownloadURL() to get an authenticated URL
     const storagePath = `stories/${userId}/${storyId}/${imageName}.png`;
-    
+
     return storagePath;
   } catch (error) {
-    console.error('Error uploading image to Firebase Storage:', error);
+    console.error("Error uploading image to Firebase Storage:", error);
     throw error;
   }
 }
@@ -135,16 +135,16 @@ async function generateImagesInBackground(
           tempCoverImageUrl,
           userId,
           storyId,
-          'cover'
+          "cover"
         );
-        
+
         imagesGenerated++;
         await storyRef.update({
           coverImageUrl,
           imagesGenerated,
         });
       } catch (uploadError) {
-        console.error('Failed to upload cover image to storage:', uploadError);
+        console.error("Failed to upload cover image to storage:", uploadError);
         // Still update with temporary URL as fallback
         imagesGenerated++;
         await storyRef.update({
@@ -188,7 +188,7 @@ async function generateImagesInBackground(
                 storyId,
                 `page-${i + 1}`
               );
-              
+
               // Update the specific page with the Firebase Storage URL
               storyPages[i].imageUrl = imageUrl;
               imagesGenerated++;
@@ -199,11 +199,14 @@ async function generateImagesInBackground(
                 imagesGenerated,
               });
             } catch (uploadError) {
-              console.error(`Failed to upload page ${i + 1} image to storage:`, uploadError);
+              console.error(
+                `Failed to upload page ${i + 1} image to storage:`,
+                uploadError
+              );
               // Still update with temporary URL as fallback
               storyPages[i].imageUrl = tempImageUrl;
               imagesGenerated++;
-              
+
               await storyRef.update({
                 [`storyContent.${i}.imageUrl`]: tempImageUrl,
                 imagesGenerated,

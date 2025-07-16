@@ -1,11 +1,6 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { IconSymbol } from '../ui/IconSymbol';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { IconSymbol } from "../ui/IconSymbol";
 
 interface WizardHeaderProps {
   title: string;
@@ -37,28 +32,28 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 12,
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   closeButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   progressContainer: {
     paddingHorizontal: 24,
@@ -66,13 +61,13 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#6366F1',
+    height: "100%",
+    backgroundColor: "#6366F1",
     borderRadius: 2,
   },
 });

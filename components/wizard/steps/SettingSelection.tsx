@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import { Button } from '@/components/ui/Button';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+} from "react-native";
+import { Button } from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
 
 interface Setting {
   id: string;
@@ -18,40 +18,40 @@ interface Setting {
 
 const SETTINGS: Setting[] = [
   {
-    id: 'enchanted-forest',
-    name: 'Enchanted Forest',
-    icon: 'tree.fill',
-    description: 'Magical woods with talking trees',
+    id: "enchanted-forest",
+    name: "Enchanted Forest",
+    icon: "tree.fill",
+    description: "Magical woods with talking trees",
   },
   {
-    id: 'cozy-bedroom',
-    name: 'Cozy Bedroom',
-    icon: 'bed.double.fill',
-    description: 'A warm, safe place to dream',
+    id: "cozy-bedroom",
+    name: "Cozy Bedroom",
+    icon: "bed.double.fill",
+    description: "A warm, safe place to dream",
   },
   {
-    id: 'outer-space',
-    name: 'Outer Space',
-    icon: 'star.fill',
-    description: 'Among the stars and planets',
+    id: "outer-space",
+    name: "Outer Space",
+    icon: "star.fill",
+    description: "Among the stars and planets",
   },
   {
-    id: 'underwater-kingdom',
-    name: 'Underwater Kingdom',
-    icon: 'drop.fill',
-    description: 'Beneath the waves',
+    id: "underwater-kingdom",
+    name: "Underwater Kingdom",
+    icon: "drop.fill",
+    description: "Beneath the waves",
   },
   {
-    id: 'cloud-castle',
-    name: 'Cloud Castle',
-    icon: 'cloud.fill',
-    description: 'High above in the sky',
+    id: "cloud-castle",
+    name: "Cloud Castle",
+    icon: "cloud.fill",
+    description: "High above in the sky",
   },
   {
-    id: 'magical-garden',
-    name: 'Magical Garden',
-    icon: 'leaf.fill',
-    description: 'Where flowers sing',
+    id: "magical-garden",
+    name: "Magical Garden",
+    icon: "leaf.fill",
+    description: "Where flowers sing",
   },
 ];
 
@@ -83,28 +83,46 @@ export const SettingSelection: React.FC<SettingSelectionProps> = ({
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.settingsGrid}>
           {SETTINGS.map((setting) => {
             const isSelected = setting.id === selectedSetting;
-            
+
             return (
               <TouchableOpacity
                 key={setting.id}
                 style={[styles.settingCard, isSelected && styles.selectedCard]}
                 onPress={() => handleSettingSelect(setting.id)}
               >
-                <View style={[styles.iconContainer, isSelected && styles.selectedIconContainer]}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    isSelected && styles.selectedIconContainer,
+                  ]}
+                >
                   <IconSymbol
                     name={setting.icon}
                     size={40}
-                    color={isSelected ? '#FFFFFF' : '#6366F1'}
+                    color={isSelected ? "#FFFFFF" : "#6366F1"}
                   />
                 </View>
-                <Text style={[styles.settingName, isSelected && styles.selectedText]}>
+                <Text
+                  style={[
+                    styles.settingName,
+                    isSelected && styles.selectedText,
+                  ]}
+                >
                   {setting.name}
                 </Text>
-                <Text style={[styles.settingDescription, isSelected && styles.selectedDescription]}>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    isSelected && styles.selectedDescription,
+                  ]}
+                >
                   {setting.description}
                 </Text>
               </TouchableOpacity>
@@ -136,7 +154,7 @@ export const SettingSelection: React.FC<SettingSelectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "#FEFEFE",
   },
   header: {
     paddingHorizontal: 24,
@@ -145,13 +163,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: "bold",
+    color: "#111827",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 24,
   },
   scrollView: {
@@ -162,55 +180,55 @@ const styles = StyleSheet.create({
     marginHorizontal: -8,
   },
   settingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
     padding: 16,
     marginVertical: 6,
     marginHorizontal: 8,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   selectedCard: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#6366F1',
+    backgroundColor: "#F3F4F6",
+    borderColor: "#6366F1",
   },
   iconContainer: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   selectedIconContainer: {
-    backgroundColor: '#6366F1',
+    backgroundColor: "#6366F1",
   },
   settingName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 20,
   },
   selectedText: {
-    color: '#6366F1',
+    color: "#6366F1",
   },
   selectedDescription: {
-    color: '#6366F1',
+    color: "#6366F1",
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: "#E5E7EB",
     gap: 12,
   },
   backButton: {

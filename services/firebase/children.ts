@@ -1,36 +1,43 @@
-import { collection, doc, getDoc, updateDoc } from '@react-native-firebase/firestore';
-import { authService, db } from './config';
-import { Child } from '../../types/child.types';
+import {
+  collection,
+  doc,
+  getDoc,
+  updateDoc,
+} from "@react-native-firebase/firestore";
+import { authService, db } from "./config";
+import { Child } from "../../types/child.types";
 
 // Get children for the current user
 export const getChildren = async (): Promise<Child[]> => {
   const user = authService.currentUser;
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db, "users", user.uid);
   const userDoc = await getDoc(userDocRef);
   const userData = userDoc.data();
-  
+
   const children = userData?.children || [];
-  
+
   // Convert Firestore timestamps back to Date objects
   return children.map((child: any) => ({
     ...child,
-    dateOfBirth: child.dateOfBirth?.toDate ? child.dateOfBirth.toDate() : new Date(child.dateOfBirth),
+    dateOfBirth: child.dateOfBirth?.toDate
+      ? child.dateOfBirth.toDate()
+      : new Date(child.dateOfBirth),
   }));
 };
 
 // Add a new child
-export const addChild = async (child: Omit<Child, 'id'>): Promise<Child> => {
+export const addChild = async (child: Omit<Child, "id">): Promise<Child> => {
   const user = authService.currentUser;
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
   const newChild: Child = {
     ...child,
     id: Date.now().toString(), // Simple ID generation
   };
 
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db, "users", user.uid);
   const userDoc = await getDoc(userDocRef);
   const userData = userDoc.data();
   const currentChildren = userData?.children || [];
@@ -43,11 +50,14 @@ export const addChild = async (child: Omit<Child, 'id'>): Promise<Child> => {
 };
 
 // Update an existing child
-export const updateChild = async (childId: string, updates: Partial<Omit<Child, 'id'>>): Promise<void> => {
+export const updateChild = async (
+  childId: string,
+  updates: Partial<Omit<Child, "id">>
+): Promise<void> => {
   const user = authService.currentUser;
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db, "users", user.uid);
   const userDoc = await getDoc(userDocRef);
   const userData = userDoc.data();
   const currentChildren = userData?.children || [];
@@ -64,14 +74,16 @@ export const updateChild = async (childId: string, updates: Partial<Omit<Child, 
 // Delete a child
 export const deleteChild = async (childId: string): Promise<void> => {
   const user = authService.currentUser;
-  if (!user) throw new Error('User not authenticated');
+  if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db, "users", user.uid);
   const userDoc = await getDoc(userDocRef);
   const userData = userDoc.data();
   const currentChildren = userData?.children || [];
 
-  const filteredChildren = currentChildren.filter((child: Child) => child.id !== childId);
+  const filteredChildren = currentChildren.filter(
+    (child: Child) => child.id !== childId
+  );
 
   await updateDoc(userDocRef, {
     children: filteredChildren,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,18 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-} from 'react-native';
-import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
-import { AppleSignInButton } from '../../components/auth/AppleSignInButton';
-import { EmailAuthForm } from '../../components/auth/EmailAuthForm';
-import { useAuth } from '../../hooks/useAuth';
+} from "react-native";
+import { GoogleSignInButton } from "../../components/auth/GoogleSignInButton";
+import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
+import { EmailAuthForm } from "../../components/auth/EmailAuthForm";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [emailAuthMode, setEmailAuthMode] = useState<'signin' | 'signup'>('signin');
-  
+  const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
+    "signin"
+  );
+
   const { googleSignIn, appleSignIn, loading } = useAuth();
 
   const handleGoogleSignIn = async () => {
@@ -23,8 +25,8 @@ export default function LoginScreen() {
       await googleSignIn();
     } catch (error) {
       Alert.alert(
-        'Sign In Failed',
-        'There was an error signing in with Google. Please try again.'
+        "Sign In Failed",
+        "There was an error signing in with Google. Please try again."
       );
     }
   };
@@ -34,8 +36,8 @@ export default function LoginScreen() {
       await appleSignIn();
     } catch (error) {
       Alert.alert(
-        'Sign In Failed',
-        'There was an error signing in with Apple. Please try again.'
+        "Sign In Failed",
+        "There was an error signing in with Apple. Please try again."
       );
     }
   };
@@ -45,12 +47,12 @@ export default function LoginScreen() {
   };
 
   const handleEmailModeToggle = () => {
-    setEmailAuthMode(emailAuthMode === 'signin' ? 'signup' : 'signin');
+    setEmailAuthMode(emailAuthMode === "signin" ? "signup" : "signin");
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
@@ -65,13 +67,13 @@ export default function LoginScreen() {
           {!showEmailForm ? (
             <>
               <Text style={styles.welcomeText}>Welcome to DreamWeaver</Text>
-              
+
               <View style={styles.socialButtons}>
                 <GoogleSignInButton
                   onPress={handleGoogleSignIn}
                   loading={loading}
                 />
-                
+
                 <AppleSignInButton
                   onPress={handleAppleSignIn}
                   loading={loading}
@@ -85,7 +87,7 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.emailButton}>
-                <Text 
+                <Text
                   style={styles.emailButtonText}
                   onPress={handleEmailToggle}
                 >
@@ -102,10 +104,7 @@ export default function LoginScreen() {
 
           {showEmailForm && (
             <View style={styles.backButton}>
-              <Text 
-                style={styles.backButtonText}
-                onPress={handleEmailToggle}
-              >
+              <Text style={styles.backButtonText} onPress={handleEmailToggle}>
                 ← Back to other options
               </Text>
             </View>
@@ -125,91 +124,91 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "#FEFEFE",
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 24,
     paddingVertical: 32,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 48,
   },
   appName: {
     fontSize: 36,
-    fontWeight: 'bold',
-    color: '#6366F1',
+    fontWeight: "bold",
+    color: "#6366F1",
     marginBottom: 12,
   },
   tagline: {
     fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
     lineHeight: 24,
     maxWidth: 280,
   },
   authContainer: {
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
     marginBottom: 32,
   },
   socialButtons: {
     marginBottom: 24,
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
   dividerText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     marginHorizontal: 16,
   },
   emailButton: {
     borderWidth: 2,
-    borderColor: '#6366F1',
+    borderColor: "#6366F1",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emailButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#6366F1',
+    fontWeight: "600",
+    color: "#6366F1",
   },
   backButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
   },
   backButtonText: {
     fontSize: 14,
-    color: '#6366F1',
-    textDecorationLine: 'underline',
+    color: "#6366F1",
+    textDecorationLine: "underline",
   },
   footer: {
     marginTop: 48,
-    alignItems: 'center',
+    alignItems: "center",
   },
   footerText: {
     fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
+    color: "#9CA3AF",
+    textAlign: "center",
     lineHeight: 18,
   },
 });

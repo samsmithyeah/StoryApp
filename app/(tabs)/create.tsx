@@ -1,12 +1,8 @@
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   Alert,
-  Dimensions,
-  ImageBackground,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { StoryWizard } from "../../components/wizard/StoryWizard";
 import {
   Colors,
@@ -23,8 +20,6 @@ import {
 } from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
 import { StoryConfiguration } from "../../types/story.types";
-
-const { width } = Dimensions.get("window");
 
 export default function CreateScreen() {
   const { children } = useChildren();
@@ -82,18 +77,7 @@ export default function CreateScreen() {
   }
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <Decorations />
-
+    <BackgroundContainer showDecorations={true}>
       <StatusBar style="light" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -143,56 +127,11 @@ export default function CreateScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
+    </BackgroundContainer>
   );
 }
-
-// Decorations component for background elements
-function Decorations() {
-  return (
-    <>
-      {/* Butterfly - top right */}
-      <Image
-        source={require("../../assets/images/butterfly.png")}
-        style={styles.butterfly}
-      />
-
-      {/* Leaves - various positions */}
-      <Image
-        source={require("../../assets/images/leaves.png")}
-        style={[styles.leaves, styles.leaves1]}
-      />
-      <Image
-        source={require("../../assets/images/leaves.png")}
-        style={[styles.leaves, styles.leaves2]}
-      />
-
-      {/* Stars */}
-      {STAR_POSITIONS.map((pos, i) => (
-        <Image
-          key={`star-${i}`}
-          source={require("../../assets/images/star.png")}
-          style={[styles.star, pos]}
-        />
-      ))}
-    </>
-  );
-}
-
-const STAR_POSITIONS = [
-  { top: 80, left: 40 },
-  { top: 120, right: 60 },
-  { top: 200, left: 100 },
-  { top: 250, right: 40 },
-  { bottom: 150, left: 60 },
-  { bottom: 100, right: 80 },
-];
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
   },
@@ -258,35 +197,5 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
     lineHeight: 22,
-  },
-
-  // Decorative elements
-  butterfly: {
-    position: "absolute",
-    top: 60,
-    right: 30,
-    width: 100,
-    height: 100,
-    opacity: 0.8,
-  },
-  leaves: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    opacity: 0.3,
-  },
-  leaves1: {
-    top: 100,
-    left: -30,
-  },
-  leaves2: {
-    bottom: 80,
-    right: -20,
-  },
-  star: {
-    position: "absolute",
-    width: 10,
-    height: 10,
-    opacity: 0.6,
   },
 });

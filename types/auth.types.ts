@@ -1,4 +1,4 @@
-import { User as FirebaseUser } from 'firebase/auth';
+import { User as FirebaseUser } from "firebase/auth";
 
 export interface User {
   uid: string;
@@ -14,7 +14,7 @@ export interface AuthState {
   error: string | null;
 }
 
-export type AuthProvider = 'google' | 'apple' | 'email';
+export type AuthProvider = "google" | "apple" | "email";
 
 export interface LoginCredentials {
   email: string;

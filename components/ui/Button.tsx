@@ -1,27 +1,21 @@
-import React from 'react';
-import { 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  ActivityIndicator, 
-  ViewStyle, 
-  TextStyle,
-  View 
-} from 'react-native';
-import { IconSymbol } from './IconSymbol';
+import React from "react";
 import {
-  Colors,
-  Typography,
-  Spacing,
-  CommonStyles,
-  Shadows,
-} from '../../constants/Theme';
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+  View,
+} from "react-native";
+import { IconSymbol } from "./IconSymbol";
+import { Colors, Typography, Spacing, Shadows } from "../../constants/Theme";
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'wizard' | 'danger';
-  size?: 'small' | 'medium' | 'large';
+  variant?: "primary" | "secondary" | "outline" | "wizard" | "danger";
+  size?: "small" | "medium" | "large";
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -33,8 +27,8 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
-  size = 'medium',
+  variant = "primary",
+  size = "medium",
   loading = false,
   disabled = false,
   style,
@@ -66,26 +60,23 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={getLoadingColor(variant)} 
-          size="small" 
-        />
+        <ActivityIndicator color={getLoadingColor(variant)} size="small" />
       ) : (
         <View style={styles.content}>
           {leftIcon && (
-            <IconSymbol 
-              name={leftIcon} 
-              size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
-              color={getIconColor(variant)} 
+            <IconSymbol
+              name={leftIcon}
+              size={size === "small" ? 16 : size === "large" ? 20 : 18}
+              color={getIconColor(variant)}
               style={styles.leftIcon}
             />
           )}
           <Text style={textStyles}>{title}</Text>
           {rightIcon && (
-            <IconSymbol 
-              name={rightIcon} 
-              size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
-              color={getIconColor(variant)} 
+            <IconSymbol
+              name={rightIcon}
+              size={size === "small" ? 16 : size === "large" ? 20 : 18}
+              color={getIconColor(variant)}
               style={styles.rightIcon}
             />
           )}
@@ -97,13 +88,13 @@ export const Button: React.FC<ButtonProps> = ({
 
 const getLoadingColor = (variant: string) => {
   switch (variant) {
-    case 'primary':
-    case 'wizard':
+    case "primary":
+    case "wizard":
       return Colors.textDark;
-    case 'secondary':
+    case "secondary":
       return Colors.primary;
-    case 'outline':
-    case 'danger':
+    case "outline":
+    case "danger":
       return Colors.primary;
     default:
       return Colors.primary;
@@ -112,14 +103,14 @@ const getLoadingColor = (variant: string) => {
 
 const getIconColor = (variant: string) => {
   switch (variant) {
-    case 'primary':
-    case 'wizard':
+    case "primary":
+    case "wizard":
       return Colors.textDark;
-    case 'secondary':
+    case "secondary":
       return Colors.primary;
-    case 'outline':
+    case "outline":
       return Colors.primary;
-    case 'danger':
+    case "danger":
       return Colors.error;
     default:
       return Colors.primary;
@@ -129,11 +120,11 @@ const getIconColor = (variant: string) => {
 const styles = StyleSheet.create({
   base: {
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
-  
+
   // Variants
   primary: {
     backgroundColor: Colors.primary,
@@ -141,12 +132,12 @@ const styles = StyleSheet.create({
     ...Shadows.glow,
   },
   secondary: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderColor: "rgba(212, 175, 55, 0.3)",
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: Colors.primary,
   },
@@ -157,11 +148,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   danger: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: Colors.error,
   },
-  
+
   // Sizes
   smallSize: {
     paddingHorizontal: Spacing.buttonPaddingSmall.horizontal,
@@ -178,11 +169,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.buttonPadding.vertical,
     minHeight: 52,
   },
-  
+
   // Text styles
   text: {
     fontWeight: Typography.fontWeight.semibold,
-    textAlign: 'center',
+    textAlign: "center",
   },
   primaryText: {
     color: Colors.textDark,
@@ -199,7 +190,7 @@ const styles = StyleSheet.create({
   dangerText: {
     color: Colors.error,
   },
-  
+
   // Text sizes
   smallText: {
     fontSize: Typography.fontSize.buttonSmall,
@@ -210,23 +201,23 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: Typography.fontSize.large,
   },
-  
+
   // Disabled states
   disabled: {
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
     shadowOpacity: 0,
     elevation: 0,
-    borderColor: '#374151',
+    borderColor: "#374151",
   },
   disabledText: {
     color: Colors.textMuted,
   },
-  
+
   // Content and icon styles
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   leftIcon: {
     marginRight: Spacing.sm,

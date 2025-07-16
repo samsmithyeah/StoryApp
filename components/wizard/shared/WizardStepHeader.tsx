@@ -1,14 +1,14 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-} from 'react-native';
-import { Colors } from '@/constants/Theme';
+} from "react-native";
+import { Colors } from "@/constants/Theme";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 interface WizardStepHeaderProps {
@@ -35,10 +35,12 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
           <Text style={styles.brand}>DreamWeaver</Text>
-          <Text style={styles.stepIndicator}>Step {stepNumber} of {totalSteps}</Text>
+          <Text style={styles.stepIndicator}>
+            Step {stepNumber} of {totalSteps}
+          </Text>
         </View>
 
         {onCancel && (
@@ -59,13 +61,13 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    position: 'relative',
+    position: "relative",
     paddingHorizontal: 24,
     paddingTop: isTablet ? 60 : 10,
     paddingBottom: 8,
   },
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: isTablet ? 10 : -10,
     left: 24,
     padding: 8,
@@ -73,10 +75,10 @@ const styles = StyleSheet.create({
   backText: {
     color: Colors.primary,
     fontSize: isTablet ? 32 : 24,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   cancelButton: {
-    position: 'absolute',
+    position: "absolute",
     top: isTablet ? 10 : -10,
     right: 24,
     padding: 8,
@@ -84,17 +86,17 @@ const styles = StyleSheet.create({
   cancelText: {
     color: Colors.primary,
     fontSize: isTablet ? 32 : 24,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   headerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   brand: {
     fontSize: isTablet ? 48 : 32,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.primary,
-    fontFamily: 'PlayfairDisplay-Regular',
+    fontFamily: "PlayfairDisplay-Regular",
   },
   stepIndicator: {
     fontSize: 14,
@@ -104,20 +106,20 @@ const styles = StyleSheet.create({
   titleSection: {
     paddingHorizontal: 24,
     paddingVertical: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: isTablet ? 32 : 24,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.primary,
     marginBottom: 4,
-    textAlign: 'center',
-    fontFamily: 'PlayfairDisplay-Regular',
+    textAlign: "center",
+    fontFamily: "PlayfairDisplay-Regular",
   },
   subtitle: {
     fontSize: isTablet ? 20 : 14,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
 });

@@ -1,12 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  View,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { Animated, View, StyleSheet, Dimensions } from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 interface ThemeSkeletonLoaderProps {
@@ -63,57 +58,57 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   themesListTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginHorizontal: -6,
   },
   themeListCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   themeListCardTablet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
-    width: '48%',
+    borderColor: "transparent",
+    width: "48%",
     marginHorizontal: 6,
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#D4AF37',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D4AF37",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   skeletonIcon: {
-    backgroundColor: 'rgba(212, 175, 55, 0.3)',
+    backgroundColor: "rgba(212, 175, 55, 0.3)",
   },
   themeInfo: {
     flex: 1,
   },
   skeletonTitle: {
     height: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 4,
     marginBottom: 4,
-    width: '70%',
+    width: "70%",
   },
   skeletonDescription: {
     height: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: 4,
-    width: '90%',
+    width: "90%",
   },
 });

@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-} from 'react-native';
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 interface WizardHeaderProps {
@@ -31,7 +31,9 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
     <View style={styles.header}>
       <View style={styles.headerContent}>
         <Text style={styles.brand}>DreamWeaver</Text>
-        <Text style={styles.stepIndicator}>Step {step} of {totalSteps}</Text>
+        <Text style={styles.stepIndicator}>
+          Step {step} of {totalSteps}
+        </Text>
       </View>
 
       {showCancel && onCancel && (
@@ -51,46 +53,46 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    position: 'relative',
+    position: "relative",
     paddingHorizontal: 24,
     paddingTop: isTablet ? 60 : 10,
     paddingBottom: 8,
   },
   headerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   brand: {
     fontSize: isTablet ? 48 : 32,
-    fontWeight: '600',
-    color: '#D4AF37',
-    fontFamily: 'PlayfairDisplay-Regular',
+    fontWeight: "600",
+    color: "#D4AF37",
+    fontFamily: "PlayfairDisplay-Regular",
   },
   stepIndicator: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     marginTop: 2,
   },
   cancelButton: {
-    position: 'absolute',
+    position: "absolute",
     top: isTablet ? 10 : -10,
     right: 24,
     padding: 8,
   },
   cancelText: {
-    color: '#D4AF37',
+    color: "#D4AF37",
     fontSize: isTablet ? 32 : 24,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: isTablet ? 10 : -10,
     left: 24,
     padding: 8,
   },
   backText: {
-    color: '#D4AF37',
+    color: "#D4AF37",
     fontSize: isTablet ? 32 : 24,
-    fontWeight: '400',
+    fontWeight: "400",
   },
 });

@@ -9,7 +9,12 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "lint:fix": "expo lint --fix"
+    "lint:fix": "expo lint --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check-all": "npm run type-check && npm run lint && npm run format:check",
+    "fix-all": "npm run type-check && npm run lint:fix && npm run format"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -64,6 +69,7 @@
     "@typescript-eslint/parser": "^8.35.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "prettier": "^3.2.5",
     "typescript": "~5.8.3"
   },
   "private": true

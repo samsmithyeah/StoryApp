@@ -1,9 +1,9 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getAuth, connectAuthEmulator, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeAuth, getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Firebase web SDK configuration
 const firebaseConfig = {
@@ -12,7 +12,7 @@ const firebaseConfig = {
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase Web SDK
@@ -24,9 +24,7 @@ if (!getApps().length) {
 }
 
 // Get Firebase services
-export const webAuth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+export const webAuth = getAuth(app);
 export const webFirestore = getFirestore(app);
 export const webFunctions = getFunctions(app);
 export const webStorage = getStorage(app);

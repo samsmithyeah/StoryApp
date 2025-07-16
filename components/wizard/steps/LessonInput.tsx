@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -6,18 +6,18 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-} from 'react-native';
-import { Button } from '@/components/ui/Button';
+} from "react-native";
+import { Button } from "@/components/ui/Button";
 
 const SUGGESTED_LESSONS = [
-  'Being kind to others',
-  'Sharing is caring',
-  'It\'s okay to be different',
-  'Trying new things',
-  'Being brave',
-  'Helping friends',
-  'Being patient',
-  'The importance of family',
+  "Being kind to others",
+  "Sharing is caring",
+  "It's okay to be different",
+  "Trying new things",
+  "Being brave",
+  "Helping friends",
+  "Being patient",
+  "The importance of family",
 ];
 
 interface LessonInputProps {
@@ -28,7 +28,7 @@ interface LessonInputProps {
 }
 
 export const LessonInput: React.FC<LessonInputProps> = ({
-  lesson = '',
+  lesson = "",
   onUpdate,
   onNext,
   onBack,
@@ -46,7 +46,10 @@ export const LessonInput: React.FC<LessonInputProps> = ({
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.inputSection}>
           <Text style={styles.label}>Your lesson (optional)</Text>
           <TextInput
@@ -77,7 +80,8 @@ export const LessonInput: React.FC<LessonInputProps> = ({
 
         <View style={styles.skipSection}>
           <Text style={styles.skipText}>
-            Not every story needs a lesson! Feel free to skip this step for a pure adventure.
+            Not every story needs a lesson! Feel free to skip this step for a
+            pure adventure.
           </Text>
         </View>
       </ScrollView>
@@ -104,7 +108,7 @@ export const LessonInput: React.FC<LessonInputProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "#FEFEFE",
   },
   header: {
     paddingHorizontal: 24,
@@ -113,13 +117,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: "bold",
+    color: "#111827",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 24,
   },
   scrollView: {
@@ -131,14 +135,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 12,
   },
   textInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -151,17 +155,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 16,
   },
   suggestionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -4,
   },
   suggestionChip: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -169,27 +173,27 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
   },
   skipSection: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: "#F0FDF4",
     padding: 16,
     borderRadius: 12,
     marginBottom: 32,
   },
   skipText: {
     fontSize: 14,
-    color: '#065F46',
+    color: "#065F46",
     lineHeight: 20,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: "#E5E7EB",
     gap: 12,
   },
   backButton: {

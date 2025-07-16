@@ -1,14 +1,14 @@
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import React from 'react';
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import React from "react";
 import {
   TouchableOpacity,
   View,
   Text,
   StyleSheet,
   Dimensions,
-} from 'react-native';
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 interface Theme {
@@ -40,14 +40,12 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
       <View
         style={[
           styles.iconContainer,
-          isSelected ? styles.selectedIconContainer : styles.unselectedIconContainer,
+          isSelected
+            ? styles.selectedIconContainer
+            : styles.unselectedIconContainer,
         ]}
       >
-        <IconSymbol
-          name={theme.icon as any}
-          size={24}
-          color="#1a1b3a"
-        />
+        <IconSymbol name={theme.icon as any} size={24} color="#1a1b3a" />
       </View>
       <View style={styles.themeInfo}>
         <Text style={[styles.themeName, isSelected && styles.selectedText]}>
@@ -73,41 +71,41 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
 
 const styles = StyleSheet.create({
   themeListCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   themeListCardTablet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
-    width: '48%',
+    borderColor: "transparent",
+    width: "48%",
     marginHorizontal: 6,
   },
   selectedListCard: {
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-    borderColor: '#D4AF37',
+    backgroundColor: "rgba(212, 175, 55, 0.2)",
+    borderColor: "#D4AF37",
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#D4AF37',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D4AF37",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   selectedIconContainer: {
-    backgroundColor: '#D4AF37',
-    shadowColor: '#D4AF37',
+    backgroundColor: "#D4AF37",
+    shadowColor: "#D4AF37",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -121,33 +119,33 @@ const styles = StyleSheet.create({
   },
   themeName: {
     fontSize: isTablet ? 18 : 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   themeDescription: {
     fontSize: isTablet ? 14 : 12,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     lineHeight: 16,
   },
   selectedText: {
-    color: '#D4AF37',
+    color: "#D4AF37",
   },
   selectedDescription: {
-    color: '#D4AF37',
+    color: "#D4AF37",
   },
   checkmark: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 12,
   },
   checkmarkText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

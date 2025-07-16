@@ -1,8 +1,8 @@
 import { useChildren } from "@/hooks/useChildren";
 import { Child } from "@/types/child.types";
 import { Colors } from "@/constants/Theme";
-import { WizardFooter } from '../shared/WizardFooter';
-import { WizardStepHeader } from '../shared/WizardStepHeader';
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
@@ -155,7 +155,9 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                     onUpdate({ childrenAsCharacters: value })
                   }
                   trackColor={{ false: "#374151", true: Colors.primary }}
-                  thumbColor={childrenAsCharacters ? "#FFFFFF" : Colors.textSecondary}
+                  thumbColor={
+                    childrenAsCharacters ? "#FFFFFF" : Colors.textSecondary
+                  }
                 />
               </View>
             </View>
@@ -170,10 +172,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
         </ScrollView>
 
         {/* Footer */}
-        <WizardFooter
-          onNext={onNext}
-          nextDisabled={isNextDisabled}
-        />
+        <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
       </ImageBackground>
     </View>
   );
