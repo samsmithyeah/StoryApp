@@ -21,12 +21,14 @@
 ## 3. Create Mobile Apps
 
 ### Android App
+
 1. Click **Add app** → **Android**
 2. Enter package name: `com.samlovesit.StoryApp`
 3. Download `google-services.json`
 4. **Replace** the placeholder file in the project root directory
 
 ### iOS App
+
 1. Click **Add app** → **iOS**
 2. Enter bundle ID: `com.samlovesit.StoryApp`
 3. Download `GoogleService-Info.plist`
@@ -42,6 +44,7 @@ The app.json is already configured with the correct bundle identifiers. You just
 2. Update the iOS URL scheme in the Google Sign-In plugin configuration
 
 Find this section in app.json and replace `YOUR_IOS_CLIENT_ID`:
+
 ```json
 [
   "@react-native-google-signin/google-signin",
@@ -60,6 +63,7 @@ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-web-client-id
 ```
 
 To get your Google Web Client ID:
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Select your Firebase project
 3. Go to **APIs & Services** → **Credentials**
@@ -69,11 +73,13 @@ To get your Google Web Client ID:
 ## 6. Configure Google Sign-In
 
 ### For Android:
+
 1. Get your SHA-1 certificate fingerprint:
+
    ```bash
    # For development
    keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-   
+
    # For production (use your actual keystore)
    keytool -list -v -keystore your-release-key.keystore -alias your-key-alias
    ```
@@ -84,6 +90,7 @@ To get your Google Web Client ID:
    - Add your SHA-1 fingerprint
 
 ### For iOS:
+
 1. In Firebase Console, go to **Project Settings** → **Your apps** → **iOS app**
 2. Copy the **iOS URL scheme** from the GoogleService-Info.plist
 3. Update your `app.json` with the correct iOS URL scheme
@@ -108,7 +115,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
+
     // Users can only read/write their own stories
     match /stories/{storyId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
@@ -120,6 +127,7 @@ service cloud.firestore {
 ## 9. Build and Test
 
 1. Create a development build:
+
    ```bash
    npx expo run:ios
    # or

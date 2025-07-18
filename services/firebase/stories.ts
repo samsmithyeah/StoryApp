@@ -1,5 +1,5 @@
-import { functionsService, authService } from './config';
-import { StoryConfiguration, Story } from '@/types/story.types';
+import { functionsService, authService } from "./config";
+import { StoryConfiguration, Story } from "@/types/story.types";
 
 export interface StoryGenerationRequest extends StoryConfiguration {
   enableIllustrations: boolean;
@@ -7,36 +7,36 @@ export interface StoryGenerationRequest extends StoryConfiguration {
 
 export const generateStory = async (config: StoryGenerationRequest) => {
   try {
-    const generateStoryFn = functionsService.httpsCallable('generateStory');
+    const generateStoryFn = functionsService.httpsCallable("generateStory");
     const result = await generateStoryFn(config);
-    
-    if (result.data.success) {
+
+    if ((result.data as any).success) {
       return {
-        storyId: result.data.storyId,
-        story: result.data.story,
-        imageGenerationStatus: result.data.imageGenerationStatus,
+        storyId: (result.data as any).storyId,
+        story: (result.data as any).story,
+        imageGenerationStatus: (result.data as any).imageGenerationStatus,
       };
     } else {
-      throw new Error('Story generation failed');
+      throw new Error("Story generation failed");
     }
   } catch (error) {
-    console.error('Error calling generateStory function:', error);
+    console.error("Error calling generateStory function:", error);
     throw error;
   }
 };
 
 export const getStories = async (): Promise<Story[]> => {
   try {
-    const getStoriesFn = functionsService.httpsCallable('getStories');
+    const getStoriesFn = functionsService.httpsCallable("getStories");
     const result = await getStoriesFn();
-    
-    if (result.data.success) {
-      return result.data.stories;
+
+    if ((result.data as any).success) {
+      return (result.data as any).stories;
     } else {
-      throw new Error('Failed to fetch stories');
+      throw new Error("Failed to fetch stories");
     }
   } catch (error) {
-    console.error('Error calling getStories function:', error);
+    console.error("Error calling getStories function:", error);
     throw error;
   }
 };
@@ -48,42 +48,46 @@ export interface ThemeSuggestion {
   icon: string;
 }
 
-export const generateThemeSuggestions = async (childPreferences: string[]): Promise<ThemeSuggestion[]> => {
+export const generateThemeSuggestions = async (
+  childPreferences: string[]
+): Promise<ThemeSuggestion[]> => {
   try {
     // Ensure user is authenticated
     const currentUser = authService.currentUser;
     if (!currentUser) {
-      throw new Error('User must be authenticated to generate themes');
+      throw new Error("User must be authenticated to generate themes");
     }
-    
-    console.log('Current user ID:', currentUser.uid);
-    
-    const generateThemesFn = functionsService.httpsCallable('generateThemeSuggestions');
+
+    console.log("Current user ID:", currentUser.uid);
+
+    const generateThemesFn = functionsService.httpsCallable(
+      "generateThemeSuggestions"
+    );
     const result = await generateThemesFn({ preferences: childPreferences });
-    
-    if (result.data.success) {
-      return result.data.themes;
+
+    if ((result.data as any).success) {
+      return (result.data as any).themes;
     } else {
-      throw new Error('Theme generation failed');
+      throw new Error("Theme generation failed");
     }
   } catch (error) {
-    console.error('Error calling generateThemeSuggestions function:', error);
+    console.error("Error calling generateThemeSuggestions function:", error);
     throw error;
   }
 };
 
 export const getStory = async (storyId: string): Promise<Story> => {
   try {
-    const getStoryFn = functionsService.httpsCallable('getStory');
+    const getStoryFn = functionsService.httpsCallable("getStory");
     const result = await getStoryFn({ storyId });
-    
-    if (result.data.success) {
-      return result.data.story;
+
+    if ((result.data as any).success) {
+      return (result.data as any).story;
     } else {
-      throw new Error('Failed to fetch story');
+      throw new Error("Failed to fetch story");
     }
   } catch (error) {
-    console.error('Error calling getStory function:', error);
+    console.error("Error calling getStory function:", error);
     throw error;
   }
 };

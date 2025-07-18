@@ -1,16 +1,19 @@
-import { create } from 'zustand';
-import { Child, ChildrenState } from '../types/child.types';
-import { 
-  getChildren, 
-  addChild as addChildService, 
-  updateChild as updateChildService, 
-  deleteChild as deleteChildService 
-} from '../services/firebase/children';
+import { create } from "zustand";
+import { Child, ChildrenState } from "../types/child.types";
+import {
+  getChildren,
+  addChild as addChildService,
+  updateChild as updateChildService,
+  deleteChild as deleteChildService,
+} from "../services/firebase/children";
 
 interface ChildrenStore extends ChildrenState {
   loadChildren: () => Promise<void>;
-  addChild: (child: Omit<Child, 'id'>) => Promise<void>;
-  updateChild: (childId: string, updates: Partial<Omit<Child, 'id'>>) => Promise<void>;
+  addChild: (child: Omit<Child, "id">) => Promise<void>;
+  updateChild: (
+    childId: string,
+    updates: Partial<Omit<Child, "id">>
+  ) => Promise<void>;
   deleteChild: (childId: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -27,9 +30,10 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       const children = await getChildren();
       set({ children, loading: false });
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to load children',
-        loading: false 
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to load children",
+        loading: false,
       });
     }
   },
@@ -39,14 +43,14 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       set({ loading: true, error: null });
       const newChild = await addChildService(child);
       const currentChildren = get().children;
-      set({ 
+      set({
         children: [...currentChildren, newChild],
-        loading: false 
+        loading: false,
       });
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to add child',
-        loading: false 
+      set({
+        error: error instanceof Error ? error.message : "Failed to add child",
+        loading: false,
       });
     }
   },
@@ -56,17 +60,18 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       set({ loading: true, error: null });
       await updateChildService(childId, updates);
       const currentChildren = get().children;
-      const updatedChildren = currentChildren.map(child =>
+      const updatedChildren = currentChildren.map((child) =>
         child.id === childId ? { ...child, ...updates } : child
       );
-      set({ 
+      set({
         children: updatedChildren,
-        loading: false 
+        loading: false,
       });
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to update child',
-        loading: false 
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to update child",
+        loading: false,
       });
     }
   },
@@ -76,15 +81,18 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       set({ loading: true, error: null });
       await deleteChildService(childId);
       const currentChildren = get().children;
-      const filteredChildren = currentChildren.filter(child => child.id !== childId);
-      set({ 
+      const filteredChildren = currentChildren.filter(
+        (child) => child.id !== childId
+      );
+      set({
         children: filteredChildren,
-        loading: false 
+        loading: false,
       });
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to delete child',
-        loading: false 
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to delete child",
+        loading: false,
       });
     }
   },

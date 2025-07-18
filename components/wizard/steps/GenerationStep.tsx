@@ -1,24 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
+  Animated,
+  Dimensions,
+  Easing,
   StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { Button } from '@/components/ui/Button';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+  Text,
+  View,
+} from "react-native";
 
 interface GenerationStepProps {
   isGenerating: boolean;
   onCancel: () => void;
 }
 
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
+
 const GENERATION_MESSAGES = [
-  'Crafting your magical story...',
-  'Choosing the perfect characters...',
-  'Painting beautiful illustrations...',
-  'Adding magical touches...',
-  'Almost ready for bedtime...',
+  "Crafting your magical story...",
+  "Choosing the perfect characters...",
+  "Painting beautiful illustrations...",
+  "Adding magical touches...",
+  "Almost ready for bedtime...",
 ];
 
 export const GenerationStep: React.FC<GenerationStepProps> = ({
@@ -26,6 +34,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   onCancel,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const rotationAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.3)).current;
+  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -39,107 +51,219 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     };
   }, [isGenerating]);
 
+  useEffect(() => {
+    if (!isGenerating) {
+      rotationAnim.setValue(0);
+      pulseAnim.setValue(1);
+      glowAnim.setValue(0.3);
+      return;
+    }
+
+    // Rotation animation
+    const startRotation = () => {
+      rotationAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(rotationAnim, {
+          toValue: 1,
+          duration: 3000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    };
+
+    // Pulse animation - subtle
+    const startPulse = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+
+    // Glow animation - subtle
+    const startGlow = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 0.6,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: false,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.4,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: false,
+          }),
+        ])
+      ).start();
+    };
+
+    startRotation();
+    startPulse();
+    startGlow();
+  }, [isGenerating, rotationAnim, pulseAnim, glowAnim]);
+
+  const spin = rotationAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.animationContainer}>
-          <View style={styles.magicCircle}>
-            <IconSymbol name="wand.and.stars" size={64} color="#6366F1" />
+    <BackgroundContainer showDecorations={true}>
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.animationContainer}>
+            <Animated.View
+              style={[
+                styles.magicCircle,
+                {
+                  shadowOpacity: glowAnim,
+                },
+              ]}
+            >
+              <Animated.View
+                style={[
+                  styles.innerCircle,
+                  {
+                    transform: [{ rotate: spin }, { scale: pulseAnim }],
+                  },
+                ]}
+              >
+                <View style={styles.wandContainer}>
+                  <IconSymbol
+                    name="wand.and.stars"
+                    size={isTablet ? 80 : 64}
+                    color={Colors.primary}
+                  />
+                </View>
+              </Animated.View>
+            </Animated.View>
           </View>
-          <ActivityIndicator 
-            size="large" 
-            color="#6366F1" 
-            style={styles.spinner}
+
+          <Text style={styles.title}>Creating your story</Text>
+          <Text style={styles.message}>
+            {GENERATION_MESSAGES[currentMessageIndex]}
+          </Text>
+
+          <View style={styles.tipContainer}>
+            <IconSymbol
+              name="lightbulb"
+              size={isTablet ? 18 : 16}
+              color={Colors.warning}
+            />
+            <Text style={styles.tipText}>
+              Tip: Your story will be saved to your library for future bedtime
+              reading!
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
+          <Button
+            title="Cancel"
+            onPress={onCancel}
+            variant="outline"
+            size="large"
           />
         </View>
-
-        <Text style={styles.title}>Creating Your Story</Text>
-        <Text style={styles.message}>
-          {GENERATION_MESSAGES[currentMessageIndex]}
-        </Text>
-
-        <View style={styles.tipContainer}>
-          <IconSymbol name="lightbulb" size={16} color="#F59E0B" />
-          <Text style={styles.tipText}>
-            Tip: Your story will be saved to your library for future bedtime reading!
-          </Text>
-        </View>
       </View>
-
-      <View style={styles.footer}>
-        <Button
-          title="Cancel"
-          onPress={onCancel}
-          variant="outline"
-          size="large"
-        />
-      </View>
-    </View>
+    </BackgroundContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
   },
   content: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: isTablet ? Spacing.massive : Spacing.huge,
   },
   animationContainer: {
-    position: 'relative',
-    marginBottom: 48,
+    position: "relative",
+    marginBottom: isTablet ? Spacing.massive : Spacing.huge,
+    alignItems: "center",
+    justifyContent: "center",
   },
   magicCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: isTablet ? 160 : 120,
+    height: isTablet ? 160 : 120,
+    borderRadius: isTablet ? 80 : 60,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 20,
+    elevation: 10,
   },
-  spinner: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
+  innerCircle: {
+    width: isTablet ? 160 : 120,
+    height: isTablet ? 160 : 120,
+    borderRadius: isTablet ? 80 : 60,
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    borderWidth: 3,
+    borderColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wandContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 16,
-    textAlign: 'center',
+    fontSize: isTablet ? Typography.fontSize.h1Tablet : Typography.fontSize.h2,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text,
+    marginBottom: Spacing.lg,
+    textAlign: "center",
+    fontFamily: Typography.fontFamily.primary,
   },
   message: {
-    fontSize: 18,
-    color: '#6366F1',
-    textAlign: 'center',
-    marginBottom: 32,
-    fontWeight: '500',
+    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
+    color: Colors.primary,
+    textAlign: "center",
+    marginBottom: Spacing.xxxl,
+    fontWeight: Typography.fontWeight.medium,
+    letterSpacing: Typography.letterSpacing.normal,
   },
   tipContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFBEB',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.large,
+    gap: Spacing.sm,
+    maxWidth: isTablet ? 500 : 300,
   },
   tipText: {
     flex: 1,
-    fontSize: 14,
-    color: '#92400E',
-    lineHeight: 20,
+    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    color: Colors.textSecondary,
+    lineHeight: isTablet ? 22 : 20,
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.xl,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.border,
+    backgroundColor: "rgba(15, 17, 41, 0.5)",
   },
 });

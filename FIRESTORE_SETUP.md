@@ -14,7 +14,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
+
     // Users can only read/write their own stories
     match /stories/{storyId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
@@ -30,16 +30,19 @@ service cloud.firestore {
 ## Option 2: CLI Deployment (If you have Firebase CLI access)
 
 1. **Login to Firebase CLI**:
+
    ```bash
    firebase login
    ```
 
 2. **Deploy the rules**:
+
    ```bash
    ./deploy-firestore.sh
    ```
 
    Or manually:
+
    ```bash
    firebase deploy --only firestore:rules
    ```
@@ -62,6 +65,7 @@ service cloud.firestore {
 ## Security Explanation
 
 The production rules ensure:
+
 - ✅ **Users can only access their own data**
 - ✅ **Stories are tied to the user who created them**
 - ✅ **Authenticated users only**

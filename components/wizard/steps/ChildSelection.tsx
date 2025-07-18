@@ -1,28 +1,42 @@
-import React from 'react';
+import { useChildren } from "@/hooks/useChildren";
+import { Child } from "@/types/child.types";
+import { Colors } from "@/constants/Theme";
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
+  ImageBackground,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
   Switch,
-} from 'react-native';
-import { useChildren } from '@/hooks/useChildren';
-import { Button } from '@/components/ui/Button';
-import { Child } from '@/types/child.types';
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface ChildSelectionProps {
   selectedChildren: string[];
   childrenAsCharacters: boolean;
-  onUpdate: (data: { selectedChildren?: string[]; childrenAsCharacters?: boolean }) => void;
+  onUpdate: (data: {
+    selectedChildren?: string[];
+    childrenAsCharacters?: boolean;
+  }) => void;
   onNext: () => void;
+  onCancel: () => void;
 }
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 export const ChildSelection: React.FC<ChildSelectionProps> = ({
   selectedChildren,
   childrenAsCharacters,
   onUpdate,
   onNext,
+  onCancel,
 }) => {
   const { children } = useChildren();
 
@@ -36,7 +50,9 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
 
   const handleChildSelect = (child: Child) => {
     if (selectedChildren.includes(child.id)) {
-      onUpdate({ selectedChildren: selectedChildren.filter(id => id !== child.id) });
+      onUpdate({
+        selectedChildren: selectedChildren.filter((id) => id !== child.id),
+      });
     } else {
       onUpdate({ selectedChildren: [...selectedChildren, child.id] });
     }
@@ -46,69 +62,118 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Who's this story for?</Text>
-        <Text style={styles.subtitle}>
-          Select one or more children for this story
-        </Text>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.childrenGrid}>
-          {children.map((child) => {
-            const isSelected = selectedChildren.includes(child.id);
-            const age = calculateAge(child.dateOfBirth);
-            
-            return (
-              <TouchableOpacity
-                key={child.id}
-                style={[styles.childCard, isSelected && styles.selectedCard]}
-                onPress={() => handleChildSelect(child)}
-              >
-                <View style={[styles.avatar, isSelected && styles.selectedAvatar]}>
-                  <Text style={[styles.avatarText, isSelected && styles.selectedAvatarText]}>
-                    {child.childName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={[styles.childName, isSelected && styles.selectedText]}>
-                  {child.childName}
-                </Text>
-                <Text style={[styles.childAge, isSelected && styles.selectedText]}>
-                  {age} years old
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {selectedChildren.length > 0 && (
-          <View style={styles.characterOption}>
-            <View style={styles.switchContainer}>
-              <View style={styles.switchText}>
-                <Text style={styles.switchTitle}>Feature as main characters</Text>
-                <Text style={styles.switchSubtitle}>
-                  Include selected children as story characters
-                </Text>
-              </View>
-              <Switch
-                value={childrenAsCharacters}
-                onValueChange={(value) => onUpdate({ childrenAsCharacters: value })}
-                trackColor={{ false: '#D1D5DB', true: '#6366F1' }}
-                thumbColor={childrenAsCharacters ? '#FFFFFF' : '#F3F4F6'}
-              />
-            </View>
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <Button
-          title="Next"
-          onPress={onNext}
-          disabled={isNextDisabled}
-          size="large"
+      <ImageBackground
+        source={require("@/assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFillObject}
+      >
+        <LinearGradient
+          colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
+          style={StyleSheet.absoluteFill}
         />
-      </View>
+        <WizardStepHeader
+          title="Who's the story for?"
+          subtitle="Select one or more children"
+          stepNumber={1}
+          totalSteps={3}
+          onBack={() => {}}
+          onCancel={onCancel}
+        />
+
+        {/* Children List */}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.childrenContainer}>
+            <View style={styles.childrenGrid}>
+              {children.map((child) => {
+                const isSelected = selectedChildren.includes(child.id);
+                const age = calculateAge(child.dateOfBirth);
+
+                return (
+                  <TouchableOpacity
+                    key={child.id}
+                    style={[
+                      styles.childCard,
+                      isSelected && styles.selectedCard,
+                    ]}
+                    onPress={() => handleChildSelect(child)}
+                  >
+                    <View style={styles.avatarContainer}>
+                      <View
+                        style={[
+                          styles.avatar,
+                          isSelected && styles.selectedAvatar,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.avatarText,
+                            isSelected && styles.selectedAvatarText,
+                          ]}
+                        >
+                          {child.childName.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={styles.checkmark}>
+                          <Text style={styles.checkmarkText}>✓</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.childName,
+                        isSelected && styles.selectedText,
+                      ]}
+                    >
+                      {child.childName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.childAge,
+                        isSelected && styles.selectedText,
+                      ]}
+                    >
+                      Age {age} • {child.childPreferences || "No interests set"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Always show main character toggle */}
+            <View style={styles.characterOption}>
+              <View style={styles.switchContainer}>
+                <Text style={styles.switchTitle}>
+                  Feature in the story as characters
+                </Text>
+                <Switch
+                  value={childrenAsCharacters}
+                  onValueChange={(value) =>
+                    onUpdate({ childrenAsCharacters: value })
+                  }
+                  trackColor={{ false: "#374151", true: Colors.primary }}
+                  thumbColor={
+                    childrenAsCharacters ? "#FFFFFF" : Colors.textSecondary
+                  }
+                />
+              </View>
+            </View>
+            {/* Add Child Link */}
+            <TouchableOpacity
+              style={styles.addChildLink}
+              onPress={() => router.push("/(tabs)/settings")}
+            >
+              <Text style={styles.addChildText}>+ Add another child</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Footer */}
+        <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
+      </ImageBackground>
     </View>
   );
 };
@@ -116,109 +181,115 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    lineHeight: 24,
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
   },
+  childrenContainer: {
+    paddingBottom: 20,
+  },
   childrenGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
   },
   childCard: {
-    width: '50%',
+    alignItems: "center",
+    backgroundColor: "transparent",
     padding: 8,
+    width: isTablet ? 200 : (width - 48) / 3 - 16,
+    marginHorizontal: 8,
+    marginBottom: 16,
   },
   selectedCard: {
-    transform: [{ scale: 0.98 }],
+    backgroundColor: "transparent",
+  },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 16,
   },
   avatar: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: 'transparent',
+    width: isTablet ? 100 : 70,
+    height: isTablet ? 100 : 70,
+    borderRadius: isTablet ? 50 : 35,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   selectedAvatar: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  checkmark: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmarkText: {
+    color: Colors.textDark,
+    fontSize: 14,
+    fontWeight: "bold",
   },
   avatarText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#6B7280',
+    fontSize: 32,
+    fontWeight: "bold",
+    color: Colors.textDark,
   },
   selectedAvatarText: {
-    color: '#FFFFFF',
+    color: Colors.textDark,
   },
   childName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    textAlign: 'center',
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+    color: Colors.text,
+    textAlign: "center",
     marginBottom: 4,
   },
   childAge: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
+    fontSize: isTablet ? 14 : 12,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 16,
   },
   selectedText: {
-    color: '#6366F1',
+    color: Colors.primary,
   },
-  footer: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+  addChildLink: {
+    alignSelf: "center",
+    padding: 8,
+  },
+  addChildText: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: "600",
+    textAlign: "center",
   },
   characterOption: {
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     padding: 16,
-    marginTop: 24,
-    marginHorizontal: 8,
+    marginBottom: 20,
   },
   switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  switchText: {
-    flex: 1,
-    marginRight: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
   },
   switchTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  switchSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    fontSize: isTablet ? 20 : 16,
+    fontWeight: "600",
+    color: Colors.text,
   },
 });

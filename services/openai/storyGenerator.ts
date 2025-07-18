@@ -1,4 +1,4 @@
-import { OPENAI_CONFIG } from './config';
+import { OPENAI_CONFIG } from "./config";
 
 interface StoryGenerationParams {
   childName: string;
@@ -19,8 +19,19 @@ interface GeneratedStory {
   }[];
 }
 
-export const generateStory = async (params: StoryGenerationParams): Promise<GeneratedStory> => {
-  const { childName, childAge, theme, characters, setting, mood, lesson, preferences } = params;
+export const generateStory = async (
+  params: StoryGenerationParams
+): Promise<GeneratedStory> => {
+  const {
+    childName,
+    childAge,
+    theme,
+    characters,
+    setting,
+    mood,
+    lesson,
+    preferences,
+  } = params;
 
   const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that are magical, gentle, and educational.`;
 
@@ -28,11 +39,11 @@ export const generateStory = async (params: StoryGenerationParams): Promise<Gene
 - Child's name: ${childName}
 - Age: ${childAge} years old
 - Theme: ${theme}
-- Main characters: ${characters.join(', ')}
+- Main characters: ${characters.join(", ")}
 - Setting: ${setting}
 - Mood: ${mood}
-${lesson ? `- Lesson/moral: ${lesson}` : ''}
-${preferences ? `- Child's interests: ${preferences}` : ''}
+${lesson ? `- Lesson/moral: ${lesson}` : ""}
+${preferences ? `- Child's interests: ${preferences}` : ""}
 
 Requirements:
 1. The story should be divided into 6-8 pages
@@ -55,19 +66,19 @@ Return the story in this JSON format:
 
   try {
     const response = await fetch(OPENAI_CONFIG.endpoints.chat, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_CONFIG.apiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_CONFIG.apiKey}`,
       },
       body: JSON.stringify({
         model: OPENAI_CONFIG.models.text,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.9,
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -80,7 +91,7 @@ Return the story in this JSON format:
 
     return storyContent as GeneratedStory;
   } catch (error) {
-    console.error('Error generating story:', error);
+    console.error("Error generating story:", error);
     throw error;
   }
 };
@@ -88,17 +99,17 @@ Return the story in this JSON format:
 export const generateStoryImage = async (prompt: string): Promise<string> => {
   try {
     const response = await fetch(OPENAI_CONFIG.endpoints.images, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_CONFIG.apiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_CONFIG.apiKey}`,
       },
       body: JSON.stringify({
         model: OPENAI_CONFIG.models.image,
         prompt: `${prompt}. Style: Soft, dreamy, child-friendly illustration with gentle colors and rounded shapes.`,
         n: 1,
-        size: '1024x1024',
-        quality: 'standard',
+        size: "1024x1024",
+        quality: "standard",
       }),
     });
 
@@ -109,7 +120,7 @@ export const generateStoryImage = async (prompt: string): Promise<string> => {
     const data = await response.json();
     return data.data[0].url;
   } catch (error) {
-    console.error('Error generating image:', error);
+    console.error("Error generating image:", error);
     throw error;
   }
 };

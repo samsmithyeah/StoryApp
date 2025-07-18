@@ -87,6 +87,7 @@ Root Navigator
 ### State Management
 
 Using Zustand for global state management:
+
 - **AuthStore**: User authentication state
 - **ChildrenStore**: Child profiles management
 - **StoryStore**: Generated stories and active story state
@@ -114,26 +115,31 @@ Using Zustand for global state management:
 ## Key Technical Decisions
 
 ### 1. Expo Router
+
 - File-based routing for simplicity
 - Built-in deep linking support
 - Easy navigation management
 
 ### 2. Firebase Integration
+
 - Real-time data synchronization
 - Secure authentication
 - Scalable storage solution
 
 ### 3. Component Library
+
 - Custom UI components for consistency
 - Themed components matching app persona
 - Reusable across screens
 
 ### 4. TypeScript
+
 - Type safety throughout the app
 - Better developer experience
 - Reduced runtime errors
 
 ### 5. AI Service Abstraction
+
 - Service layer for AI integrations
 - Easy to swap providers
 - Consistent interface
@@ -141,16 +147,19 @@ Using Zustand for global state management:
 ## Security Architecture
 
 ### Authentication
+
 - Firebase Auth handles secure authentication
 - Session management via Firebase SDK
 - Secure token storage
 
 ### Data Protection
+
 - Firestore security rules for data access
 - User data isolation
 - Child data encryption considerations
 
 ### API Security
+
 - API keys stored in environment variables
 - Server-side API calls where possible
 - Rate limiting implementation
@@ -158,16 +167,19 @@ Using Zustand for global state management:
 ## Performance Considerations
 
 ### Image Optimization
+
 - Lazy loading for story images
 - Cached images in Firebase Storage
 - Progressive loading for better UX
 
 ### Data Caching
+
 - Local story caching for offline access
 - Firestore offline persistence
 - Smart prefetching for library
 
 ### Bundle Size
+
 - Code splitting with Expo Router
 - Lazy loading of AI services
 - Minimal initial bundle
@@ -175,16 +187,19 @@ Using Zustand for global state management:
 ## Testing Strategy
 
 ### Unit Tests
+
 - Component testing with Jest
 - Service layer testing
 - Utility function testing
 
 ### Integration Tests
+
 - Firebase integration tests
 - AI service integration tests
 - Navigation flow tests
 
 ### E2E Tests
+
 - Complete user flows
 - Story generation process
 - Authentication flows
@@ -192,11 +207,13 @@ Using Zustand for global state management:
 ## Deployment Strategy
 
 ### Development
+
 - Expo development builds
 - Environment-specific configs
 - Feature flags for gradual rollout
 
 ### Production
+
 - EAS Build for app store builds
 - Over-the-air updates for patches
 - Monitoring and analytics setup
@@ -204,16 +221,19 @@ Using Zustand for global state management:
 ## Monitoring & Analytics
 
 ### Performance Monitoring
+
 - Firebase Performance Monitoring
 - Custom performance metrics
 - User experience tracking
 
 ### Error Tracking
+
 - Sentry integration
 - Firebase Crashlytics
 - Custom error boundaries
 
 ### Usage Analytics
+
 - Anonymous usage statistics
 - Feature adoption tracking
 - No child-specific tracking

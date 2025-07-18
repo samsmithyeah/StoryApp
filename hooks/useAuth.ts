@@ -1,16 +1,17 @@
-import { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
-import { 
-  signInWithEmail, 
-  signUpWithEmail, 
+import { useEffect } from "react";
+import { useAuthStore } from "../store/authStore";
+import {
+  signInWithEmail,
+  signUpWithEmail,
   signInWithGoogle,
   signInWithApple,
-  configureGoogleSignIn 
-} from '../services/firebase/auth';
-import { LoginCredentials, SignUpCredentials } from '../types/auth.types';
+  configureGoogleSignIn,
+} from "../services/firebase/auth";
+import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
 export const useAuth = () => {
-  const { user, loading, error, initialize, setLoading, setError, signOut } = useAuthStore();
+  const { user, loading, error, initialize, setLoading, setError, signOut } =
+    useAuthStore();
 
   useEffect(() => {
     // Configure Google Sign-In
@@ -18,7 +19,7 @@ export const useAuth = () => {
     if (webClientId) {
       configureGoogleSignIn(webClientId);
     }
-    
+
     // Initialize auth state listener
     initialize();
   }, [initialize]);
@@ -29,7 +30,7 @@ export const useAuth = () => {
       setError(null);
       await signInWithEmail(credentials);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Sign in failed');
+      setError(error instanceof Error ? error.message : "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -41,7 +42,7 @@ export const useAuth = () => {
       setError(null);
       await signUpWithEmail(credentials);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Sign up failed');
+      setError(error instanceof Error ? error.message : "Sign up failed");
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,9 @@ export const useAuth = () => {
       setError(null);
       await signInWithGoogle();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Google sign in failed');
+      setError(
+        error instanceof Error ? error.message : "Google sign in failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export const useAuth = () => {
       setError(null);
       await signInWithApple();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Apple sign in failed');
+      setError(error instanceof Error ? error.message : "Apple sign in failed");
     } finally {
       setLoading(false);
     }

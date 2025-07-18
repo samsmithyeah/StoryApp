@@ -8,7 +8,7 @@ export interface StoryConfiguration {
   selectedChildren: string[];
   childrenAsCharacters: boolean;
   theme: string;
-  length: 'short' | 'medium' | 'long';
+  length: "short" | "medium" | "long";
   illustrationStyle: string;
   enableIllustrations?: boolean;
   targetAge?: number;
@@ -24,10 +24,24 @@ export interface Story {
   audioUrl?: string;
   coverImageUrl: string;
   storyConfiguration: StoryConfiguration;
-  imageGenerationStatus?: 'pending' | 'generating' | 'completed' | 'failed' | 'not_requested';
+  imageGenerationStatus?:
+    | "pending"
+    | "generating"
+    | "completed"
+    | "failed"
+    | "not_requested";
   imagesGenerated?: number;
   totalImages?: number;
   imageGenerationError?: string;
+}
+
+export interface StoryWizardData {
+  childId: string;
+  theme: string;
+  characters: string[];
+  setting: string;
+  mood: string;
+  lesson?: string;
 }
 
 export interface StoryState {

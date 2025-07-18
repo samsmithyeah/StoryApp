@@ -1,47 +1,45 @@
-import React, { useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  SafeAreaView,
+  generateStory,
+  StoryGenerationRequest,
+} from "@/services/firebase/stories";
+import { StoryConfiguration } from "@/types/story.types";
+import React, { useState } from "react";
+import {
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { router } from 'expo-router';
-import { StoryConfiguration } from '@/types/story.types';
-import { generateStory, StoryGenerationRequest } from '@/services/firebase/stories';
-import { WizardHeader } from './WizardHeader';
-import { ChildSelection } from './steps/ChildSelection';
-import { ThemeSelection } from './steps/ThemeSelection';
-import { CustomizationStep } from './steps/CustomizationStep';
-import { GenerationStep } from './steps/GenerationStep';
+  SafeAreaView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { ChildSelection } from "./steps/ChildSelection";
+import { CustomizationStep } from "./steps/CustomizationStep";
+import { GenerationStep } from "./steps/GenerationStep";
+import { ThemeSelection } from "./steps/ThemeSelection";
 
-const WIZARD_STEPS = [
-  'child',
-  'theme',
-  'customization',
-  'generation',
-] as const;
+const WIZARD_STEPS = ["child", "theme", "customization", "generation"] as const;
 
-type WizardStep = typeof WIZARD_STEPS[number];
+type WizardStep = (typeof WIZARD_STEPS)[number];
 
 interface StoryWizardProps {
   onComplete: (data: StoryConfiguration) => void;
   onCancel: () => void;
 }
 
-export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }) => {
-  const [currentStep, setCurrentStep] = useState<WizardStep>('child');
+export const StoryWizard: React.FC<StoryWizardProps> = ({
+  onComplete,
+  onCancel,
+}) => {
+  const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
     childrenAsCharacters: true,
-    length: 'medium',
-    illustrationStyle: 'watercolor',
+    length: "medium",
+    illustrationStyle: "watercolor",
     enableIllustrations: true,
   });
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [_isGenerating, setIsGenerating] = useState(false);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
-  const progress = currentStep === 'generation' ? 100 : ((currentStepIndex + 1) / (WIZARD_STEPS.length - 1)) * 100;
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
     setWizardData((prev) => ({ ...prev, ...data }));
@@ -51,7 +49,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < WIZARD_STEPS.length) {
       setCurrentStep(WIZARD_STEPS[nextIndex]);
-      if (WIZARD_STEPS[nextIndex] === 'generation') {
+      if (WIZARD_STEPS[nextIndex] === "generation") {
         setIsGenerating(true);
         // Trigger story generation
         handleGeneration();
@@ -69,7 +67,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
   const handleGeneration = async () => {
     try {
       if (!isWizardComplete(wizardData)) {
-        console.error('Wizard data incomplete');
+        console.error("Wizard data incomplete");
         return;
       }
 
@@ -79,21 +77,22 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
       } as StoryGenerationRequest;
 
       const result = await generateStory(generationRequest);
-      
+
       // Don't wait for images - story text is ready, navigate immediately
       onComplete({
-        ...wizardData as StoryConfiguration,
+        ...(wizardData as StoryConfiguration),
         storyId: result.storyId,
       });
-      
     } catch (error) {
-      console.error('Error generating story:', error);
+      console.error("Error generating story:", error);
       setIsGenerating(false);
       // Handle error state
     }
   };
 
-  const isWizardComplete = (data: Partial<StoryConfiguration>): data is StoryConfiguration => {
+  const isWizardComplete = (
+    data: Partial<StoryConfiguration>
+  ): data is StoryConfiguration => {
     return !!(
       data.selectedChildren &&
       data.selectedChildren.length > 0 &&
@@ -105,16 +104,17 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
 
   const renderStep = () => {
     switch (currentStep) {
-      case 'child':
+      case "child":
         return (
           <ChildSelection
             selectedChildren={wizardData.selectedChildren || []}
             childrenAsCharacters={wizardData.childrenAsCharacters || true}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
+            onCancel={onCancel}
           />
         );
-      case 'theme':
+      case "theme":
         return (
           <ThemeSelection
             selectedTheme={wizardData.theme}
@@ -122,25 +122,24 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
             onSelect={(theme) => updateWizardData({ theme })}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
+            onCancel={onCancel}
           />
         );
-      case 'customization':
+      case "customization":
         return (
           <CustomizationStep
-            length={wizardData.length || 'medium'}
-            illustrationStyle={wizardData.illustrationStyle || 'watercolor'}
+            length={wizardData.length || "medium"}
+            illustrationStyle={wizardData.illustrationStyle || "watercolor"}
             enableIllustrations={wizardData.enableIllustrations}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-          />
-        );
-      case 'generation':
-        return (
-          <GenerationStep
-            isGenerating={isGenerating}
             onCancel={onCancel}
           />
+        );
+      case "generation":
+        return (
+          <GenerationStep isGenerating={_isGenerating} onCancel={onCancel} />
         );
     }
   };
@@ -149,13 +148,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <WizardHeader
-          title="Create Your Story"
-          progress={progress}
-          onClose={onCancel}
-        />
         <View style={styles.content}>{renderStep()}</View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -165,7 +159,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({ onComplete, onCancel }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFEFE',
+    backgroundColor: "#0f1129",
   },
   keyboardAvoid: {
     flex: 1,
