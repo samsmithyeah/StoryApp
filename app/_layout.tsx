@@ -9,19 +9,18 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { useAuth } from "@/hooks/useAuth";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useAuth } from "@/hooks/useAuth";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
   });
-
 
   if (!loaded || loading) {
     // Show loading screen instead of null
