@@ -31,14 +31,19 @@ export const useOnboarding = () => {
 
       if (hasOnboarded === "true") {
         setHasCompletedOnboarding(true);
+      } else if (hasOnboarded === "false") {
+        // Explicitly set to false, don't auto-complete
+        setHasCompletedOnboarding(false);
       } else {
-        // Check if they have any children profiles - if so, consider onboarded
+        // No onboarding status stored - check if they have children (legacy users)
         if (children.length > 0) {
           setHasCompletedOnboarding(true);
           // Save this state to avoid showing onboarding again
           await AsyncStorage.setItem(onboardingKey, "true");
         } else {
           setHasCompletedOnboarding(false);
+          // Store false explicitly to prevent auto-completion during onboarding
+          await AsyncStorage.setItem(onboardingKey, "false");
         }
       }
     } catch (error) {

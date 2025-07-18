@@ -96,6 +96,7 @@ export default function SettingsScreen() {
     ]);
   };
 
+
   if (showForm) {
     return (
       <ImageBackground

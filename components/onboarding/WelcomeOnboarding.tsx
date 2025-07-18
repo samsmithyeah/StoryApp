@@ -14,6 +14,7 @@ import { IconSymbol } from "../ui/IconSymbol";
 import { Button } from "../ui/Button";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { useChildren } from "../../hooks/useChildren";
+import { Child } from "../../types/child.types";
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/Theme";
 
 const { width } = Dimensions.get("window");
@@ -30,7 +31,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showChildForm, setShowChildForm] = useState(false);
-  const { children } = useChildren();
+  const { children, addChild } = useChildren();
 
   const steps = [
     {
@@ -78,9 +79,16 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
     }
   };
 
-  const handleChildFormComplete = async () => {
-    setShowChildForm(false);
-    setCurrentStep(3); // Go to final step
+  const handleChildFormComplete = async (childData: Omit<Child, "id">) => {
+    try {
+      await addChild(childData);
+      setShowChildForm(false);
+      setCurrentStep(3); // Go to final step
+    } catch (error) {
+      console.error("Error adding child during onboarding:", error);
+      // Don't proceed to next step if there's an error
+      throw error;
+    }
   };
 
   const handleSkipChildProfile = () => {
@@ -201,7 +209,10 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
                 {isLastStep && (
                   <Button
                     title="Add another child"
-                    onPress={() => setShowChildForm(true)}
+                    onPress={() => {
+                      setShowChildForm(true);
+                      setCurrentStep(2); // Go to form step
+                    }}
                     variant="secondary"
                     leftIcon="plus"
                     style={styles.secondaryButton}
