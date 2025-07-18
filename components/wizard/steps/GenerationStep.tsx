@@ -154,7 +154,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             </Animated.View>
           </View>
 
-          <Text style={styles.title}>Creating Your Story</Text>
+          <Text style={styles.title}>Creating your story</Text>
           <Text style={styles.message}>
             {GENERATION_MESSAGES[currentMessageIndex]}
           </Text>

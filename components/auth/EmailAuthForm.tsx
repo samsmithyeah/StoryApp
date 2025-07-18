@@ -135,7 +135,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
         )}
 
         <Button
-          title={mode === "signin" ? "Sign In" : "Create Account"}
+          title={mode === "signin" ? "Sign in" : "Create account"}
           onPress={handleSubmit}
           loading={loading}
           style={styles.submitButton}
@@ -148,7 +148,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
               : "Already have an account? "}
           </Text>
           <Button
-            title={mode === "signin" ? "Sign Up" : "Sign In"}
+            title={mode === "signin" ? "Sign up" : "Sign in"}
             onPress={onToggleMode}
             variant="outline"
             size="small"

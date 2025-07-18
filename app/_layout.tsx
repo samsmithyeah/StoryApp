@@ -11,6 +11,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/hooks/useAuth";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -21,16 +22,10 @@ export default function RootLayout() {
     "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
   });
 
-  console.log(
-    "RootLayout render - user:",
-    user ? "logged in" : "logged out",
-    "loading:",
-    loading
-  );
 
   if (!loaded || loading) {
-    // Async font loading only occurs in development.
-    return null;
+    // Show loading screen instead of null
+    return <LoadingScreen message="Starting DreamWeaver..." />;
   }
 
   return (

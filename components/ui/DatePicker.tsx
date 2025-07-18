@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { IconSymbol } from "./IconSymbol";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/Theme";
 
 interface DatePickerProps {
   label?: string;
@@ -19,6 +20,7 @@ interface DatePickerProps {
   minimumDate?: Date;
   leftIcon?: string;
   style?: any;
+  error?: string;
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
@@ -30,6 +32,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   minimumDate,
   leftIcon,
   style,
+  error,
 }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -74,12 +77,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {label && <Text style={styles.label}>{label}</Text>}
 
       <TouchableOpacity
-        style={styles.input}
+        style={[styles.input, error && styles.inputError]}
         onPress={() => setShowCalendar(true)}
       >
         {leftIcon && (
           <View style={styles.iconContainer}>
-            <IconSymbol name={leftIcon} size={20} color="#6B7280" />
+            <IconSymbol name={leftIcon} size={20} color={Colors.textMuted} />
           </View>
         )}
 
@@ -87,8 +90,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           {value ? formatDate(value) : placeholder}
         </Text>
 
-        <IconSymbol name="chevron.down" size={16} color="#6B7280" />
+        <IconSymbol name="chevron.down" size={16} color={Colors.textMuted} />
       </TouchableOpacity>
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
       <Modal
         visible={showCalendar}
@@ -104,7 +109,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 onPress={() => setShowCalendar(false)}
                 style={styles.closeButton}
               >
-                <IconSymbol name="xmark" size={20} color="#6B7280" />
+                <IconSymbol name="xmark" size={20} color={Colors.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -116,7 +121,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <Text style={styles.yearButtonText}>
                   {currentDate.getFullYear()}
                 </Text>
-                <IconSymbol name="chevron.down" size={16} color="#6366F1" />
+                <IconSymbol name="chevron.down" size={16} color={Colors.primary} />
               </TouchableOpacity>
             </View>
 
@@ -152,7 +157,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     ? {
                         [formatDateForCalendar(value)]: {
                           selected: true,
-                          selectedColor: "#6366F1",
+                          selectedColor: Colors.primary,
                         },
                       }
                     : {}
@@ -179,7 +184,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                         style={{
                           fontSize: 18,
                           fontWeight: "600",
-                          color: "#2d4150",
+                          color: Colors.text,
                           textAlign: "center",
                         }}
                       >
@@ -189,22 +194,25 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   );
                 }}
                 theme={{
-                  selectedDayBackgroundColor: "#6366F1",
-                  selectedDayTextColor: "#ffffff",
-                  todayTextColor: "#6366F1",
-                  dayTextColor: "#2d4150",
-                  textDisabledColor: "#d9e1e8",
-                  dotColor: "#6366F1",
-                  selectedDotColor: "#ffffff",
-                  arrowColor: "#6366F1",
-                  monthTextColor: "#2d4150",
-                  indicatorColor: "#6366F1",
+                  selectedDayBackgroundColor: Colors.primary,
+                  selectedDayTextColor: Colors.textDark,
+                  todayTextColor: Colors.primary,
+                  dayTextColor: Colors.text,
+                  textDisabledColor: Colors.textMuted,
+                  dotColor: Colors.primary,
+                  selectedDotColor: Colors.textDark,
+                  arrowColor: Colors.primary,
+                  monthTextColor: Colors.text,
+                  indicatorColor: Colors.primary,
                   textDayFontWeight: "500",
                   textMonthFontWeight: "600",
                   textDayHeaderFontWeight: "500",
                   textDayFontSize: 16,
                   textMonthFontSize: 18,
                   textDayHeaderFontSize: 14,
+                  backgroundColor: Colors.backgroundLight,
+                  calendarBackground: Colors.backgroundLight,
+                  textSectionTitleColor: Colors.textSecondary,
                 }}
               />
             )}
@@ -217,112 +225,126 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
+    fontSize: Typography.fontSize.small,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   input: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.lg,
     minHeight: 52,
   },
   iconContainer: {
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   text: {
     flex: 1,
-    fontSize: 16,
-    color: "#111827",
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    fontFamily: Typography.fontFamily.primary,
   },
   placeholder: {
-    color: "#9CA3AF",
+    color: Colors.textMuted,
+  },
+  inputError: {
+    borderColor: Colors.error,
+    backgroundColor: "rgba(239, 68, 68, 0.05)",
+  },
+  errorText: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.error,
+    marginTop: Spacing.xs,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: Colors.backgroundLight,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     width: "100%",
     maxWidth: 400,
-    shadowColor: "#000",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
+    shadowColor: Colors.primary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: Spacing.xl,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontSize: Typography.fontSize.h4,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.primary,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
   yearMonthSelector: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   yearButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.small,
+    gap: Spacing.sm,
   },
   yearButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6366F1",
+    fontSize: Typography.fontSize.medium,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
   },
   yearPicker: {
     maxHeight: 300,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   yearOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   yearOptionText: {
-    fontSize: 16,
-    color: "#374151",
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
     textAlign: "center",
   },
   selectedYearText: {
-    color: "#6366F1",
-    fontWeight: "600",
+    color: Colors.primary,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

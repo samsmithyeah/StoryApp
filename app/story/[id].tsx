@@ -332,7 +332,7 @@ export default function StoryScreen() {
               <Text style={styles.errorTitle}>Oops!</Text>
               <Text style={styles.errorText}>{error}</Text>
               <Button
-                title="Go Back"
+                title="Go back"
                 onPress={() => router.back()}
                 variant="outline"
                 style={styles.errorButton}
@@ -371,7 +371,7 @@ export default function StoryScreen() {
                 The story you&apos;re looking for doesn&apos;t exist.
               </Text>
               <Button
-                title="Go Back"
+                title="Go back"
                 onPress={() => router.back()}
                 variant="outline"
                 style={styles.errorButton}

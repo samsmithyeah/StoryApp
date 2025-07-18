@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./useAuth";
 import { useChildren } from "./useChildren";
@@ -11,15 +11,16 @@ export const useOnboarding = () => {
   >(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { children } = useChildren();
+  const { children, loading: childrenLoading } = useChildren();
 
-  useEffect(() => {
-    checkOnboardingStatus();
-  }, [user]);
-
-  const checkOnboardingStatus = async () => {
+  const checkOnboardingStatus = useCallback(async () => {
     if (!user) {
       setLoading(false);
+      return;
+    }
+
+    // Wait for children to finish loading before making onboarding decision
+    if (childrenLoading) {
       return;
     }
 
@@ -47,7 +48,11 @@ export const useOnboarding = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, children, childrenLoading]);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, [checkOnboardingStatus]);
 
   const completeOnboarding = async () => {
     if (!user) return;

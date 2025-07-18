@@ -22,6 +22,8 @@ interface ChildProfileFormProps {
   submitButtonText?: string;
   showCancelButton?: boolean;
   cancelButtonText?: string;
+  cancelAsLink?: boolean;
+  title?: string;
 }
 
 export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
@@ -29,9 +31,11 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   onSave,
   onCancel,
   loading = false,
-  submitButtonText = "Save Child",
+  submitButtonText = "Save child",
   showCancelButton = false,
   cancelButtonText = "Cancel",
+  cancelAsLink = false,
+  title,
 }) => {
   const [childName, setChildName] = useState(child?.childName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
@@ -40,6 +44,11 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   const [childPreferences, setChildPreferences] = useState(
     child?.childPreferences || ""
   );
+  const [errors, setErrors] = useState<{
+    childName?: string;
+    dateOfBirth?: string;
+    childPreferences?: string;
+  }>({});
 
   const isEditing = !!child;
 
@@ -52,31 +61,31 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   }, [child]);
 
   const validateForm = () => {
+    const newErrors: typeof errors = {};
+    
     if (!childName.trim()) {
-      Alert.alert("Error", "Please enter the child's name");
-      return false;
+      newErrors.childName = "Please enter the child's name";
     }
 
     if (!dateOfBirth) {
-      Alert.alert("Error", "Please select the child's date of birth");
-      return false;
+      newErrors.dateOfBirth = "Please select the child's date of birth";
+    } else {
+      const today = new Date();
+      const age = today.getFullYear() - dateOfBirth.getFullYear();
+      const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+      const dayDiff = today.getDate() - dateOfBirth.getDate();
+
+      // Check if birthday hasn't occurred this year
+      const actualAge =
+        monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
+      if (actualAge < 0 || actualAge > 18) {
+        newErrors.dateOfBirth = "Child must be between 0 and 18 years old";
+      }
     }
 
-    const today = new Date();
-    const age = today.getFullYear() - dateOfBirth.getFullYear();
-    const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-    const dayDiff = today.getDate() - dateOfBirth.getDate();
-
-    // Check if birthday hasn't occurred this year
-    const actualAge =
-      monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
-
-    if (actualAge < 0 || actualAge > 18) {
-      Alert.alert("Error", "Child must be between 0 and 18 years old");
-      return false;
-    }
-
-    return true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
@@ -98,6 +107,27 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
     }
   };
 
+  const handleChildNameChange = (text: string) => {
+    setChildName(text);
+    if (errors.childName) {
+      setErrors(prev => ({ ...prev, childName: undefined }));
+    }
+  };
+
+  const handleDateOfBirthChange = (date: Date) => {
+    setDateOfBirth(date);
+    if (errors.dateOfBirth) {
+      setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
+    }
+  };
+
+  const handleChildPreferencesChange = (text: string) => {
+    setChildPreferences(text);
+    if (errors.childPreferences) {
+      setErrors(prev => ({ ...prev, childPreferences: undefined }));
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -110,7 +140,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
       >
         <View style={styles.header}>
           <Text style={styles.title}>
-            {isEditing ? "Edit Profile" : "Add New Child"}
+            {title || (isEditing ? "Edit profile" : "Add new child")}
           </Text>
           <Text style={styles.subtitle}>
             {isEditing
@@ -120,33 +150,40 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
         </View>
 
         <View style={styles.form}>
-          <Input
-            label="Child's name"
-            placeholder="Enter your child's name"
-            value={childName}
-            onChangeText={setChildName}
-            leftIcon="person.fill"
-            autoCapitalize="words"
-          />
+          <View style={styles.fieldContainer}>
+            <Input
+              label="Child's name"
+              placeholder="Enter your child's name"
+              value={childName}
+              onChangeText={handleChildNameChange}
+              leftIcon="person.fill"
+              autoCapitalize="words"
+              error={errors.childName}
+            />
+          </View>
 
-          <DatePicker
-            label="Date of birth"
-            placeholder="Select your child's date of birth"
-            value={dateOfBirth}
-            onChange={setDateOfBirth}
-            leftIcon="calendar"
-            maximumDate={new Date()}
-            minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
-          />
+          <View style={styles.fieldContainer}>
+            <DatePicker
+              label="Date of birth"
+              placeholder="Select your child's date of birth"
+              value={dateOfBirth}
+              onChange={handleDateOfBirthChange}
+              leftIcon="calendar"
+              maximumDate={new Date()}
+              minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
+              error={errors.dateOfBirth}
+            />
+          </View>
 
           <View style={styles.preferencesContainer}>
             <Input
               label="Interests & preferences"
               placeholder="What does your child love? (e.g., dinosaurs, princesses, space, animals)"
               value={childPreferences}
-              onChangeText={setChildPreferences}
+              onChangeText={handleChildPreferencesChange}
               leftIcon="heart.fill"
               style={styles.preferencesInput}
+              error={errors.childPreferences}
             />
             <Text style={styles.preferencesHint}>
               This helps us create more personalized and engaging stories that
@@ -156,15 +193,6 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
         </View>
 
         <View style={styles.actions}>
-          {showCancelButton && (
-            <Button
-              title={cancelButtonText}
-              onPress={onCancel}
-              variant="outline"
-              style={styles.cancelButton}
-            />
-          )}
-
           <Button
             title={
               submitButtonText || (isEditing ? "Update profile" : "Add child")
@@ -172,10 +200,26 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
             onPress={handleSave}
             loading={loading}
             variant="primary"
-            style={
-              showCancelButton ? styles.saveButton : styles.fullWidthButton
-            }
+            style={styles.fullWidthButton}
           />
+          
+          {showCancelButton && (
+            cancelAsLink ? (
+              <Text 
+                style={styles.cancelLink}
+                onPress={onCancel}
+              >
+                {cancelButtonText}
+              </Text>
+            ) : (
+              <Button
+                title={cancelButtonText}
+                onPress={onCancel}
+                variant="outline"
+                style={styles.cancelButton}
+              />
+            )
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -217,6 +261,9 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: Spacing.xxxl,
   },
+  fieldContainer: {
+    marginBottom: Spacing.xxl,
+  },
   preferencesContainer: {
     marginBottom: Spacing.lg,
   },
@@ -231,7 +278,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   actions: {
-    flexDirection: "row",
+    flexDirection: "column",
     gap: Spacing.md,
   },
   cancelButton: {
@@ -242,5 +289,13 @@ const styles = StyleSheet.create({
   },
   fullWidthButton: {
     flex: 1,
+  },
+  cancelLink: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.primary,
+    textAlign: "center",
+    marginTop: Spacing.md,
+    textDecorationLine: "underline",
+    opacity: 0.8,
   },
 });

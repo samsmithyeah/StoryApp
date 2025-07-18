@@ -236,7 +236,7 @@ export default function SettingsScreen() {
             </View>
 
             <Button
-              title="Sign Out"
+              title="Sign out"
               onPress={handleSignOut}
               variant="danger"
               style={styles.signOutButton}

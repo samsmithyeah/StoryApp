@@ -179,7 +179,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   return (
     <WizardContainer>
       <WizardStepHeader
-        title="Choose Theme"
+        title="Choose theme"
         subtitle="What kind of story shall we create?"
         stepNumber={2}
         totalSteps={3}

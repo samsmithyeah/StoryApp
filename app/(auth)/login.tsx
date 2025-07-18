@@ -120,7 +120,7 @@ export default function LoginScreen() {
                     style={styles.emailButtonText}
                     onPress={handleEmailToggle}
                   >
-                    Continue with Email
+                    Continue with email
                   </Text>
                 </View>
               </>

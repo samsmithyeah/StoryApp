@@ -112,7 +112,7 @@ export const StoryGenerationProgress: React.FC<
 
         {showViewButton && (
           <Button
-            title="View Your Story"
+            title="View your story"
             onPress={onViewStory}
             size="large"
             leftIcon="book.open"

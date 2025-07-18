@@ -102,7 +102,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           style={styles.backButton}
         />
         <Button
-          title="Create Story"
+          title="Create story"
           onPress={onComplete}
           size="large"
           leftIcon="sparkles"
