@@ -129,7 +129,9 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
     // If we haven't measured this page yet, use a placeholder height so layout is predictable.
     const measuredPanelHeight = textHeights[index] ?? 120;
-    const imageDisplayHeight = hasImages ? availableHeight - measuredPanelHeight : 0;
+    const imageDisplayHeight = hasImages
+      ? availableHeight - measuredPanelHeight
+      : 0;
 
     /**
      * Callback invoked after RN lays out the <Text> element. We fire only once per page
@@ -156,7 +158,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               <>
                 {imageUrl ? (
                   <View
-                    style={[styles.imageContainer, { height: imageDisplayHeight }]}
+                    style={[
+                      styles.imageContainer,
+                      { height: imageDisplayHeight },
+                    ]}
                   >
                     {imageLoading[index] && (
                       <ActivityIndicator
@@ -179,7 +184,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                       { height: imageDisplayHeight },
                     ]}
                   >
-                    <IconSymbol name="photo" size={48} color={Colors.textMuted} />
+                    <IconSymbol
+                      name="photo"
+                      size={48}
+                      color={Colors.textMuted}
+                    />
                     {(story.imageGenerationStatus === "generating" ||
                       story.imageGenerationStatus === "pending") && (
                       <View style={styles.placeholderLoadingContainer}>
@@ -204,7 +213,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                 styles.textPanel,
                 !hasImages && styles.textPanelFullHeight,
                 !hasImages && styles.textPanelNoImages,
-                { height: hasImages ? measuredPanelHeight : availableHeight }
+                { height: hasImages ? measuredPanelHeight : availableHeight },
               ]}
               /**
                * Hide until we know the actual height to prevent flicker on first render
@@ -213,12 +222,9 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               {!hasImages ? (
                 <>
                   <View style={styles.textContainer}>
-                    <Text 
-                      onTextLayout={handleTextLayout} 
-                      style={[
-                        styles.pageText,
-                        styles.pageTextLarge
-                      ]}
+                    <Text
+                      onTextLayout={handleTextLayout}
+                      style={[styles.pageText, styles.pageTextLarge]}
                     >
                       {pageText}
                     </Text>

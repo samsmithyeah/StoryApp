@@ -15,7 +15,13 @@ import { Button } from "../ui/Button";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { useChildren } from "../../hooks/useChildren";
 import { Child } from "../../types/child.types";
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/Theme";
+import {
+  Colors,
+  Typography,
+  Spacing,
+  BorderRadius,
+  Shadows,
+} from "../../constants/Theme";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -99,7 +105,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
   const hasChildren = children.length > 0;
-  
+
   // Calculate the actual step for progress indicator
   const progressStep = showChildForm ? 2 : currentStep;
 
@@ -115,10 +121,13 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
         style={styles.container}
       >
         <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
           style={StyleSheet.absoluteFill}
         />
-        
+
         <SafeAreaView style={styles.safeArea}>
           {/* Progress indicator at the top - consistent across all screens */}
           <View style={styles.progressHeader}>
@@ -156,7 +165,6 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.content}>
-
                 <View style={styles.iconContainer}>
                   <View style={styles.iconGlow}>
                     <IconSymbol
@@ -220,16 +228,13 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
                 )}
 
                 {currentStep === 0 && (
-                  <Text 
-                    style={styles.skipLink}
-                    onPress={() => onComplete()}
-                  >
+                  <Text style={styles.skipLink} onPress={() => onComplete()}>
                     Skip for now
                   </Text>
                 )}
 
                 {currentStep === 1 && !hasChildren && (
-                  <Text 
+                  <Text
                     style={styles.skipLink}
                     onPress={() => setCurrentStep(3)}
                   >

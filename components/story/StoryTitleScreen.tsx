@@ -79,15 +79,16 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
           >
             <Text style={styles.title}>{story.title}</Text>
 
-            {story.storyConfiguration?.enableIllustrations !== false && coverImageUrl && (
-              <View style={styles.coverImageContainer}>
-                <Image
-                  source={{ uri: coverImageUrl }}
-                  style={styles.coverImage}
-                  contentFit="cover"
-                />
-              </View>
-            )}
+            {story.storyConfiguration?.enableIllustrations !== false &&
+              coverImageUrl && (
+                <View style={styles.coverImageContainer}>
+                  <Image
+                    source={{ uri: coverImageUrl }}
+                    style={styles.coverImage}
+                    contentFit="cover"
+                  />
+                </View>
+              )}
 
             <Text style={styles.detailsLine}>8 pages ✦ Medium ✦ Fantasy</Text>
 

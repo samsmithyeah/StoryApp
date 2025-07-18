@@ -9,7 +9,12 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { IconSymbol } from "./IconSymbol";
-import { Colors, Typography, Spacing, BorderRadius } from "../../constants/Theme";
+import {
+  Colors,
+  Typography,
+  Spacing,
+  BorderRadius,
+} from "../../constants/Theme";
 
 interface DatePickerProps {
   label?: string;
@@ -121,7 +126,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <Text style={styles.yearButtonText}>
                   {currentDate.getFullYear()}
                 </Text>
-                <IconSymbol name="chevron.down" size={16} color={Colors.primary} />
+                <IconSymbol
+                  name="chevron.down"
+                  size={16}
+                  color={Colors.primary}
+                />
               </TouchableOpacity>
             </View>
 

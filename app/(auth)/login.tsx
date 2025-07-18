@@ -87,65 +87,68 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-          <View style={styles.header}>
-            <Text style={styles.appName}>DreamWeaver</Text>
-            <Text style={styles.tagline}>
-              Magical bedtime stories, created just for your little ones
-            </Text>
-          </View>
+            <View style={styles.header}>
+              <Text style={styles.appName}>DreamWeaver</Text>
+              <Text style={styles.tagline}>
+                Magical bedtime stories, created just for your little ones
+              </Text>
+            </View>
 
-          <View style={styles.authContainer}>
-            {!showEmailForm ? (
-              <>
-                <View style={styles.socialButtons}>
-                  <GoogleSignInButton
-                    onPress={handleGoogleSignIn}
-                    loading={loading}
-                  />
+            <View style={styles.authContainer}>
+              {!showEmailForm ? (
+                <>
+                  <View style={styles.socialButtons}>
+                    <GoogleSignInButton
+                      onPress={handleGoogleSignIn}
+                      loading={loading}
+                    />
 
-                  <AppleSignInButton
-                    onPress={handleAppleSignIn}
-                    loading={loading}
-                  />
-                </View>
+                    <AppleSignInButton
+                      onPress={handleAppleSignIn}
+                      loading={loading}
+                    />
+                  </View>
 
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
 
-                <View style={styles.emailButton}>
+                  <View style={styles.emailButton}>
+                    <Text
+                      style={styles.emailButtonText}
+                      onPress={handleEmailToggle}
+                    >
+                      Continue with email
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <EmailAuthForm
+                  mode={emailAuthMode}
+                  onToggleMode={handleEmailModeToggle}
+                />
+              )}
+
+              {showEmailForm && (
+                <View style={styles.backButton}>
                   <Text
-                    style={styles.emailButtonText}
+                    style={styles.backButtonText}
                     onPress={handleEmailToggle}
                   >
-                    Continue with email
+                    ← Back to other options
                   </Text>
                 </View>
-              </>
-            ) : (
-              <EmailAuthForm
-                mode={emailAuthMode}
-                onToggleMode={handleEmailModeToggle}
-              />
-            )}
+              )}
+            </View>
 
-            {showEmailForm && (
-              <View style={styles.backButton}>
-                <Text style={styles.backButtonText} onPress={handleEmailToggle}>
-                  ← Back to other options
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              By continuing, you agree to our Terms of Service and Privacy
-              Policy
-            </Text>
-          </View>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                By continuing, you agree to our Terms of Service and Privacy
+                Policy
+              </Text>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

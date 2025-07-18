@@ -62,7 +62,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
-    
+
     if (!childName.trim()) {
       newErrors.childName = "Please enter the child's name";
     }
@@ -110,21 +110,21 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   const handleChildNameChange = (text: string) => {
     setChildName(text);
     if (errors.childName) {
-      setErrors(prev => ({ ...prev, childName: undefined }));
+      setErrors((prev) => ({ ...prev, childName: undefined }));
     }
   };
 
   const handleDateOfBirthChange = (date: Date) => {
     setDateOfBirth(date);
     if (errors.dateOfBirth) {
-      setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
+      setErrors((prev) => ({ ...prev, dateOfBirth: undefined }));
     }
   };
 
   const handleChildPreferencesChange = (text: string) => {
     setChildPreferences(text);
     if (errors.childPreferences) {
-      setErrors(prev => ({ ...prev, childPreferences: undefined }));
+      setErrors((prev) => ({ ...prev, childPreferences: undefined }));
     }
   };
 
@@ -202,13 +202,10 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
             variant="primary"
             style={styles.fullWidthButton}
           />
-          
-          {showCancelButton && (
-            cancelAsLink ? (
-              <Text 
-                style={styles.cancelLink}
-                onPress={onCancel}
-              >
+
+          {showCancelButton &&
+            (cancelAsLink ? (
+              <Text style={styles.cancelLink} onPress={onCancel}>
                 {cancelButtonText}
               </Text>
             ) : (
@@ -218,8 +215,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 variant="outline"
                 style={styles.cancelButton}
               />
-            )
-          )}
+            ))}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

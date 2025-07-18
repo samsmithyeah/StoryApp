@@ -9,7 +9,12 @@ import {
   TextStyle,
 } from "react-native";
 import { IconSymbol } from "./IconSymbol";
-import { Colors, Typography, Spacing, BorderRadius } from "../../constants/Theme";
+import {
+  Colors,
+  Typography,
+  Spacing,
+  BorderRadius,
+} from "../../constants/Theme";
 
 interface InputProps {
   label?: string;
