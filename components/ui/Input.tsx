@@ -9,6 +9,7 @@ import {
   TextStyle,
 } from "react-native";
 import { IconSymbol } from "./IconSymbol";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/Theme";
 
 interface InputProps {
   label?: string;
@@ -46,6 +47,14 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
 
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
   const handleTogglePassword = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
@@ -75,7 +84,7 @@ export const Input: React.FC<InputProps> = ({
           <IconSymbol
             name={leftIcon}
             size={20}
-            color="#9CA3AF"
+            color={Colors.textMuted}
             style={styles.leftIcon}
           />
         )}
@@ -89,9 +98,11 @@ export const Input: React.FC<InputProps> = ({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           editable={!disabled}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholderTextColor="#9CA3AF"
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholderTextColor={Colors.textMuted}
+          blurOnSubmit={false}
+          selectTextOnFocus={false}
         />
 
         {secureTextEntry && (
@@ -102,7 +113,7 @@ export const Input: React.FC<InputProps> = ({
             <IconSymbol
               name={isPasswordVisible ? "eye.slash" : "eye"}
               size={20}
-              color="#9CA3AF"
+              color={Colors.textMuted}
             />
           </TouchableOpacity>
         )}
@@ -121,57 +132,61 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
+    fontSize: Typography.fontSize.small,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    minHeight: 48,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.lg,
+    minHeight: 52,
   },
   focused: {
-    borderColor: "#6366F1",
-    backgroundColor: "#FFFFFF",
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   error: {
-    borderColor: "#EF4444",
+    borderColor: Colors.error,
+    backgroundColor: "rgba(239, 68, 68, 0.05)",
   },
   disabled: {
-    backgroundColor: "#F3F4F6",
-    opacity: 0.6,
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    opacity: 0.5,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: "#111827",
-    paddingVertical: 12,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    paddingVertical: Spacing.md,
+    fontFamily: Typography.fontFamily.primary,
   },
   inputWithLeftIcon: {
-    marginLeft: 12,
+    marginLeft: Spacing.md,
   },
   inputWithRightIcon: {
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   leftIcon: {
     marginRight: 0,
   },
   rightIcon: {
-    padding: 4,
+    padding: Spacing.xs,
     marginLeft: 0,
   },
   errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    marginTop: 4,
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.error,
+    marginTop: Spacing.xs,
   },
 });

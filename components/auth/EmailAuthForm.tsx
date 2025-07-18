@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
-import { Input } from "../ui/Input";
-import { Button } from "../ui/Button";
+import { Alert, Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  BorderRadius,
+  Colors,
+  Spacing,
+  Typography,
+} from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 interface EmailAuthFormProps {
   mode: "signin" | "signup";
@@ -73,10 +82,6 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {mode === "signin" ? "Welcome back" : "Create account"}
-      </Text>
-
       <Text style={styles.subtitle}>
         {mode === "signin"
           ? "Sign in to continue to DreamWeaver"
@@ -157,54 +162,60 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#111827",
+    fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
+    fontFamily: Typography.fontFamily.primary,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
+    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: isTablet ? Spacing.xxxl : Spacing.xxl,
+    lineHeight: isTablet ? 24 : 20,
+    opacity: 0.9,
   },
   errorText: {
-    fontSize: 14,
-    color: "#EF4444",
+    fontSize: Typography.fontSize.small,
+    color: Colors.error,
     textAlign: "center",
-    marginBottom: 16,
-    backgroundColor: "#FEF2F2",
-    padding: 12,
-    borderRadius: 8,
+    marginBottom: Spacing.lg,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.medium,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "rgba(239, 68, 68, 0.3)",
   },
   form: {
     width: "100%",
+    gap: Spacing.lg,
   },
   submitButton: {
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xxl,
   },
   toggleContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: Spacing.lg,
+    flexWrap: "wrap",
   },
   toggleText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginRight: 8,
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    marginRight: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   toggleButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     minHeight: 32,
+    marginBottom: Spacing.xs,
   },
 });

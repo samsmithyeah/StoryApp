@@ -4,6 +4,8 @@ import {
   Alert,
   Dimensions,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -75,11 +77,16 @@ export default function LoginScreen() {
       />
 
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoid}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
           <View style={styles.header}>
             <Text style={styles.appName}>DreamWeaver</Text>
             <Text style={styles.tagline}>
@@ -139,7 +146,8 @@ export default function LoginScreen() {
               Policy
             </Text>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </ImageBackground>
   );
@@ -151,6 +159,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   safeArea: {
+    flex: 1,
+  },
+  keyboardAvoid: {
     flex: 1,
   },
   scrollContent: {
