@@ -92,26 +92,18 @@ export const generateSingleImage = onMessagePublished(
       );
       console.log(`[Worker] Uploaded to ${storagePath}.`);
 
-      // --- ATOMIC UPDATE USING A TRANSACTION ---
+      // --- ATOMIC UPDATE AND COMPLETION CHECK ---
       await admin.firestore().runTransaction(async (transaction) => {
-        // 1. Read the document within the transaction
         const doc = await transaction.get(storyRef);
-        if (!doc.exists) {
-          throw new Error("Document does not exist!");
-        }
+        if (!doc.exists) throw new Error("Document does not exist!");
 
-        // 2. Modify the data in memory
         const storyData = doc.data();
         if (!storyData || !Array.isArray(storyData.storyContent)) {
           throw new Error("Story content is not a valid array.");
         }
 
-        // Create a new array from the existing one to modify it
         const newStoryContent = [...storyData.storyContent];
-
-        // Ensure the object at the target index exists before updating
         if (newStoryContent[pageIndex]) {
-          // This is the key change: update the object, preserving other fields like 'text'.
           newStoryContent[pageIndex] = {
             ...newStoryContent[pageIndex],
             imageUrl: storagePath,
@@ -120,9 +112,8 @@ export const generateSingleImage = onMessagePublished(
           throw new Error(`Page index ${pageIndex} is out of bounds.`);
         }
 
-        // Prepare the final update payload
         const updateData: { [key: string]: any } = {
-          storyContent: newStoryContent, // Write the entire modified array back
+          storyContent: newStoryContent,
           imagesGenerated: admin.firestore.FieldValue.increment(1),
         };
 
@@ -130,7 +121,18 @@ export const generateSingleImage = onMessagePublished(
           updateData.coverImageUrl = storagePath;
         }
 
-        // 3. Write the new data back to Firestore
+        const currentImagesGenerated = storyData.imagesGenerated || 0;
+        const totalImages = storyData.totalImages || 0;
+
+        // If this increment will meet or exceed the total, mark as completed.
+        // Using >= makes it more robust against potential double-runs.
+        if (totalImages > 0 && currentImagesGenerated + 1 >= totalImages) {
+          console.log(
+            `[Worker] This is the final image (${currentImagesGenerated + 1}/${totalImages}). Setting status to 'completed'.`
+          );
+          updateData.imageGenerationStatus = "completed";
+        }
+
         transaction.update(storyRef, updateData);
       });
 
