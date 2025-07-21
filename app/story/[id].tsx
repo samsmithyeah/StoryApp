@@ -388,7 +388,7 @@ export default function StoryScreen() {
   };
 
   const handleGoBack = () => {
-    router.back();
+    router.push("/");
   };
 
   if (showTitleScreen) {

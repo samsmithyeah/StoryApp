@@ -1,11 +1,14 @@
+import { PubSub } from "@google-cloud/pubsub";
 import * as admin from "firebase-admin";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { StoryGenerationRequest, StoryPage, GeneratedStory } from "./types";
-import { openaiApiKey, getOpenAIClient } from "./utils/openai";
+import { StoryGenerationRequest, StoryPage } from "./types";
+import { fluxApiKey, getFluxClient } from "./utils/flux";
+import { geminiApiKey, getGeminiClient } from "./utils/gemini";
+import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
-import { generateImagesInBackground } from "./generateImagesInBackground";
-import { fluxApiKey } from "./utils/flux";
-import { geminiApiKey } from "./utils/gemini";
+
+const pubsub = new PubSub();
+const topicName = "generate-story-image";
 
 export const generateStory = onCall(
   {
@@ -14,24 +17,22 @@ export const generateStory = onCall(
     memory: "1GiB",
   },
   async (request) => {
-    // Verify user is authenticated
+    // 1. Verify user is authenticated
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
+    const userId = request.auth.uid;
     const data = request.data as StoryGenerationRequest;
 
     try {
-      const userId = request.auth.uid;
-
-      // Get user and children data from Firestore
+      // 2. Get user and children data from Firestore
       const userDoc = await admin
         .firestore()
         .collection("users")
         .doc(userId)
         .get();
       const userData = userDoc.data();
-
       if (!userData) {
         throw new HttpsError("not-found", "User not found");
       }
@@ -41,14 +42,6 @@ export const generateStory = onCall(
         data.selectedChildren.includes(child.id)
       );
 
-      if (
-        selectedChildrenData.length === 0 &&
-        data.selectedChildren.length > 0
-      ) {
-        throw new HttpsError("invalid-argument", "Selected children not found");
-      }
-
-      // Calculate story parameters
       const pageCount =
         data.length === "short" ? 4 : data.length === "medium" ? 6 : 8;
       const childNames = selectedChildrenData
@@ -59,7 +52,6 @@ export const generateStory = onCall(
         .filter((pref: string) => pref.trim())
         .join(", ");
 
-      // Calculate average age for appropriate content
       const ages = selectedChildrenData.map((child: any) => {
         const today = new Date();
         const birthDate = new Date(child.dateOfBirth.seconds * 1000);
@@ -73,12 +65,9 @@ export const generateStory = onCall(
             )
           : 5;
 
-      // Get OpenAI client
+      // 3. Generate story text with OpenAI
       const openai = getOpenAIClient();
-
-      // Generate story with OpenAI
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that are magical, gentle, and educational.`;
-
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
   data.childrenAsCharacters && childNames
@@ -91,19 +80,19 @@ ${
 ${preferences ? `- Child interests: ${preferences}` : ""}
 
 Requirements:
-1. The story should be divided into exactly ${pageCount} pages
-2. Each page should be 2-3 sentences suitable for a ${averageAge}-year-old
+1. The story should be divided into exactly ${pageCount} pages.
+2. Each page should be 2-3 sentences suitable for a ${averageAge}-year-old.
 3. ${
         data.childrenAsCharacters && childNames
-          ? `Include ${childNames} as the main character(s)`
-          : "Use a generic child character"
+          ? `Include ${childNames} as the main character(s).`
+          : "Use a generic child character."
       }
-4. Make it gentle and perfect for bedtime
-5. End with a peaceful, sleep-inducing conclusion
+4. Make it gentle and perfect for bedtime.
+5. End with a peaceful, sleep-inducing conclusion.
 6. ${
         data.enableIllustrations
-          ? "For each page, include an image prompt description"
-          : "No image prompts needed"
+          ? "For each page, include an image prompt description."
+          : "No image prompts needed."
       }
 
 Return the story in this JSON format:
@@ -115,7 +104,7 @@ Return the story in this JSON format:
       "text": "Page text here",
       ${
         data.enableIllustrations
-          ? '"imagePrompt": "A gentle, child-friendly illustration of [scene description]"'
+          ? '"imagePrompt": "A gentle, child-friendly illustration of [scene description]."'
           : ""
       }
     }
@@ -133,107 +122,105 @@ Return the story in this JSON format:
           response_format: { type: "json_object" },
         })
       );
-
       const storyContent = JSON.parse(
         chatResponse.choices[0].message.content || "{}"
       );
 
-      // Create story pages with placeholder images
-      const storyPages: StoryPage[] = [];
-      for (const page of storyContent.pages) {
-        storyPages.push({
-          page: page.page,
-          text: page.text,
-          imageUrl: "", // Empty for now, will be filled by background task
-        });
-      }
+      // 4. Create initial Firestore document
+      const storyPages: StoryPage[] = storyContent.pages.map((page: any) => ({
+        page: page.page,
+        text: page.text,
+        imageUrl: "", // All are placeholders initially
+      }));
 
-      // Save story to Firestore immediately with text only
-      const storyData = {
+      const storyDocData = {
         userId,
         title: storyContent.title,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         storyContent: storyPages,
-        coverImageUrl: "", // Empty for now
+        coverImageUrl: "",
         storyConfiguration: data,
         imageGenerationStatus: data.enableIllustrations
-          ? "pending"
+          ? "generating"
           : "not_requested",
         imagesGenerated: 0,
-        totalImages: data.enableIllustrations ? storyPages.length + 1 : 0, // +1 for cover
+        totalImages: data.enableIllustrations ? storyPages.length : 0,
       };
-
       const storyRef = await admin
         .firestore()
         .collection("stories")
-        .add(storyData);
+        .add(storyDocData);
+      const storyId = storyRef.id;
 
-      // Start image generation in background if enabled
+      // 5. Orchestrate Image Generation (if enabled)
       if (data.enableIllustrations) {
-        // Don't await this - let it run in background
-        generateImagesInBackground(
-          storyRef.id,
-          storyContent,
-          storyPages,
-          data,
-          averageAge,
-          openai,
-          userId
-        ).catch((error) => {
-          console.error(
-            `Background image generation failed for story ${storyRef.id}:`,
-            error
+        console.log(
+          `[Orchestrator] Starting image orchestration for story ${storyId}`
+        );
+        const imageProvider = data.imageProvider || "flux";
+        const firstPagePrompt = `${storyContent.pages[0].imagePrompt}. Style: ${data.illustrationStyle}, gentle colors, child-friendly, perfect for a bedtime story.`;
+
+        // KEY OPTIMIZATION: Generate the first image directly in the orchestrator
+        let firstPageImageUrl: string;
+        if (imageProvider === "flux") {
+          const fluxClient = getFluxClient();
+          firstPageImageUrl = await retryWithBackoff(() =>
+            fluxClient.generateImageWithPolling({
+              prompt: firstPagePrompt,
+              aspect_ratio: "1:1",
+            })
           );
-          // Update status to failed
-          storyRef.update({
-            imageGenerationStatus: "failed",
-            imageGenerationError: error.message || "Unknown error",
-          });
-        });
+        } else {
+          // Gemini
+          const geminiClient = getGeminiClient();
+          firstPageImageUrl = await retryWithBackoff(() =>
+            geminiClient.generateImage(firstPagePrompt)
+          );
+        }
+        console.log(
+          `[Orchestrator] Generated first page image URL/Data directly.`
+        );
+
+        // Publish jobs for ALL pages at once
+        const publishPromises = storyContent.pages.map(
+          (page: any, index: number) => {
+            const isFirst = index === 0;
+            const payload = {
+              storyId,
+              userId,
+              pageIndex: index,
+              imagePrompt: page.imagePrompt,
+              imageProvider,
+              // For the first page, pass its own pre-generated URL
+              sourceImageUrl: isFirst ? firstPageImageUrl : undefined,
+              // For subsequent pages, pass the reference image info for consistency
+              consistencyInput: !isFirst
+                ? {
+                    imageUrl: firstPageImageUrl,
+                    text: storyContent.pages[0].text,
+                  }
+                : undefined,
+            };
+            return pubsub.topic(topicName).publishMessage({ json: payload });
+          }
+        );
+
+        await Promise.all(publishPromises);
+        console.log(
+          `[Orchestrator] Successfully published jobs for all ${storyContent.pages.length} pages.`
+        );
       }
 
-      const result: GeneratedStory = {
-        title: storyContent.title,
-        pages: storyPages,
-        coverImageUrl: "",
-      };
-
+      // 6. Return to Client Immediately
       return {
         success: true,
-        storyId: storyRef.id,
-        story: result,
+        storyId,
         imageGenerationStatus: data.enableIllustrations
-          ? "pending"
+          ? "generating"
           : "not_requested",
       };
     } catch (error: any) {
-      console.error("Error generating story:", error);
-
-      // Provide more specific error messages
-      if (
-        error.message?.includes("timeout") ||
-        error.message?.includes("DEADLINE")
-      ) {
-        throw new HttpsError(
-          "deadline-exceeded",
-          "Story generation took too long. Please try again with fewer pages or simpler settings."
-        );
-      }
-
-      if (error.message?.includes("API key")) {
-        throw new HttpsError(
-          "failed-precondition",
-          "OpenAI API key configuration error"
-        );
-      }
-
-      if (error.code === "resource-exhausted") {
-        throw new HttpsError(
-          "resource-exhausted",
-          "AI service is temporarily unavailable. Please try again later."
-        );
-      }
-
+      console.error("Error in generateStory orchestrator:", error);
       throw new HttpsError(
         "internal",
         `Failed to generate story: ${error.message || "Unknown error"}`
