@@ -4,10 +4,11 @@ import { StoryGenerationRequest, StoryPage, GeneratedStory } from "./types";
 import { openaiApiKey, getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { generateImagesInBackground } from "./generateImagesInBackground";
+import { fluxApiKey } from "./utils/flux";
 
 export const generateStory = onCall(
   {
-    secrets: [openaiApiKey],
+    secrets: [openaiApiKey, fluxApiKey],
     timeoutSeconds: 540, // 9 minutes timeout
     memory: "1GiB",
   },
