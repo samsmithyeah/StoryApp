@@ -84,10 +84,12 @@ interface CustomizationStepProps {
   length: "short" | "medium" | "long";
   illustrationStyle: string;
   enableIllustrations?: boolean;
+  imageProvider?: "flux" | "gemini";
   onUpdate: (data: {
     length?: "short" | "medium" | "long";
     illustrationStyle?: string;
     enableIllustrations?: boolean;
+    imageProvider?: "flux" | "gemini";
   }) => void;
   onNext: () => void;
   onBack: () => void;
@@ -98,6 +100,7 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
   length,
   illustrationStyle,
   enableIllustrations = true,
+  imageProvider = "flux",
   onUpdate,
   onNext,
   onBack,
@@ -141,6 +144,10 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
       // Update the selection with the typed text
       onUpdate({ illustrationStyle: text.trim() || "custom" });
     }
+  };
+
+  const handleImageProviderSelect = (provider: "flux" | "gemini") => {
+    onUpdate({ imageProvider: provider });
   };
 
   return (
@@ -301,6 +308,75 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                   />
                 </View>
               )}
+
+              <Text style={styles.subSectionTitle}>
+                Image Generation Engine
+              </Text>
+              <View style={styles.providerContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.providerCard,
+                    imageProvider === "flux" && styles.selectedCard,
+                  ]}
+                  onPress={() => handleImageProviderSelect("flux")}
+                >
+                  <View style={styles.providerInfo}>
+                    <Text
+                      style={[
+                        styles.providerName,
+                        imageProvider === "flux" && styles.selectedText,
+                      ]}
+                    >
+                      FLUX
+                    </Text>
+                    <Text
+                      style={[
+                        styles.providerDescription,
+                        imageProvider === "flux" && styles.selectedDescription,
+                      ]}
+                    >
+                      High-quality, realistic images with excellent detail
+                    </Text>
+                  </View>
+                  {imageProvider === "flux" && (
+                    <View style={styles.checkmark}>
+                      <Text style={styles.checkmarkText}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.providerCard,
+                    imageProvider === "gemini" && styles.selectedCard,
+                  ]}
+                  onPress={() => handleImageProviderSelect("gemini")}
+                >
+                  <View style={styles.providerInfo}>
+                    <Text
+                      style={[
+                        styles.providerName,
+                        imageProvider === "gemini" && styles.selectedText,
+                      ]}
+                    >
+                      Gemini
+                    </Text>
+                    <Text
+                      style={[
+                        styles.providerDescription,
+                        imageProvider === "gemini" && styles.selectedDescription,
+                      ]}
+                    >
+                      Fast generation with excellent character consistency
+                    </Text>
+                  </View>
+                  {imageProvider === "gemini" && (
+                    <View style={styles.checkmark}>
+                      <Text style={styles.checkmarkText}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
             </>
           )}
         </View>
@@ -499,5 +575,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     minHeight: 80,
+  },
+  providerContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  providerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  providerDescription: {
+    fontSize: isTablet ? 15 : 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 });

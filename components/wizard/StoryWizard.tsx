@@ -36,6 +36,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     length: "medium",
     illustrationStyle: "watercolor",
     enableIllustrations: true,
+    imageProvider: "flux",
   });
   const [_isGenerating, setIsGenerating] = useState(false);
 
@@ -131,6 +132,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             length={wizardData.length || "medium"}
             illustrationStyle={wizardData.illustrationStyle || "watercolor"}
             enableIllustrations={wizardData.enableIllustrations}
+            imageProvider={wizardData.imageProvider || "flux"}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}

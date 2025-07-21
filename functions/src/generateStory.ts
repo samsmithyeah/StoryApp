@@ -5,10 +5,11 @@ import { openaiApiKey, getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { generateImagesInBackground } from "./generateImagesInBackground";
 import { fluxApiKey } from "./utils/flux";
+import { geminiApiKey } from "./utils/gemini";
 
 export const generateStory = onCall(
   {
-    secrets: [openaiApiKey, fluxApiKey],
+    secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
     timeoutSeconds: 540, // 9 minutes timeout
     memory: "1GiB",
   },

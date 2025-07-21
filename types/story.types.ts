@@ -11,6 +11,7 @@ export interface StoryConfiguration {
   length: "short" | "medium" | "long";
   illustrationStyle: string;
   enableIllustrations?: boolean;
+  imageProvider?: "flux" | "gemini";
   targetAge?: number;
   storyId?: string;
 }
