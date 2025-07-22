@@ -4,8 +4,8 @@ import { StoryGenerationRequest, StoryPage } from "./types";
 import { uploadImageToStorage } from "./utils/storage";
 import { retryWithBackoff } from "./utils/retry";
 
-// Background image generation function
-export async function generateImagesInBackground(
+// Background image generation function using DALL-E (preserved for future use)
+export async function generateImagesInBackgroundDALLE(
   storyId: string,
   storyContent: any,
   storyPages: StoryPage[],

@@ -246,50 +246,9 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             </View>
           </View>
         </View>
-        {index === currentPage && renderImageGenerationStatus()}
+        {/* {index === currentPage && renderImageGenerationStatus()} */}
       </View>
     );
-  };
-
-  /** IMAGE‑GEN STATUS BANNER */
-  const renderImageGenerationStatus = () => {
-    if (
-      story.imageGenerationStatus === "not_requested" ||
-      !story.storyConfiguration?.illustrationStyle ||
-      story.storyConfiguration?.enableIllustrations === false
-    )
-      return null;
-
-    if (
-      story.imageGenerationStatus === "pending" ||
-      story.imageGenerationStatus === "generating"
-    ) {
-      const progress = (story.imagesGenerated || 0) / (story.totalImages || 1);
-      return (
-        <View style={styles.imageGenerationStatus}>
-          <Text style={styles.imageGenerationText}>
-            Generating illustrations... {story.imagesGenerated || 0} of{" "}
-            {story.totalImages || 0}
-          </Text>
-          <View style={styles.progressBar}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            />
-          </View>
-        </View>
-      );
-    }
-
-    if (story.imageGenerationStatus === "failed") {
-      return (
-        <View style={styles.imageGenerationStatus}>
-          <Text style={styles.imageGenerationErrorText}>
-            Some illustrations couldn't be generated
-          </Text>
-        </View>
-      );
-    }
-    return null;
   };
 
   /** EARLY RETURN UNTIL storyContent EXISTS */
@@ -310,7 +269,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={onClose || (() => router.back())}
+              onPress={onClose || (() => router.replace("/(tabs)"))}
               style={styles.closeButton}
             >
               <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
@@ -350,7 +309,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         <View style={styles.header}>
           <View style={styles.closeButtonContainer}>
             <TouchableOpacity
-              onPress={onClose || (() => router.back())}
+              onPress={onClose || (() => router.replace("/(tabs)"))}
               style={styles.closeButton}
             >
               <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />

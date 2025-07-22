@@ -5,6 +5,7 @@ export interface StoryGenerationRequest {
   length: "short" | "medium" | "long";
   illustrationStyle: string;
   enableIllustrations: boolean;
+  imageProvider?: "flux" | "gemini"; // Optional, defaults to flux for backward compatibility
 }
 
 export interface StoryPage {

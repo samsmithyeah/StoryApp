@@ -92,27 +92,40 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
-  const [customTheme, setCustomTheme] = useState("");
   const [aiThemes, setAiThemes] = useState<ThemeSuggestion[]>([]);
   const [loadingAiThemes, setLoadingAiThemes] = useState(false);
   const [aiThemesError, setAiThemesError] = useState<string | null>(null);
 
+  // Helper to check if custom theme is selected
+  const isCustomThemeSelected =
+    selectedTheme === "custom" ||
+    (!!selectedTheme &&
+      !THEMES.find((t) => t.id === selectedTheme) &&
+      !aiThemes.find((t) => t.id === selectedTheme));
+
+  const [customTheme, setCustomTheme] = useState(
+    isCustomThemeSelected ? selectedTheme : ""
+  );
+
   const handleThemeSelect = (themeId: string) => {
     onSelect(themeId);
-    setCustomTheme("");
+    setCustomTheme(""); // Clear custom text when selecting a predefined theme
   };
 
   const handleCustomThemeSelect = () => {
-    onSelect("custom");
-    if (!customTheme) {
-      // Focus will be handled by the TextInput when it appears
-    }
+    // When the "Custom Theme" card is tapped, activate it.
+    // Set the theme to the current input text, or "custom" if it's empty.
+    onSelect(customTheme.trim() || "custom");
   };
 
   const handleCustomThemeChange = (text: string) => {
+    // First, update the local state that drives the TextInput's value.
     setCustomTheme(text);
-    if (selectedTheme === "custom") {
-      // If custom theme is selected, update the selection with the typed text
+
+    // **THE FIX:** Check if the custom theme option is currently active.
+    // If it is, immediately update the parent wizard's state with the new text.
+    if (isCustomThemeSelected) {
+      // Use the trimmed text, or fall back to "custom" to keep the field active.
       onSelect(text.trim() || "custom");
     }
   };
@@ -124,35 +137,18 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
     child.childPreferences.trim()
   );
 
-  // Helper to check if custom theme is selected
-  const isCustomThemeSelected =
-    selectedTheme === "custom" ||
-    (selectedTheme &&
-      !THEMES.find((t) => t.id === selectedTheme) &&
-      !aiThemes.find((t) => t.id === selectedTheme)) ||
-    false;
-
-  // Generate AI themes when children with preferences are selected
   useEffect(() => {
     const generateAiThemes = async () => {
-      if (!hasPreferences || aiThemes.length > 0 || loadingAiThemes) {
-        return;
-      }
-
+      if (!hasPreferences || aiThemes.length > 0 || loadingAiThemes) return;
       setLoadingAiThemes(true);
       setAiThemesError(null);
-
       try {
         const preferences = selectedChildProfiles
           .map((child) => child.childPreferences.trim())
           .filter((pref) => pref.length > 0);
-
-        console.log("Generating AI themes for preferences:", preferences);
-
         if (preferences.length > 0) {
           const suggestions = await generateThemeSuggestions(preferences);
           setAiThemes(suggestions);
-          console.log("AI themes generated successfully:", suggestions);
         }
       } catch (error) {
         console.error("Error generating AI themes:", error);
@@ -163,18 +159,11 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
         setLoadingAiThemes(false);
       }
     };
-
     generateAiThemes();
-  }, [
-    selectedChildren,
-    hasPreferences,
-    aiThemes.length,
-    loadingAiThemes,
-    selectedChildProfiles,
-  ]);
+  }, [hasPreferences, selectedChildProfiles, aiThemes.length, loadingAiThemes]);
 
   const isNextDisabled =
-    !selectedTheme || (isCustomThemeSelected && !customTheme.trim()) || false;
+    !selectedTheme || (isCustomThemeSelected && !customTheme.trim());
 
   return (
     <WizardContainer>
@@ -186,7 +175,6 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
         onBack={onBack}
         onCancel={onCancel}
       />
-
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -202,14 +190,12 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
               onThemeSelect={handleThemeSelect}
             />
           )}
-
           <CustomThemeSection
             customTheme={customTheme}
             isCustomThemeSelected={isCustomThemeSelected}
             onCustomThemeSelect={handleCustomThemeSelect}
             onCustomThemeChange={handleCustomThemeChange}
           />
-
           <View style={styles.themesSection}>
             <Text style={styles.sectionTitle}>Other popular themes</Text>
             <View
@@ -217,7 +203,6 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
             >
               {THEMES.map((theme) => {
                 const isSelected = theme.id === selectedTheme;
-
                 return (
                   <ThemeCard
                     key={theme.id}
@@ -231,8 +216,6 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
           </View>
         </View>
       </ScrollView>
-
-      {/* Footer */}
       <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
     </WizardContainer>
   );

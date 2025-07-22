@@ -7,6 +7,7 @@ setGlobalOptions({ maxInstances: 10 });
 admin.initializeApp();
 
 // Export all functions from their separate files
+export { generateSingleImage } from "./generateSingleImage";
 export { generateStory } from "./generateStory";
 export { generateThemeSuggestions } from "./generateThemeSuggestions";
 export { getStories } from "./getStories";
