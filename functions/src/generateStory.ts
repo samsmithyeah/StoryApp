@@ -73,7 +73,7 @@ export const generateStory = onCall(
 
       // 3. Generate story text and prompts from OpenAI
       const openai = getOpenAIClient();
-      const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without replying on cliches. Be creative and inventive.`;
+      const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
