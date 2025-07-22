@@ -155,8 +155,8 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
       <WizardStepHeader
         title="Customise story"
         subtitle="Choose the perfect length and illustration style"
-        stepNumber={3}
-        totalSteps={3}
+        stepNumber={6}
+        totalSteps={6}
         onBack={onBack}
         onCancel={onCancel}
       />
@@ -364,7 +364,8 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                     <Text
                       style={[
                         styles.providerDescription,
-                        imageProvider === "gemini" && styles.selectedDescription,
+                        imageProvider === "gemini" &&
+                          styles.selectedDescription,
                       ]}
                     >
                       Fast generation with excellent character consistency

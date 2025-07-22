@@ -31,6 +31,9 @@ interface InputProps {
   leftIcon?: string;
   rightIcon?: string;
   onRightIconPress?: () => void;
+  multiline?: boolean;
+  numberOfLines?: number;
+  optional?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -48,6 +51,9 @@ export const Input: React.FC<InputProps> = ({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  multiline = false,
+  numberOfLines = 1,
+  optional = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
@@ -82,7 +88,12 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={containerStyle}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <View style={styles.labelContainer}>
+          <Text style={styles.label}>{label}</Text>
+          {optional && <Text style={styles.optionalText}>(optional)</Text>}
+        </View>
+      )}
 
       <View style={inputContainerStyle}>
         {leftIcon && (
@@ -105,6 +116,8 @@ export const Input: React.FC<InputProps> = ({
           editable={!disabled}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
           placeholderTextColor={Colors.textMuted}
           blurOnSubmit={false}
           selectTextOnFocus={false}
@@ -139,13 +152,23 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 0,
   },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
   label: {
     fontSize: Typography.fontSize.small,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
-    marginBottom: Spacing.sm,
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  optionalText: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.xs,
+    fontWeight: Typography.fontWeight.regular,
   },
   inputContainer: {
     flexDirection: "row",

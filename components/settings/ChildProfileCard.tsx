@@ -48,10 +48,31 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
     return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
   };
 
-  const getAgeText = (dateOfBirth: Date) => {
+  const getAgeText = (dateOfBirth?: Date) => {
+    if (!dateOfBirth) return "";
     const age = calculateAge(dateOfBirth);
     if (age === 1) return "1 year old";
     return `${age} years old`;
+  };
+
+  const getAppearanceDetails = () => {
+    const details: string[] = [];
+    if (child.hairColor) details.push(`${child.hairColor} hair`);
+    if (child.eyeColor) details.push(`${child.eyeColor} eyes`);
+    if (child.skinColor) details.push(`${child.skinColor} skin`);
+    if (child.hairStyle) details.push(`${child.hairStyle} style`);
+    if (child.appearanceDetails) details.push(child.appearanceDetails);
+    return details.join(", ");
+  };
+
+  const hasAppearanceDetails = () => {
+    return !!(
+      child.hairColor ||
+      child.eyeColor ||
+      child.skinColor ||
+      child.hairStyle ||
+      child.appearanceDetails
+    );
   };
 
   const getInitials = (name: string) => {
@@ -73,7 +94,9 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
           </View>
           <View style={styles.info}>
             <Text style={styles.name}>{child.childName}</Text>
-            <Text style={styles.age}>{getAgeText(child.dateOfBirth)}</Text>
+            {child.dateOfBirth && (
+              <Text style={styles.age}>{getAgeText(child.dateOfBirth)}</Text>
+            )}
           </View>
         </View>
 
@@ -98,6 +121,13 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
         <View style={styles.preferences}>
           <Text style={styles.preferencesLabel}>Likes:</Text>
           <Text style={styles.preferencesText}>{child.childPreferences}</Text>
+        </View>
+      )}
+
+      {hasAppearanceDetails() && (
+        <View style={styles.appearance}>
+          <Text style={styles.appearanceLabel}>Appearance:</Text>
+          <Text style={styles.appearanceText}>{getAppearanceDetails()}</Text>
         </View>
       )}
     </View>
@@ -183,6 +213,27 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   preferencesText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  appearance: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: Spacing.sm,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
+  },
+  appearanceLabel: {
+    fontSize: Typography.fontSize.tiny,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: Typography.letterSpacing.wide,
+    marginBottom: Spacing.xs,
+  },
+  appearanceText: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
     lineHeight: 20,

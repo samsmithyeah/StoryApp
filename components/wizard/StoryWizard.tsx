@@ -3,6 +3,7 @@ import {
   StoryGenerationRequest,
 } from "@/services/firebase/stories";
 import { StoryConfiguration } from "@/types/story.types";
+import { useChildren } from "@/hooks/useChildren";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,8 +16,19 @@ import { ChildSelection } from "./steps/ChildSelection";
 import { CustomizationStep } from "./steps/CustomizationStep";
 import { GenerationStep } from "./steps/GenerationStep";
 import { ThemeSelection } from "./steps/ThemeSelection";
+import { StoryAbout } from "./steps/StoryAbout";
+import { CharacterSelection } from "./steps/CharacterSelection";
+import { MoodSelection } from "./steps/MoodSelection";
 
-const WIZARD_STEPS = ["child", "theme", "customization", "generation"] as const;
+const WIZARD_STEPS = [
+  "child",
+  "theme",
+  "mood",
+  "characters",
+  "about",
+  "customization",
+  "generation",
+] as const;
 
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
@@ -29,14 +41,16 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   onComplete,
   onCancel,
 }) => {
+  const { children } = useChildren();
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
-    childrenAsCharacters: true,
     length: "medium",
     illustrationStyle: "watercolor",
     enableIllustrations: true,
     imageProvider: "flux",
+    storyAbout: "",
+    characters: [],
   });
   const [_isGenerating, setIsGenerating] = useState(false);
 
@@ -109,7 +123,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return (
           <ChildSelection
             selectedChildren={wizardData.selectedChildren || []}
-            childrenAsCharacters={wizardData.childrenAsCharacters || true}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onCancel={onCancel}
@@ -121,6 +134,37 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             selectedTheme={wizardData.theme}
             selectedChildren={wizardData.selectedChildren || []}
             onSelect={(theme) => updateWizardData({ theme })}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onCancel={onCancel}
+          />
+        );
+      case "mood":
+        return (
+          <MoodSelection
+            selectedMood={wizardData.mood}
+            onSelect={(mood) => updateWizardData({ mood })}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onCancel={onCancel}
+          />
+        );
+      case "about":
+        return (
+          <StoryAbout
+            storyAbout={wizardData.storyAbout}
+            onUpdate={(data) => updateWizardData(data)}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onCancel={onCancel}
+          />
+        );
+      case "characters":
+        return (
+          <CharacterSelection
+            savedChildren={children}
+            characters={wizardData.characters || []}
+            onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
             onCancel={onCancel}

@@ -11,7 +11,6 @@ import {
   ImageBackground,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -19,11 +18,7 @@ import {
 
 interface ChildSelectionProps {
   selectedChildren: string[];
-  childrenAsCharacters: boolean;
-  onUpdate: (data: {
-    selectedChildren?: string[];
-    childrenAsCharacters?: boolean;
-  }) => void;
+  onUpdate: (data: { selectedChildren?: string[] }) => void;
   onNext: () => void;
   onCancel: () => void;
 }
@@ -33,7 +28,6 @@ const isTablet = width >= 768;
 
 export const ChildSelection: React.FC<ChildSelectionProps> = ({
   selectedChildren,
-  childrenAsCharacters,
   onUpdate,
   onNext,
   onCancel,
@@ -75,7 +69,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           title="Who's the story for?"
           subtitle="Select one or more children"
           stepNumber={1}
-          totalSteps={3}
+          totalSteps={5}
           onBack={() => {}}
           onCancel={onCancel}
         />
@@ -89,7 +83,9 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             <View style={styles.childrenGrid}>
               {children.map((child) => {
                 const isSelected = selectedChildren.includes(child.id);
-                const age = calculateAge(child.dateOfBirth);
+                const age = child.dateOfBirth
+                  ? calculateAge(child.dateOfBirth)
+                  : null;
 
                 return (
                   <TouchableOpacity
@@ -136,31 +132,14 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                         isSelected && styles.selectedText,
                       ]}
                     >
-                      Age {age} • {child.childPreferences || "No interests set"}
+                      {age ? `Age ${age}` : "Age not set"} •{" "}
+                      {child.childPreferences || "No interests set"}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {/* Always show main character toggle */}
-            <View style={styles.characterOption}>
-              <View style={styles.switchContainer}>
-                <Text style={styles.switchTitle}>
-                  Feature in the story as characters
-                </Text>
-                <Switch
-                  value={childrenAsCharacters}
-                  onValueChange={(value) =>
-                    onUpdate({ childrenAsCharacters: value })
-                  }
-                  trackColor={{ false: "#374151", true: Colors.primary }}
-                  thumbColor={
-                    childrenAsCharacters ? "#FFFFFF" : Colors.textSecondary
-                  }
-                />
-              </View>
-            </View>
             {/* Add Child Link */}
             <TouchableOpacity
               style={styles.addChildLink}
@@ -275,21 +254,5 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     textAlign: "center",
-  },
-  characterOption: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  switchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  switchTitle: {
-    fontSize: isTablet ? 20 : 16,
-    fontWeight: "600",
-    color: Colors.text,
   },
 });

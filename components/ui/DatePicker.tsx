@@ -26,6 +26,7 @@ interface DatePickerProps {
   leftIcon?: string;
   style?: any;
   error?: string;
+  optional?: boolean;
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
@@ -38,6 +39,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   leftIcon,
   style,
   error,
+  optional = false,
 }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -79,7 +81,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <View style={styles.labelContainer}>
+          <Text style={styles.label}>{label}</Text>
+          {optional && <Text style={styles.optionalText}>(optional)</Text>}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.input, error && styles.inputError]}
@@ -236,13 +243,23 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 0,
   },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
   label: {
     fontSize: Typography.fontSize.small,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
-    marginBottom: Spacing.sm,
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  optionalText: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.xs,
+    fontWeight: Typography.fontWeight.regular,
   },
   input: {
     flexDirection: "row",

@@ -15,6 +15,10 @@ interface ImageGenerationPayload {
     imageUrl: string;
     text: string;
   };
+  characters: {
+    names: string;
+    descriptions: string;
+  };
 }
 
 export const generateSingleImage = onMessagePublished(
@@ -33,6 +37,7 @@ export const generateSingleImage = onMessagePublished(
       imagePrompt,
       imageProvider,
       consistencyInput,
+      characters,
     } = payload;
 
     console.log(
@@ -41,7 +46,18 @@ export const generateSingleImage = onMessagePublished(
     const storyRef = admin.firestore().collection("stories").doc(storyId);
 
     try {
-      const subsequentPrompt = `The input image is the book's cover, which establishes the appearance of the main characters and the overall art style. Create a new illustration for a page in the book, maintaining the exact same characters and art style. The scene for this new page is: ${imagePrompt}`;
+      const subsequentPrompt = `The input image is the book's cover, which establishes the appearance of the main characters and overall art style.
+
+IMPORTANT CHARACTER CONSISTENCY REQUIREMENTS:
+- The story features these specific characters: ${characters.names}
+- Character appearances: ${characters.descriptions}
+- Always maintain the EXACT same visual appearance for each character as shown in the cover image
+- Only include characters that are specifically mentioned or implied in the scene description
+- If no characters are mentioned in the scene, create an appropriate scene without characters
+
+Create a new illustration for this page scene: ${imagePrompt}
+
+Maintain the same art style, character designs, and visual consistency as the cover image. Create a well-composed children's book page illustration in 4:3 aspect ratio format.`;
 
       console.log(
         `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
@@ -54,7 +70,7 @@ export const generateSingleImage = onMessagePublished(
           fluxClient.generateImageWithPolling({
             prompt: subsequentPrompt,
             input_image: consistencyInput.imageUrl,
-            aspect_ratio: "1:1",
+            aspect_ratio: "4:3",
           })
         );
       } else {

@@ -1,301 +1,413 @@
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { Child } from "@/types/child.types";
+import { StoryCharacter } from "@/types/story.types";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Button } from "@/components/ui/Button";
-import { IconSymbol } from "@/components/ui/IconSymbol";
+import { OptionCard } from "../shared/OptionCard";
+import { WizardContainer } from "../shared/WizardContainer";
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 interface CharacterSelectionProps {
-  selectedCharacters: string[];
-  onSelect: (characters: string[]) => void;
+  savedChildren: Child[];
+  characters?: StoryCharacter[];
+  onUpdate: (data: { characters: StoryCharacter[] }) => void;
   onNext: () => void;
   onBack: () => void;
+  onCancel: () => void;
 }
 
-const SUGGESTED_CHARACTERS = [
-  "Friendly Dragon",
-  "Wise Owl",
-  "Brave Knight",
-  "Magic Unicorn",
-  "Talking Robot",
-  "Silly Monster",
-  "Flying Fairy",
-  "Pirate Captain",
-  "Space Explorer",
-  "Dinosaur Friend",
-  "Mermaid Princess",
-  "Superhero Cat",
-];
-
 export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
-  selectedCharacters,
-  onSelect,
+  savedChildren,
+  characters = [],
+  onUpdate,
   onNext,
   onBack,
+  onCancel,
 }) => {
-  const [customCharacter, setCustomCharacter] = useState("");
+  const [mode, setMode] = useState<"surprise" | "custom">(
+    characters.length > 0 ? "custom" : "surprise"
+  );
+  const [selectedCharacters, setSelectedCharacters] =
+    useState<StoryCharacter[]>(characters);
+  const [newCharacterName, setNewCharacterName] = useState("");
+  const [newCharacterDescription, setNewCharacterDescription] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  const toggleCharacter = (character: string) => {
-    if (selectedCharacters.includes(character)) {
-      onSelect(selectedCharacters.filter((c) => c !== character));
+  const handleToggleChild = (child: Child) => {
+    const existingIndex = selectedCharacters.findIndex(
+      (char) => char.isChild && char.childId === child.id
+    );
+
+    if (existingIndex >= 0) {
+      setSelectedCharacters(
+        selectedCharacters.filter((_, i) => i !== existingIndex)
+      );
     } else {
-      onSelect([...selectedCharacters, character]);
+      setSelectedCharacters([
+        ...selectedCharacters,
+        {
+          name: child.childName,
+          isChild: true,
+          childId: child.id,
+        },
+      ]);
     }
   };
 
-  const addCustomCharacter = () => {
-    if (
-      customCharacter.trim() &&
-      !selectedCharacters.includes(customCharacter.trim())
-    ) {
-      onSelect([...selectedCharacters, customCharacter.trim()]);
-      setCustomCharacter("");
+  const handleAddCustomCharacter = () => {
+    if (newCharacterName.trim()) {
+      setSelectedCharacters([
+        ...selectedCharacters,
+        {
+          name: newCharacterName.trim(),
+          description: newCharacterDescription.trim() || undefined,
+          isChild: false,
+        },
+      ]);
+      setNewCharacterName("");
+      setNewCharacterDescription("");
+      setShowAddForm(false);
     }
   };
 
-  const isNextDisabled = selectedCharacters.length === 0;
+  const handleRemoveCharacter = (index: number) => {
+    setSelectedCharacters(selectedCharacters.filter((_, i) => i !== index));
+  };
+
+  const handleNext = () => {
+    onUpdate({ characters: mode === "surprise" ? [] : selectedCharacters });
+    onNext();
+  };
+
+  const isNextDisabled = mode === "custom" && selectedCharacters.length === 0;
+
+  const options = [
+    {
+      id: "surprise",
+      title: "Surprise me!",
+      description: "Let the AI create interesting characters for the story",
+      icon: "sparkles",
+    },
+    {
+      id: "custom",
+      title: "I'll choose characters",
+      description: "Select from saved children or create custom characters",
+      icon: "person.fill",
+    },
+  ];
+
+  const isChildSelected = (childId: string) => {
+    return selectedCharacters.some(
+      (char) => char.isChild && char.childId === childId
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Pick your characters</Text>
-        <Text style={styles.subtitle}>
-          Choose friends for your adventure (select 1-3 characters)
-        </Text>
-      </View>
+    <WizardContainer>
+      <ScrollView style={styles.container}>
+        <WizardStepHeader
+          title="Who are the characters?"
+          subtitle="Select from saved children or add custom characters"
+          stepNumber={4}
+          totalSteps={6}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.suggestedSection}>
-          <Text style={styles.sectionTitle}>Suggested Characters</Text>
-          <View style={styles.charactersGrid}>
-            {SUGGESTED_CHARACTERS.map((character) => {
-              const isSelected = selectedCharacters.includes(character);
-
-              return (
-                <TouchableOpacity
-                  key={character}
-                  style={[
-                    styles.characterChip,
-                    isSelected && styles.selectedChip,
-                  ]}
-                  onPress={() => toggleCharacter(character)}
-                >
-                  <Text
-                    style={[
-                      styles.characterText,
-                      isSelected && styles.selectedText,
-                    ]}
-                  >
-                    {character}
-                  </Text>
-                  {isSelected && (
-                    <IconSymbol name="checkmark" size={16} color="#FFFFFF" />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+        <View style={styles.content}>
+          <View style={styles.optionsContainer}>
+            {options.map((option) => (
+              <OptionCard
+                key={option.id}
+                option={option}
+                isSelected={mode === option.id}
+                onSelect={(optionId) =>
+                  setMode(optionId as "surprise" | "custom")
+                }
+                style={styles.optionCardSpacing}
+              />
+            ))}
           </View>
-        </View>
 
-        <View style={styles.customSection}>
-          <Text style={styles.sectionTitle}>Add Your Own</Text>
-          <View style={styles.customInputContainer}>
-            <TextInput
-              style={styles.customInput}
-              placeholder="Type a character name..."
-              value={customCharacter}
-              onChangeText={setCustomCharacter}
-              onSubmitEditing={addCustomCharacter}
-              returnKeyType="done"
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={addCustomCharacter}
-              disabled={!customCharacter.trim()}
-            >
-              <IconSymbol name="plus" size={20} color="#6366F1" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {selectedCharacters.length > 0 && (
-          <View style={styles.selectedSection}>
-            <Text style={styles.sectionTitle}>
-              Your Characters ({selectedCharacters.length})
-            </Text>
-            <View style={styles.selectedList}>
-              {selectedCharacters.map((character) => (
-                <View key={character} style={styles.selectedItem}>
-                  <Text style={styles.selectedItemText}>{character}</Text>
-                  <TouchableOpacity
-                    onPress={() => toggleCharacter(character)}
-                    style={styles.removeButton}
-                  >
-                    <IconSymbol
-                      name="xmark.circle.fill"
-                      size={20}
-                      color="#EF4444"
-                    />
-                  </TouchableOpacity>
+          {mode === "custom" && (
+            <>
+              {savedChildren.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Saved children</Text>
+                  {savedChildren.map((child) => (
+                    <TouchableOpacity
+                      key={child.id}
+                      style={[
+                        styles.childOption,
+                        isChildSelected(child.id) && styles.childOptionSelected,
+                      ]}
+                      onPress={() => handleToggleChild(child)}
+                    >
+                      <View style={styles.childInfo}>
+                        <Text style={styles.childName}>{child.childName}</Text>
+                      </View>
+                      <Ionicons
+                        name={
+                          isChildSelected(child.id)
+                            ? "checkmark-circle"
+                            : "add-circle-outline"
+                        }
+                        size={24}
+                        color={
+                          isChildSelected(child.id)
+                            ? Colors.primary
+                            : Colors.textMuted
+                        }
+                      />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </View>
-        )}
+              )}
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Custom characters</Text>
+
+                {selectedCharacters
+                  .filter((char) => !char.isChild)
+                  .map((character, index) => (
+                    <View key={index} style={styles.characterItem}>
+                      <View style={styles.characterInfo}>
+                        <Text style={styles.characterName}>
+                          {character.name}
+                        </Text>
+                        {character.description && (
+                          <Text style={styles.characterDescription}>
+                            {character.description}
+                          </Text>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleRemoveCharacter(
+                            selectedCharacters.findIndex((c) => c === character)
+                          )
+                        }
+                      >
+                        <Ionicons
+                          name="close-circle"
+                          size={24}
+                          color={Colors.error}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                {!showAddForm ? (
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setShowAddForm(true)}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={24}
+                      color={Colors.primary}
+                    />
+                    <Text style={styles.addButtonText}>
+                      Add custom character
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.addForm}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Character name"
+                      placeholderTextColor={Colors.textMuted}
+                      value={newCharacterName}
+                      onChangeText={setNewCharacterName}
+                    />
+                    <TextInput
+                      style={[styles.input, styles.descriptionInput]}
+                      placeholder="Description (optional)"
+                      placeholderTextColor={Colors.textMuted}
+                      value={newCharacterDescription}
+                      onChangeText={setNewCharacterDescription}
+                      multiline
+                      numberOfLines={3}
+                    />
+                    <View style={styles.formButtons}>
+                      <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={() => {
+                          setShowAddForm(false);
+                          setNewCharacterName("");
+                          setNewCharacterDescription("");
+                        }}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.saveButton,
+                          !newCharacterName.trim() && styles.saveButtonDisabled,
+                        ]}
+                        onPress={handleAddCustomCharacter}
+                        disabled={!newCharacterName.trim()}
+                      >
+                        <Text style={styles.saveButtonText}>Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          title="Back"
-          onPress={onBack}
-          variant="outline"
-          size="large"
-          style={styles.backButton}
-        />
-        <Button
-          title="Next"
-          onPress={onNext}
-          disabled={isNextDisabled}
-          size="large"
-          style={styles.nextButton}
-        />
-      </View>
-    </View>
+      <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
+    </WizardContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FEFEFE",
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
+  content: {
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.xl,
+    paddingBottom: 100,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#111827",
-    marginBottom: 8,
+  optionsContainer: {
+    marginBottom: Spacing.screenPadding,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    lineHeight: 24,
+  optionCardSpacing: {
+    marginBottom: Spacing.md,
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  suggestedSection: {
-    marginBottom: 32,
+  section: {
+    marginBottom: Spacing.screenPadding,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 16,
+    fontSize: Typography.fontSize.large,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+    marginBottom: Spacing.md,
   },
-  charactersGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: -4,
-  },
-  characterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    margin: 4,
-    borderWidth: 2,
-    borderColor: "transparent",
-    gap: 6,
-  },
-  selectedChip: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
-  },
-  characterText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-  },
-  selectedText: {
-    color: "#FFFFFF",
-  },
-  customSection: {
-    marginBottom: 32,
-  },
-  customInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  customInput: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  selectedSection: {
-    marginBottom: 32,
-  },
-  selectedList: {
-    gap: 8,
-  },
-  selectedItem: {
+  childOption: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F9FAFB",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.backgroundLight,
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
-  selectedItemText: {
-    fontSize: 14,
-    color: "#111827",
+  childOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
   },
-  removeButton: {
-    padding: 4,
-  },
-  footer: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    gap: 12,
-  },
-  backButton: {
+  childInfo: {
     flex: 1,
   },
-  nextButton: {
-    flex: 2,
+  childName: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  characterItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.backgroundLight,
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  characterInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  characterName: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  characterDescription: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.backgroundLight,
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderStyle: "dashed",
+  },
+  addButtonText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.primary,
+    marginLeft: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  addForm: {
+    backgroundColor: Colors.backgroundLight,
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  input: {
+    backgroundColor: Colors.background,
+    borderRadius: Spacing.sm,
+    padding: Spacing.md,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  descriptionInput: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  formButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: Spacing.md,
+  },
+  cancelButton: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm + 2,
+  },
+  cancelButtonText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textMuted,
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: Spacing.sm,
+  },
+  saveButtonDisabled: {
+    backgroundColor: Colors.textMuted,
+  },
+  saveButtonText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textDark,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

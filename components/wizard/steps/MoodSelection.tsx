@@ -1,64 +1,70 @@
-import React from "react";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { Button } from "@/components/ui/Button";
-import { IconSymbol } from "@/components/ui/IconSymbol";
+import { OptionCard } from "../shared/OptionCard";
+import { WizardContainer } from "../shared/WizardContainer";
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
 
-interface Mood {
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
+
+interface MoodOption {
   id: string;
-  name: string;
-  icon: string;
+  title: string;
   description: string;
-  color: string;
+  icon: string;
 }
 
-const MOODS: Mood[] = [
+const MOOD_OPTIONS: MoodOption[] = [
   {
-    id: "dreamy",
-    name: "Dreamy",
-    icon: "moon.stars.fill",
-    description: "Soft and sleepy",
-    color: "#9333EA",
+    id: "calm",
+    title: "Calm",
+    description: "Peaceful and soothing for bedtime",
+    icon: "moon.fill",
   },
   {
     id: "exciting",
-    name: "Exciting",
+    title: "Exciting",
+    description: "Thrilling adventures and discoveries",
     icon: "bolt.fill",
-    description: "Full of adventure",
-    color: "#F59E0B",
+  },
+  {
+    id: "scary",
+    title: "Scary",
+    description: "Spooky but age-appropriate chills",
+    icon: "moon.stars",
   },
   {
     id: "funny",
-    name: "Funny",
+    title: "Funny",
+    description: "Humorous and laugh-out-loud moments",
     icon: "face.smiling.fill",
-    description: "Giggles and laughs",
-    color: "#10B981",
   },
   {
-    id: "gentle",
-    name: "Gentle",
+    id: "silly",
+    title: "Silly",
+    description: "Playful nonsense and giggles",
+    icon: "star.fill",
+  },
+  {
+    id: "cheeky",
+    title: "Cheeky",
+    description: "Mischievous and playfully naughty",
+    icon: "sparkles",
+  },
+  {
+    id: "emotional",
+    title: "Emotional",
+    description: "Heartwarming and touching moments",
     icon: "heart.fill",
-    description: "Calm and peaceful",
-    color: "#EC4899",
-  },
-  {
-    id: "mysterious",
-    name: "Mysterious",
-    icon: "questionmark.circle.fill",
-    description: "Full of wonder",
-    color: "#6366F1",
-  },
-  {
-    id: "cozy",
-    name: "Cozy",
-    icon: "house.fill",
-    description: "Warm and snuggly",
-    color: "#EF4444",
   },
 ];
 
@@ -67,6 +73,7 @@ interface MoodSelectionProps {
   onSelect: (mood: string) => void;
   onNext: () => void;
   onBack: () => void;
+  onCancel?: () => void;
 }
 
 export const MoodSelection: React.FC<MoodSelectionProps> = ({
@@ -74,182 +81,150 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   onSelect,
   onNext,
   onBack,
+  onCancel,
 }) => {
+  const [customMood, setCustomMood] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  const isCustomMoodSelected =
+    selectedMood === "custom" ||
+    (!!selectedMood && !MOOD_OPTIONS.find((m) => m.id === selectedMood));
+
   const handleMoodSelect = (moodId: string) => {
-    onSelect(moodId);
+    if (moodId === "custom") {
+      setShowCustomInput(true);
+      onSelect("custom");
+    } else {
+      setShowCustomInput(false);
+      setCustomMood("");
+      onSelect(moodId);
+    }
   };
 
-  const isNextDisabled = !selectedMood;
+  const handleCustomMoodChange = (text: string) => {
+    setCustomMood(text);
+    if (text.trim()) {
+      onSelect(text.trim());
+    } else {
+      onSelect("custom");
+    }
+  };
+
+  const isNextDisabled =
+    !selectedMood ||
+    (isCustomMoodSelected && !customMood.trim() && selectedMood === "custom");
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>How should it feel?</Text>
-        <Text style={styles.subtitle}>Set the mood for tonight's story</Text>
-      </View>
-
+    <WizardContainer>
+      <WizardStepHeader
+        title="Set the mood"
+        subtitle="What feeling should the story have?"
+        stepNumber={3}
+        totalSteps={6}
+        onBack={onBack}
+        onCancel={onCancel}
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.moodsGrid}>
-          {MOODS.map((mood) => {
-            const isSelected = mood.id === selectedMood;
-
-            return (
-              <TouchableOpacity
+        <View style={styles.contentContainer}>
+          <View
+            style={isTablet ? styles.moodsSectionTablet : styles.moodsSection}
+          >
+            {MOOD_OPTIONS.map((mood) => (
+              <View
                 key={mood.id}
-                style={[styles.moodCard, isSelected && styles.selectedCard]}
-                onPress={() => handleMoodSelect(mood.id)}
+                style={isTablet ? styles.optionCardWrapper : {}}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                    isSelected && styles.selectedIconContainer,
-                    { backgroundColor: mood.color + "20" },
-                  ]}
-                >
-                  <IconSymbol
-                    name={mood.icon}
-                    size={32}
-                    color={isSelected ? "#FFFFFF" : mood.color}
-                  />
-                </View>
-                <Text
-                  style={[styles.moodName, isSelected && styles.selectedText]}
-                >
-                  {mood.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.moodDescription,
-                    isSelected && styles.selectedDescription,
-                  ]}
-                >
-                  {mood.description}
-                </Text>
-                {isSelected && (
-                  <View
-                    style={[
-                      styles.selectedIndicator,
-                      { backgroundColor: mood.color },
-                    ]}
-                  />
-                )}
-              </TouchableOpacity>
-            );
-          })}
+                <OptionCard
+                  option={mood}
+                  isSelected={mood.id === selectedMood}
+                  onSelect={handleMoodSelect}
+                  style={styles.optionCardSpacing}
+                />
+              </View>
+            ))}
+
+            {/* Custom mood option */}
+            <View style={isTablet ? styles.optionCardWrapper : {}}>
+              <OptionCard
+                option={{
+                  id: "custom",
+                  title: "Custom",
+                  description: "Choose your own mood",
+                  icon: "pencil",
+                }}
+                isSelected={isCustomMoodSelected}
+                onSelect={handleMoodSelect}
+                style={styles.optionCardSpacing}
+              />
+            </View>
+          </View>
+
+          {showCustomInput && (
+            <View style={styles.customMoodContainer}>
+              <TextInput
+                style={styles.customMoodInput}
+                placeholder="Enter a custom mood..."
+                placeholderTextColor={Colors.textSecondary}
+                value={customMood}
+                onChangeText={handleCustomMoodChange}
+                returnKeyType="done"
+              />
+              <Text style={styles.helperText}>
+                Examples: "adventurous", "mysterious", "dreamy"
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <Button
-          title="Back"
-          onPress={onBack}
-          variant="outline"
-          size="large"
-          style={styles.backButton}
-        />
-        <Button
-          title="Next"
-          onPress={onNext}
-          disabled={isNextDisabled}
-          size="large"
-          style={styles.nextButton}
-        />
-      </View>
-    </View>
+      <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
+    </WizardContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FEFEFE",
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    lineHeight: 24,
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
   },
-  moodsGrid: {
+  contentContainer: {
+    paddingBottom: 0,
+  },
+  moodsSection: {
+    marginBottom: 32,
+  },
+  moodsSectionTablet: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -8,
+    marginBottom: 32,
+    marginHorizontal: -6,
   },
-  moodCard: {
+  optionCardWrapper: {
     width: "50%",
-    padding: 8,
-    position: "relative",
+    paddingHorizontal: 6,
   },
-  selectedCard: {
-    transform: [{ scale: 0.98 }],
+  optionCardSpacing: {
+    marginBottom: Spacing.md,
   },
-  iconContainer: {
-    width: "100%",
-    aspectRatio: 1.2,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
+  customMoodContainer: {
+    marginTop: Spacing.lg,
+    marginBottom: 32,
   },
-  selectedIconContainer: {
-    backgroundColor: "#6366F1 !important",
+  customMoodInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
   },
-  moodName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  moodDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  selectedText: {
-    color: "#6366F1",
-  },
-  selectedDescription: {
-    color: "#6366F1",
-  },
-  selectedIndicator: {
-    position: "absolute",
-    bottom: 8,
-    right: 16,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  footer: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-  },
-  nextButton: {
-    flex: 2,
+  helperText: {
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
   },
 });
