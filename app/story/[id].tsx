@@ -30,8 +30,8 @@ export default function StoryScreen() {
 
   useEffect(() => {
     if (!id) {
-      setError("No story ID provided");
-      setLoading(false);
+      // Navigate to library if no ID is provided instead of showing error
+      router.replace("/(tabs)");
       return;
     }
 
@@ -278,6 +278,32 @@ export default function StoryScreen() {
     };
   }, [id, story?.imageGenerationStatus]);
 
+  // Show loading immediately if no ID to prevent error flash
+  if (!id) {
+    return (
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.fullHeight}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    );
+  }
+
   if (loading) {
     return (
       <ImageBackground
@@ -388,7 +414,7 @@ export default function StoryScreen() {
   };
 
   const handleGoBack = () => {
-    router.push("/");
+    router.replace("/(tabs)");
   };
 
   if (showTitleScreen) {
