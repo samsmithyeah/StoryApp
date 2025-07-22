@@ -44,6 +44,13 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   const [childPreferences, setChildPreferences] = useState(
     child?.childPreferences || ""
   );
+  const [hairColor, setHairColor] = useState(child?.hairColor || "");
+  const [eyeColor, setEyeColor] = useState(child?.eyeColor || "");
+  const [skinColor, setSkinColor] = useState(child?.skinColor || "");
+  const [hairStyle, setHairStyle] = useState(child?.hairStyle || "");
+  const [appearanceDetails, setAppearanceDetails] = useState(
+    child?.appearanceDetails || ""
+  );
   const [errors, setErrors] = useState<{
     childName?: string;
     dateOfBirth?: string;
@@ -56,7 +63,12 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
     if (child) {
       setChildName(child.childName);
       setDateOfBirth(child.dateOfBirth);
-      setChildPreferences(child.childPreferences);
+      setChildPreferences(child.childPreferences || "");
+      setHairColor(child.hairColor || "");
+      setEyeColor(child.eyeColor || "");
+      setSkinColor(child.skinColor || "");
+      setHairStyle(child.hairStyle || "");
+      setAppearanceDetails(child.appearanceDetails || "");
     }
   }, [child]);
 
@@ -67,9 +79,8 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
       newErrors.childName = "Please enter the child's name";
     }
 
-    if (!dateOfBirth) {
-      newErrors.dateOfBirth = "Please select the child's date of birth";
-    } else {
+    // Date of birth validation - only if provided
+    if (dateOfBirth) {
       const today = new Date();
       const age = today.getFullYear() - dateOfBirth.getFullYear();
       const monthDiff = today.getMonth() - dateOfBirth.getMonth();
@@ -91,10 +102,19 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   const handleSave = async () => {
     if (!validateForm()) return;
 
-    const childData = {
+    const childData: Omit<Child, "id"> = {
       childName: childName.trim(),
-      dateOfBirth: dateOfBirth!,
-      childPreferences: childPreferences.trim(),
+      ...(dateOfBirth && { dateOfBirth }),
+      ...(childPreferences.trim() && {
+        childPreferences: childPreferences.trim(),
+      }),
+      ...(hairColor.trim() && { hairColor: hairColor.trim() }),
+      ...(eyeColor.trim() && { eyeColor: eyeColor.trim() }),
+      ...(skinColor.trim() && { skinColor: skinColor.trim() }),
+      ...(hairStyle.trim() && { hairStyle: hairStyle.trim() }),
+      ...(appearanceDetails.trim() && {
+        appearanceDetails: appearanceDetails.trim(),
+      }),
     };
 
     try {
@@ -172,6 +192,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
               maximumDate={new Date()}
               minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
               error={errors.dateOfBirth}
+              optional
             />
           </View>
 
@@ -184,11 +205,79 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
               leftIcon="heart.fill"
               style={styles.preferencesInput}
               error={errors.childPreferences}
+              optional
             />
             <Text style={styles.preferencesHint}>
               This helps us create more personalized and engaging stories that
               your child will love!
             </Text>
+          </View>
+
+          <View style={styles.sectionDivider}>
+            <Text style={styles.sectionTitle}>Appearance</Text>
+            <Text style={styles.sectionSubtitle}>
+              Help us create more accurate illustrations
+            </Text>
+          </View>
+
+          <View style={styles.appearanceRow}>
+            <View style={styles.halfFieldContainer}>
+              <Input
+                label="Hair color"
+                placeholder="e.g., Brown, Black"
+                value={hairColor}
+                onChangeText={setHairColor}
+                leftIcon="paintbrush.fill"
+                optional
+              />
+            </View>
+            <View style={styles.halfFieldContainer}>
+              <Input
+                label="Eye color"
+                placeholder="e.g., Blue, Brown"
+                value={eyeColor}
+                onChangeText={setEyeColor}
+                leftIcon="eye.fill"
+                optional
+              />
+            </View>
+          </View>
+
+          <View style={styles.appearanceRow}>
+            <View style={styles.halfFieldContainer}>
+              <Input
+                label="Skin color"
+                placeholder="e.g., Fair, Olive"
+                value={skinColor}
+                onChangeText={setSkinColor}
+                leftIcon="person.fill"
+                optional
+              />
+            </View>
+            <View style={styles.halfFieldContainer}>
+              <Input
+                label="Hair style"
+                placeholder="e.g., Curly, Short"
+                value={hairStyle}
+                onChangeText={setHairStyle}
+                leftIcon="scissors"
+                optional
+              />
+            </View>
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Input
+              label="Other appearance details"
+              placeholder="Any other distinctive features (e.g., glasses, freckles)"
+              value={appearanceDetails}
+              onChangeText={setAppearanceDetails}
+              leftIcon="sparkles"
+              multiline
+              numberOfLines={3}
+              style={styles.textAreaInput}
+              optional
+            />
           </View>
         </View>
 
@@ -272,6 +361,32 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginLeft: Spacing.xs,
     opacity: 0.8,
+  },
+  sectionDivider: {
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.large,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.xs,
+  },
+  sectionSubtitle: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+  },
+  appearanceRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  halfFieldContainer: {
+    flex: 1,
+  },
+  textAreaInput: {
+    minHeight: 80,
+    textAlignVertical: "top",
   },
   actions: {
     flexDirection: "column",

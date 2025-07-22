@@ -45,24 +45,22 @@ export const generateStory = onCall(
       }
 
       const children = userData.children || [];
-      const selectedChildrenData = children.filter((child: any) =>
-        data.selectedChildren.includes(child.id)
+      const selectedChildrenData = children.filter(
+        (child: any) =>
+          child && child.id && data.selectedChildren.includes(child.id)
       );
 
       const pageCount =
         data.length === "short" ? 4 : data.length === "medium" ? 6 : 8;
-      const childNames = selectedChildrenData
-        .map((child: any) => child.childName)
-        .join(" and ");
-      const preferences = selectedChildrenData
-        .map((child: any) => child.childPreferences)
-        .filter((pref: string) => pref.trim())
-        .join(", ");
-      const ages = selectedChildrenData.map((child: any) => {
-        const today = new Date();
-        const birthDate = new Date(child.dateOfBirth.seconds * 1000);
-        return today.getFullYear() - birthDate.getFullYear();
-      });
+
+      // Get audience info (for age-appropriate content)
+      const ages = selectedChildrenData
+        .filter((child: any) => child.dateOfBirth)
+        .map((child: any) => {
+          const today = new Date();
+          const birthDate = new Date(child.dateOfBirth.seconds * 1000);
+          return today.getFullYear() - birthDate.getFullYear();
+        });
       const averageAge =
         ages.length > 0
           ? Math.round(
@@ -75,30 +73,113 @@ export const generateStory = onCall(
       const openai = getOpenAIClient();
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
+      // Build character info from character selection screen
+      const allCharacters = data.characters || [];
+
+      // Get appearance details for children who are characters
+      const characterDescriptions = await Promise.all(
+        allCharacters.map(async (char) => {
+          if (char.isChild && char.childId) {
+            // Use selectedChildrenData instead of all children
+            const childData = selectedChildrenData.find((c: any) => c.id === char.childId);
+
+            if (childData) {
+              const characterDetails: string[] = [];
+
+              // Calculate age if dateOfBirth is available
+              if (childData.dateOfBirth) {
+                const today = new Date();
+                const birthDate = new Date(
+                  childData.dateOfBirth.seconds * 1000
+                );
+                const age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                const dayDiff = today.getDate() - birthDate.getDate();
+
+                // Adjust age if birthday hasn't occurred this year
+                const adjustedAge =
+                  monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+                    ? age - 1
+                    : age;
+
+                characterDetails.push(`${adjustedAge} years old`);
+              }
+
+              // Add appearance details
+              if (childData.hairColor)
+                characterDetails.push(`${childData.hairColor} hair`);
+              if (childData.hairStyle)
+                characterDetails.push(`${childData.hairStyle} hairstyle`);
+              if (childData.eyeColor)
+                characterDetails.push(`${childData.eyeColor} eyes`);
+              if (childData.skinColor)
+                characterDetails.push(`${childData.skinColor} skin`);
+              if (childData.appearanceDetails)
+                characterDetails.push(childData.appearanceDetails);
+
+              const details =
+                characterDetails.length > 0
+                  ? ` (${characterDetails.join(", ")})`
+                  : "";
+
+              return `${char.name}${details}`;
+            }
+          }
+          return `${char.name}${char.description ? ` (${char.description})` : ""}`;
+        })
+      );
+
+      const characterInfo = characterDescriptions.join(", ");
+
+      // Separate character names with ages from full appearance details
+      const characterNamesWithAges = await Promise.all(
+        allCharacters.map(async (char) => {
+          if (char.isChild && char.childId) {
+            const childData = selectedChildrenData.find((c: any) => c.id === char.childId);
+            if (childData && childData.dateOfBirth) {
+              const today = new Date();
+              const birthDate = new Date(childData.dateOfBirth.seconds * 1000);
+              const age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              const dayDiff = today.getDate() - birthDate.getDate();
+
+              const adjustedAge =
+                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+                  ? age - 1
+                  : age;
+
+              return `${char.name} (${adjustedAge} years old)`;
+            }
+          }
+          return char.name;
+        })
+      );
+
+      const characterNamesString = characterNamesWithAges.join(", ");
+
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
-  data.childrenAsCharacters && childNames
-    ? `- Main character(s): ${childNames}`
-    : "- Generic child character"
+  characterNamesString
+    ? `- Main character(s): ${characterNamesString}`
+    : "- Create engaging characters for the story"
 }
-- Age level: ${averageAge} years old
+- Reader age level: ${averageAge} years old
 - Theme: ${data.theme}
+${data.mood ? `- Mood: ${data.mood}` : ""}
 - Story length: ${pageCount} pages
-${preferences ? `- Child interests: ${preferences}` : ""}
+${data.storyAbout ? `- Story concept: ${data.storyAbout}` : ""}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
 2. Each page should be an appropriate length for a ${averageAge}-year-old.
-3. ${
-        data.childrenAsCharacters && childNames
-          ? `Include ${childNames} as the main character(s).`
-          : "Use a generic child character."
-      }
-4. ${
+3. ${data.storyAbout ? `The story should incorporate the concept: ${data.storyAbout}` : "Feel free to create any engaging storyline within the theme."}
+4. ${data.mood ? `The story should have a ${data.mood} mood throughout.` : "Keep the mood appropriate for bedtime."}
+5. ${
         data.enableIllustrations
-          ? "For each page, include an image prompt description."
+          ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}.`
           : "No image prompts needed."
       }
+6. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {

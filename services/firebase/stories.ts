@@ -48,8 +48,13 @@ export interface ThemeSuggestion {
   icon: string;
 }
 
+export interface ChildInfo {
+  preferences: string;
+  age: number;
+}
+
 export const generateThemeSuggestions = async (
-  childPreferences: string[]
+  childrenInfo: ChildInfo[]
 ): Promise<ThemeSuggestion[]> => {
   try {
     // Ensure user is authenticated
@@ -63,7 +68,7 @@ export const generateThemeSuggestions = async (
     const generateThemesFn = functionsService.httpsCallable(
       "generateThemeSuggestions"
     );
-    const result = await generateThemesFn({ preferences: childPreferences });
+    const result = await generateThemesFn({ childrenInfo });
 
     if ((result.data as any).success) {
       return (result.data as any).themes;

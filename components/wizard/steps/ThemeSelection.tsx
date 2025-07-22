@@ -3,6 +3,7 @@ import { useChildren } from "@/hooks/useChildren";
 import {
   generateThemeSuggestions,
   ThemeSuggestion,
+  ChildInfo,
 } from "@/services/firebase/stories";
 import React, { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -134,7 +135,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
     selectedChildren.includes(child.id)
   );
   const hasPreferences = selectedChildProfiles.some((child) =>
-    child.childPreferences.trim()
+    child.childPreferences?.trim()
   );
 
   useEffect(() => {
@@ -143,11 +144,32 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
       setLoadingAiThemes(true);
       setAiThemesError(null);
       try {
-        const preferences = selectedChildProfiles
-          .map((child) => child.childPreferences.trim())
-          .filter((pref) => pref.length > 0);
-        if (preferences.length > 0) {
-          const suggestions = await generateThemeSuggestions(preferences);
+        const childrenInfo: ChildInfo[] = selectedChildProfiles
+          .filter((child) => child.childPreferences?.trim())
+          .map((child) => {
+            let age = 5; // Default age if dateOfBirth is not provided
+            
+            if (child.dateOfBirth) {
+              const today = new Date();
+              const birthDate = new Date(child.dateOfBirth);
+              const calculatedAge = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              const dayDiff = today.getDate() - birthDate.getDate();
+              
+              // Adjust age if birthday hasn't occurred this year
+              age = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) 
+                ? calculatedAge - 1 
+                : calculatedAge;
+            }
+            
+            return {
+              preferences: child.childPreferences!.trim(),
+              age: age
+            };
+          });
+          
+        if (childrenInfo.length > 0) {
+          const suggestions = await generateThemeSuggestions(childrenInfo);
           setAiThemes(suggestions);
         }
       } catch (error) {
@@ -171,7 +193,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
         title="Choose theme"
         subtitle="What kind of story shall we create?"
         stepNumber={2}
-        totalSteps={3}
+        totalSteps={5}
         onBack={onBack}
         onCancel={onCancel}
       />
