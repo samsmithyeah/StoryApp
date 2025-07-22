@@ -232,14 +232,14 @@ Return the story in this JSON format:
           `[Orchestrator] Generating cover image for final storyId: ${storyId}`
         );
         const imageProvider = data.imageProvider || "flux";
-        const coverPrompt = `${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover.`;
+        const coverPrompt = `${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 4:3 aspect ratio format.`;
 
         if (imageProvider === "flux") {
           const fluxClient = getFluxClient();
           coverImageUrlForWorkers = await retryWithBackoff(() =>
             fluxClient.generateImageWithPolling({
               prompt: coverPrompt,
-              aspect_ratio: "1:1",
+              aspect_ratio: "4:3",
             })
           );
         } else {
@@ -300,6 +300,10 @@ Return the story in this JSON format:
               consistencyInput: {
                 imageUrl: coverImageUrlForWorkers,
                 text: storyContent.coverImagePrompt,
+              },
+              characters: {
+                names: characterNamesString,
+                descriptions: characterInfo,
               },
             };
             return pubsub.topic(topicName).publishMessage({ json: payload });

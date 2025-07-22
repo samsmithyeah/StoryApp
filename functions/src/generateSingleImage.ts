@@ -57,7 +57,7 @@ IMPORTANT CHARACTER CONSISTENCY REQUIREMENTS:
 
 Create a new illustration for this page scene: ${imagePrompt}
 
-Maintain the same art style, character designs, and visual consistency as the cover image.`;
+Maintain the same art style, character designs, and visual consistency as the cover image. Create a well-composed children's book page illustration in 4:3 aspect ratio format.`;
 
       console.log(
         `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
@@ -70,7 +70,7 @@ Maintain the same art style, character designs, and visual consistency as the co
           fluxClient.generateImageWithPolling({
             prompt: subsequentPrompt,
             input_image: consistencyInput.imageUrl,
-            aspect_ratio: "1:1",
+            aspect_ratio: "4:3",
           })
         );
       } else {

@@ -1,22 +1,25 @@
-import { useStorageUrls } from "@/hooks/useStorageUrl";
-import { Story } from "@/types/story.types";
+// StoryViewer.tsx
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   ImageBackground,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useStorageUrls } from "@/hooks/useStorageUrl";
+import { Story } from "@/types/story.types";
 import {
   BorderRadius,
   Colors,
@@ -26,8 +29,6 @@ import {
 } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-const isTablet = screenWidth >= 768;
 const CREAM_COLOR = "#F5E6C8";
 
 interface StoryViewerProps {
@@ -36,35 +37,35 @@ interface StoryViewerProps {
 }
 
 export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isTablet = Math.min(width, height) >= 768;
+  const insets = useSafeAreaInsets();
+
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
-  /**
-   * We keep a cache of measured text heights, one per page. Undefined until first layout pass.
-   */
-  const [textHeights, setTextHeights] = useState<(number | undefined)[]>([]);
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const insets = useSafeAreaInsets();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Fetch signed URLs for all illustration images
   const imagePaths = story.storyContent?.map((p) => p.imageUrl) || [];
   const imageUrls = useStorageUrls(imagePaths);
+  const hasImages = story.storyConfiguration?.enableIllustrations !== false;
 
-  // Calculate some static paddings / sizes
-  const headerHeight = 80;
-  const cardExtraVertical = 10 /*cardPadding*/ + 6; /*border*/
+  const headerHeight = isTablet ? 72 : 56;
+  const cardChrome = 10 + 6;
+  const availableHeight =
+    height - (insets.top + insets.bottom + headerHeight + cardChrome);
+
+  const textPanelMaxPct = isTablet ? (isLandscape ? 0.38 : 0.44) : 0.48;
+  const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
 
   useEffect(() => {
-    // Prepare loading + height caches when story changes
     if (Array.isArray(story.storyContent)) {
       setImageLoading(Array(story.storyContent.length).fill(true));
-      setTextHeights(Array(story.storyContent.length).fill(undefined));
     }
-
-    // Mount animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -79,179 +80,115 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     ]).start();
   }, [story, fadeAnim, slideAnim]);
 
-  const handleImageLoad = (index: number) =>
+  // keep correct offset after rotation
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({
+      x: currentPage * width,
+      y: 0,
+      animated: false,
+    });
+  }, [width, currentPage]);
+
+  const handleImageLoad = (idx: number) =>
     setImageLoading((prev) => {
       const next = [...prev];
-      next[index] = false;
+      next[idx] = false;
       return next;
     });
 
-  const goToPage = (idx: number) => {
-    if (!story.storyContent) return;
-    if (idx < 0 || idx >= story.storyContent.length) return;
-    setCurrentPage(idx);
-    scrollViewRef.current?.scrollTo({ x: idx * screenWidth, animated: true });
+  const goToPage = useCallback(
+    (idx: number) => {
+      if (!story.storyContent) return;
+      if (idx < 0 || idx >= story.storyContent.length) return;
+      
+      // Only scroll if we have a valid ref, don't update state until scroll completes
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: idx * width, y: 0, animated: true });
+        // The handleHorizontalScroll will update currentPage when scroll completes
+      }
+    },
+    [story.storyContent, width]
+  );
+
+  const handleHorizontalScroll = (e: any) => {
+    const pageIdx = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (pageIdx !== currentPage) setCurrentPage(pageIdx);
   };
 
-  /** Handle horizontal swipes */
-  const handleScroll = (e: any) => {
-    const pageIdx = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-    if (
-      pageIdx !== currentPage &&
-      pageIdx >= 0 &&
-      pageIdx < (story.storyContent?.length || 0)
-    )
-      setCurrentPage(pageIdx);
-  };
-
-  /**
-   * Given the measured number of lines for this page, compute the full panel height.
-   */
-  const resolvePanelHeight = (lineCount: number, fontLineHeight: number) => {
-    const verticalPadding = isTablet ? Spacing.xl : Spacing.lg;
-    const pageNumberBlock = fontLineHeight + Spacing.xs; // number + margin
-    return lineCount * fontLineHeight + verticalPadding + pageNumberBlock;
-  };
-
-  /** The main renderer for every story page */
   const renderPage = (page: any, index: number) => {
-    // Fallback text if page.text is undefined (should not happen in production)
     const pageText = page.text || "";
     const imageUrl = imageUrls[index];
-    const hasImages = story.storyConfiguration?.enableIllustrations !== false;
-
-    /**
-     * Height of the entire card, minus safe‑area and header
-     */
-    const availableHeight =
-      screenHeight -
-      (insets.top + insets.bottom + headerHeight + cardExtraVertical);
-
-    // If we haven't measured this page yet, use a placeholder height so layout is predictable.
-    const measuredPanelHeight = textHeights[index] ?? 120;
-    const imageDisplayHeight = hasImages
-      ? availableHeight - measuredPanelHeight
-      : 0;
-
-    /**
-     * Callback invoked after RN lays out the <Text> element. We fire only once per page
-     * to avoid endless re‑renders.
-     */
-    const handleTextLayout = (e: any) => {
-      if (textHeights[index] !== undefined) return; // already cached
-      const lines = e.nativeEvent.lines as { text: string }[];
-      const baseLineHeight = isTablet ? 28 : 22;
-      const panelHeight = resolvePanelHeight(lines.length, baseLineHeight);
-
-      setTextHeights((prev) => {
-        const next = [...prev];
-        next[index] = panelHeight;
-        return next;
-      });
-    };
 
     return (
-      <View key={index} style={styles.pageContainer}>
+      <View key={index} style={[styles.pageContainer, { width }]}>
         <View style={styles.pageContent}>
           <View style={[styles.storyCard, { height: availableHeight }]}>
             {hasImages && (
-              <>
+              <View style={[styles.imageContainer, styles.imageFlex]}>
+                {imageLoading[index] && (
+                  <ActivityIndicator
+                    size="large"
+                    color={Colors.primary}
+                    style={styles.imageLoader}
+                  />
+                )}
                 {imageUrl ? (
-                  <View
-                    style={[
-                      styles.imageContainer,
-                      { height: imageDisplayHeight },
-                    ]}
-                  >
-                    {imageLoading[index] && (
-                      <ActivityIndicator
-                        size="large"
-                        color={Colors.primary}
-                        style={styles.imageLoader}
-                      />
-                    )}
-                    <Image
-                      source={{ uri: imageUrl }}
-                      style={styles.pageImage}
-                      onLoad={() => handleImageLoad(index)}
-                      contentFit="cover"
-                    />
-                  </View>
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.pageImage}
+                    contentFit="cover"
+                    onLoad={() => handleImageLoad(index)}
+                  />
                 ) : (
-                  <View
-                    style={[
-                      styles.placeholderImage,
-                      { height: imageDisplayHeight },
-                    ]}
-                  >
+                  <View style={styles.placeholderImage}>
                     <IconSymbol
                       name="photo"
                       size={48}
                       color={Colors.textMuted}
                     />
-                    {(story.imageGenerationStatus === "generating" ||
-                      story.imageGenerationStatus === "pending") && (
-                      <View style={styles.placeholderLoadingContainer}>
-                        <ActivityIndicator
-                          size="small"
-                          color={Colors.primary}
-                          style={styles.placeholderSpinner}
-                        />
-                        <Text style={styles.placeholderText}>
-                          Image generating...
-                        </Text>
-                      </View>
-                    )}
                   </View>
                 )}
-              </>
+              </View>
             )}
 
-            {/* TEXT PANEL */}
             <View
               style={[
                 styles.textPanel,
-                !hasImages && styles.textPanelFullHeight,
                 !hasImages && styles.textPanelNoImages,
-                { height: hasImages ? measuredPanelHeight : availableHeight },
+                { maxHeight: hasImages ? textPanelMaxHeight : availableHeight },
               ]}
-              /**
-               * Hide until we know the actual height to prevent flicker on first render
-               */
             >
-              {!hasImages ? (
-                <>
-                  <View style={styles.textContainer}>
-                    <Text
-                      onTextLayout={handleTextLayout}
-                      style={[styles.pageText, styles.pageTextLarge]}
-                    >
-                      {pageText}
-                    </Text>
-                  </View>
-                  <Text style={styles.pageNumber}>
-                    Page {page.page} of {story.storyContent?.length || 0}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text onTextLayout={handleTextLayout} style={styles.pageText}>
-                    {pageText}
-                  </Text>
-                  <Text style={styles.pageNumber}>
-                    Page {page.page} of {story.storyContent?.length || 0}
-                  </Text>
-                </>
-              )}
+              <ScrollView
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+                style={{
+                  flexGrow: 0,
+                  maxHeight: hasImages
+                    ? textPanelMaxHeight - 24
+                    : availableHeight - 28,
+                }}
+                contentContainerStyle={{ paddingBottom: Spacing.sm }}
+              >
+                <Text
+                  style={[
+                    styles.pageText,
+                    !hasImages && styles.pageTextLarge,
+                    { textAlign: "center" },
+                  ]}
+                >
+                  {pageText}
+                </Text>
+              </ScrollView>
+              <Text style={styles.pageNumber}>
+                Page {page.page} of {story.storyContent?.length || 0}
+              </Text>
             </View>
           </View>
         </View>
-        {/* {index === currentPage && renderImageGenerationStatus()} */}
       </View>
     );
   };
 
-  /** EARLY RETURN UNTIL storyContent EXISTS */
   if (!Array.isArray(story.storyContent) || story.storyContent.length === 0) {
     return (
       <ImageBackground
@@ -290,10 +227,9 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     );
   }
 
-  const isFirstPage = currentPage === 0;
-  const isLastPage = currentPage === story.storyContent.length - 1;
+  const isFirst = currentPage === 0;
+  const isLast = currentPage === story.storyContent.length - 1;
 
-  /** MAIN RENDER */
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
@@ -306,7 +242,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       />
       <SafeAreaView style={styles.safeArea}>
         {/* HEADER */}
-        <View style={styles.header}>
+        <View style={[styles.header, { height: headerHeight }]}>
           <View style={styles.closeButtonContainer}>
             <TouchableOpacity
               onPress={onClose || (() => router.replace("/(tabs)"))}
@@ -315,89 +251,95 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.title}>{story.title}</Text>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[
+              styles.title,
+              {
+                fontSize: isTablet
+                  ? Typography.fontSize.h2
+                  : Typography.fontSize.h4,
+              },
+            ]}
+          >
+            {story.title}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
 
-        {/* CONTENT */}
-        <Animated.View
-          style={{
-            flex: 1,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleScroll}
-            style={styles.scrollView}
+        {/* CONTENT CONTAINER */}
+        <View style={{ flex: 1 }}>
+          {/* PAGES */}
+          <Animated.View
+            style={{
+              flex: 1,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
-            {story.storyContent.map((p, i) => renderPage(p, i))}
-          </ScrollView>
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleHorizontalScroll}
+              style={styles.scrollView}
+              scrollEnabled={true}
+              decelerationRate="fast"
+            >
+              {story.storyContent.map((p, i) => renderPage(p, i))}
+            </ScrollView>
+          </Animated.View>
 
-          {/* LEFT NAV */}
+          {/* NAV ARROWS (positioned over content) */}
           <TouchableOpacity
             onPress={() => goToPage(currentPage - 1)}
-            disabled={isFirstPage}
-            style={[
-              styles.navArrowLeft,
-              isFirstPage && styles.navArrowDisabled,
-            ]}
+            disabled={isFirst}
+            style={[styles.navArrowLeft, isFirst && styles.navArrowDisabled]}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            activeOpacity={0.7}
           >
             <IconSymbol
               name="chevron.left"
               size={24}
-              color={isFirstPage ? Colors.textMuted : Colors.text}
+              color={isFirst ? Colors.textMuted : Colors.text}
             />
           </TouchableOpacity>
 
-          {/* RIGHT NAV */}
           <TouchableOpacity
             onPress={() => goToPage(currentPage + 1)}
-            disabled={isLastPage}
-            style={[
-              styles.navArrowRight,
-              isLastPage && styles.navArrowDisabled,
-            ]}
+            disabled={isLast}
+            style={[styles.navArrowRight, isLast && styles.navArrowDisabled]}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            activeOpacity={0.7}
           >
             <IconSymbol
               name="chevron.right"
               size={24}
-              color={isLastPage ? Colors.textMuted : Colors.text}
+              color={isLast ? Colors.textMuted : Colors.text}
             />
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </SafeAreaView>
     </ImageBackground>
   );
 };
 
-/** STYLE SHEET  */
+/* ---------- STYLES ---------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  safeArea: { flex: 1 },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingLeft: Spacing.screenPadding,
-    paddingRight: Spacing.screenPadding,
-    paddingVertical: isTablet ? Spacing.lg : Spacing.sm,
+    paddingHorizontal: Spacing.screenPadding,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
-  closeButtonContainer: {
-    width: 40,
-    alignItems: "flex-start",
-  },
+  closeButtonContainer: { width: 40, alignItems: "flex-start" },
   closeButton: {
     width: 40,
     height: 40,
@@ -407,7 +349,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: Typography.fontFamily.primary,
-    fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h4,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
     flex: 1,
@@ -416,33 +357,34 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  scrollView: {
-    flex: 1,
-  },
-  pageContainer: {
-    width: screenWidth,
-    flex: 1,
-  },
+
+  scrollView: { flex: 1 },
+
+  pageContainer: { flex: 1 },
   pageContent: {
+    flex: 1,
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
+
   storyCard: {
+    flex: 1,
+    flexDirection: "column",
     borderRadius: BorderRadius.large,
     borderWidth: 3,
     borderColor: Colors.primary,
     overflow: "hidden",
     ...Shadows.glow,
   },
+
   imageContainer: {
     backgroundColor: Colors.placeholderBackground,
     position: "relative",
-  },
-  pageImage: {
     width: "100%",
-    height: "100%",
   },
+  imageFlex: { flex: 1, minHeight: 120 },
+  pageImage: { width: "100%", height: "100%" },
   imageLoader: {
     position: "absolute",
     top: "50%",
@@ -450,61 +392,44 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -20 }, { translateY: -20 }],
   },
   placeholderImage: {
-    backgroundColor: Colors.placeholderBackground,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  placeholderText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-  },
-  placeholderLoadingContainer: {
-    alignItems: "center",
-    marginTop: Spacing.sm,
-  },
-  placeholderSpinner: {
-    marginBottom: Spacing.sm,
-  },
+
   textPanel: {
     backgroundColor: CREAM_COLOR,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: isTablet ? Spacing.md : Spacing.xs / 2,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingVertical: Spacing.md,
+    marginTop: "auto",
+    width: "100%",
   },
   textPanelNoImages: {
-    justifyContent: "space-between",
-  },
-  textPanelFullHeight: {
-    paddingVertical: isTablet ? Spacing.xxl : Spacing.lg,
-    paddingHorizontal: isTablet ? Spacing.xl : Spacing.lg,
-  },
-  textContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.xxl,
+    paddingHorizontal: Spacing.xl,
   },
   pageText: {
     fontFamily: Typography.fontFamily.primary,
     color: Colors.textDark,
-    textAlign: "center",
     fontWeight: Typography.fontWeight.regular,
-    fontSize: isTablet ? Typography.fontSize.h3 : Typography.fontSize.medium,
-    lineHeight: isTablet ? 28 : 22,
+    fontSize: Typography.fontSize.medium,
+    lineHeight: 22,
   },
   pageTextLarge: {
-    fontSize: isTablet ? Typography.fontSize.h1Phone : Typography.fontSize.h3,
-    lineHeight: isTablet ? 50 : 32,
+    fontSize: Typography.fontSize.h3,
+    lineHeight: 32,
     fontWeight: Typography.fontWeight.medium,
   },
   pageNumber: {
-    fontSize: isTablet ? Typography.fontSize.small : Typography.fontSize.micro,
+    fontSize: Typography.fontSize.small,
     color: "#8B7355",
     textAlign: "center",
-    marginTop: isTablet ? Spacing.lg : Spacing.sm,
-    marginBottom: isTablet ? Spacing.xs / 2 : Spacing.xs * 2,
+    marginTop: Spacing.sm,
     fontWeight: Typography.fontWeight.medium,
   },
+
   navArrowLeft: {
     position: "absolute",
     left: Spacing.xs,
@@ -517,6 +442,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
+    ...(Platform.OS === "android" ? { elevation: 10 } : {}),
   },
   navArrowRight: {
     position: "absolute",
@@ -530,41 +456,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
+    ...(Platform.OS === "android" ? { elevation: 10 } : {}),
   },
-  navArrowDisabled: {
-    opacity: 0.3,
-  },
-  imageGenerationStatus: {
-    position: "absolute",
-    bottom: 80,
-    left: Spacing.screenPadding * 2,
-    right: Spacing.screenPadding * 2,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.medium,
-  },
-  imageGenerationText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-    textAlign: "center",
-  },
-  imageGenerationErrorText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.error,
-    textAlign: "center",
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: 4,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
+  navArrowDisabled: { opacity: 0.3 },
+
   errorContainer: {
     flex: 1,
     alignItems: "center",
