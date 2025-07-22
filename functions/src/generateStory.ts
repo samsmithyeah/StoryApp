@@ -1,11 +1,16 @@
 import { PubSub } from "@google-cloud/pubsub";
 import * as admin from "firebase-admin";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import {
+  CallableRequest,
+  HttpsError,
+  onCall,
+} from "firebase-functions/v2/https";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { fluxApiKey, getFluxClient } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
+import { uploadImageToStorage } from "./utils/storage";
 
 const pubsub = new PubSub();
 const topicName = "generate-story-image";
@@ -13,20 +18,22 @@ const topicName = "generate-story-image";
 export const generateStory = onCall(
   {
     secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
-    timeoutSeconds: 540, // 9 minutes timeout
+    timeoutSeconds: 540, // 9-minute timeout to allow for cover generation
     memory: "1GiB",
   },
-  async (request) => {
-    // 1. Verify user is authenticated
+  // Added the correct type for the request object
+  async (request: CallableRequest<StoryGenerationRequest>) => {
+    // 1. Authenticate the user
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
     const userId = request.auth.uid;
-    const data = request.data as StoryGenerationRequest;
+    // request.data is now correctly typed as StoryGenerationRequest
+    const data = request.data;
 
     try {
-      // 2. Get user and children data from Firestore
+      // 2. Fetch user and children data for personalization
       const userDoc = await admin
         .firestore()
         .collection("users")
@@ -51,7 +58,6 @@ export const generateStory = onCall(
         .map((child: any) => child.childPreferences)
         .filter((pref: string) => pref.trim())
         .join(", ");
-
       const ages = selectedChildrenData.map((child: any) => {
         const today = new Date();
         const birthDate = new Date(child.dateOfBirth.seconds * 1000);
@@ -65,9 +71,10 @@ export const generateStory = onCall(
             )
           : 5;
 
-      // 3. Generate story text with OpenAI
+      // 3. Generate story text and prompts from OpenAI
       const openai = getOpenAIClient();
-      const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that are magical, gentle, and educational.`;
+      const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without replying on cliches. Be creative and inventive.`;
+
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
   data.childrenAsCharacters && childNames
@@ -81,15 +88,13 @@ ${preferences ? `- Child interests: ${preferences}` : ""}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
-2. Each page should be 2-3 sentences suitable for a ${averageAge}-year-old.
+2. Each page should be an appropriate length for a ${averageAge}-year-old.
 3. ${
         data.childrenAsCharacters && childNames
           ? `Include ${childNames} as the main character(s).`
           : "Use a generic child character."
       }
-4. Make it gentle and perfect for bedtime.
-5. End with a peaceful, sleep-inducing conclusion.
-6. ${
+4. ${
         data.enableIllustrations
           ? "For each page, include an image prompt description."
           : "No image prompts needed."
@@ -98,15 +103,12 @@ Requirements:
 Return the story in this JSON format:
 {
   "title": "Story Title",
+  "coverImagePrompt": "A detailed description for the book cover. It should describe the main characters' appearances (e.g., 'a brave knight with a shiny silver helmet and a blue cape, and a friendly dragon with green scales and a happy smile') in a simple scene.",
   "pages": [
     {
       "page": 1,
       "text": "Page text here",
-      ${
-        data.enableIllustrations
-          ? '"imagePrompt": "A gentle, child-friendly illustration of [scene description]."'
-          : ""
-      }
+      "imagePrompt": "A visual description of the scene on this page, including characters and setting."
     }
   ]
 }`;
@@ -125,12 +127,67 @@ Return the story in this JSON format:
       const storyContent = JSON.parse(
         chatResponse.choices[0].message.content || "{}"
       );
+      if (
+        !storyContent.title ||
+        !storyContent.pages ||
+        !storyContent.coverImagePrompt
+      ) {
+        throw new HttpsError(
+          "internal",
+          "Invalid story structure from AI provider."
+        );
+      }
 
-      // 4. Create initial Firestore document
+      // 4. Generate the final Story ID *before* any uploads or writes
+      const storyRef = admin.firestore().collection("stories").doc();
+      const storyId = storyRef.id;
+
+      // 5. Generate and Upload Cover Image to its FINAL path
+      let coverImageStoragePath = "";
+      let coverImageUrlForWorkers = "";
+
+      if (data.enableIllustrations) {
+        console.log(
+          `[Orchestrator] Generating cover image for final storyId: ${storyId}`
+        );
+        const imageProvider = data.imageProvider || "flux";
+        const coverPrompt = `${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover.`;
+
+        if (imageProvider === "flux") {
+          const fluxClient = getFluxClient();
+          coverImageUrlForWorkers = await retryWithBackoff(() =>
+            fluxClient.generateImageWithPolling({
+              prompt: coverPrompt,
+              aspect_ratio: "1:1",
+            })
+          );
+        } else {
+          // Gemini
+          const geminiClient = getGeminiClient();
+          coverImageUrlForWorkers = await retryWithBackoff(() =>
+            geminiClient.generateImage(coverPrompt)
+          );
+        }
+
+        console.log(
+          `[Orchestrator] Cover image generated. Uploading to final path...`
+        );
+        coverImageStoragePath = await uploadImageToStorage(
+          coverImageUrlForWorkers,
+          userId,
+          storyId,
+          "cover"
+        );
+        console.log(
+          `[Orchestrator] Cover image uploaded to: ${coverImageStoragePath}`
+        );
+      }
+
+      // 6. Create the Story Document in Firestore with the FINAL data
       const storyPages: StoryPage[] = storyContent.pages.map((page: any) => ({
         page: page.page,
         text: page.text,
-        imageUrl: "", // All are placeholders initially
+        imageUrl: "",
       }));
 
       const storyDocData = {
@@ -138,7 +195,7 @@ Return the story in this JSON format:
         title: storyContent.title,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         storyContent: storyPages,
-        coverImageUrl: "",
+        coverImageUrl: coverImageStoragePath,
         storyConfiguration: data,
         imageGenerationStatus: data.enableIllustrations
           ? "generating"
@@ -146,81 +203,43 @@ Return the story in this JSON format:
         imagesGenerated: 0,
         totalImages: data.enableIllustrations ? storyPages.length : 0,
       };
-      const storyRef = await admin
-        .firestore()
-        .collection("stories")
-        .add(storyDocData);
-      const storyId = storyRef.id;
 
-      // 5. Orchestrate Image Generation (if enabled)
-      if (data.enableIllustrations) {
-        console.log(
-          `[Orchestrator] Starting image orchestration for story ${storyId}`
-        );
-        const imageProvider = data.imageProvider || "flux";
-        const firstPagePrompt = `${storyContent.pages[0].imagePrompt}. Style: ${data.illustrationStyle}, gentle colors, child-friendly, perfect for a bedtime story.`;
+      await storyRef.set(storyDocData);
 
-        // KEY OPTIMIZATION: Generate the first image directly in the orchestrator
-        let firstPageImageUrl: string;
-        if (imageProvider === "flux") {
-          const fluxClient = getFluxClient();
-          firstPageImageUrl = await retryWithBackoff(() =>
-            fluxClient.generateImageWithPolling({
-              prompt: firstPagePrompt,
-              aspect_ratio: "1:1",
-            })
-          );
-        } else {
-          // Gemini
-          const geminiClient = getGeminiClient();
-          firstPageImageUrl = await retryWithBackoff(() =>
-            geminiClient.generateImage(firstPagePrompt)
-          );
-        }
-        console.log(
-          `[Orchestrator] Generated first page image URL/Data directly.`
-        );
-
-        // Publish jobs for ALL pages at once
+      // 7. Fan-out jobs for ALL pages
+      if (data.enableIllustrations && coverImageUrlForWorkers) {
         const publishPromises = storyContent.pages.map(
           (page: any, index: number) => {
-            const isFirst = index === 0;
             const payload = {
               storyId,
               userId,
               pageIndex: index,
               imagePrompt: page.imagePrompt,
-              imageProvider,
-              // For the first page, pass its own pre-generated URL
-              sourceImageUrl: isFirst ? firstPageImageUrl : undefined,
-              // For subsequent pages, pass the reference image info for consistency
-              consistencyInput: !isFirst
-                ? {
-                    imageUrl: firstPageImageUrl,
-                    text: storyContent.pages[0].text,
-                  }
-                : undefined,
+              imageProvider: data.imageProvider || "flux",
+              consistencyInput: {
+                imageUrl: coverImageUrlForWorkers,
+                text: storyContent.coverImagePrompt,
+              },
             };
             return pubsub.topic(topicName).publishMessage({ json: payload });
           }
         );
-
         await Promise.all(publishPromises);
         console.log(
-          `[Orchestrator] Successfully published jobs for all ${storyContent.pages.length} pages.`
+          `[Orchestrator] Published jobs for all ${storyContent.pages.length} pages.`
         );
       }
 
-      // 6. Return to Client Immediately
-      return {
-        success: true,
-        storyId,
-        imageGenerationStatus: data.enableIllustrations
-          ? "generating"
-          : "not_requested",
-      };
+      // 8. Return the story ID to the client
+      console.log(
+        `[Orchestrator] Process complete. Returning storyId: ${storyId}`
+      );
+      return { success: true, storyId };
     } catch (error: any) {
       console.error("Error in generateStory orchestrator:", error);
+      if (error instanceof HttpsError) {
+        throw error;
+      }
       throw new HttpsError(
         "internal",
         `Failed to generate story: ${error.message || "Unknown error"}`

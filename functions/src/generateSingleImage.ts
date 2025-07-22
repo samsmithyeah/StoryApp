@@ -11,9 +11,7 @@ interface ImageGenerationPayload {
   pageIndex: number;
   imagePrompt: string;
   imageProvider: "flux" | "gemini";
-  sourceImageUrl?: string; // Only for the first page
-  consistencyInput?: {
-    // For pages 2-N
+  consistencyInput: {
     imageUrl: string;
     text: string;
   };
@@ -32,12 +30,10 @@ export const generateSingleImage = onMessagePublished(
       storyId,
       userId,
       pageIndex,
-      sourceImageUrl,
       imagePrompt,
       imageProvider,
       consistencyInput,
     } = payload;
-    const isFirstPage = pageIndex === 0;
 
     console.log(
       `[Worker] Received job for story ${storyId}, page ${pageIndex + 1}`
@@ -45,44 +41,35 @@ export const generateSingleImage = onMessagePublished(
     const storyRef = admin.firestore().collection("stories").doc(storyId);
 
     try {
+      const subsequentPrompt = `The input image is the book's cover, which establishes the appearance of the main characters and the overall art style. Create a new illustration for a page in the book, maintaining the exact same characters and art style. The scene for this new page is: ${imagePrompt}`;
+
+      console.log(
+        `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
+      );
+
       let finalImageUrl: string;
-
-      if (isFirstPage) {
-        if (!sourceImageUrl)
-          throw new Error("First page worker received no sourceImageUrl.");
-        finalImageUrl = sourceImageUrl;
-        console.log(`[Worker] Page 1: Using pre-generated image.`);
+      if (imageProvider === "flux") {
+        const fluxClient = getFluxClient();
+        finalImageUrl = await retryWithBackoff(() =>
+          fluxClient.generateImageWithPolling({
+            prompt: subsequentPrompt,
+            input_image: consistencyInput.imageUrl,
+            aspect_ratio: "1:1",
+          })
+        );
       } else {
-        if (!consistencyInput)
+        // Gemini
+        const geminiClient = getGeminiClient();
+        const base64Data = consistencyInput.imageUrl.split(",")[1];
+        if (!base64Data)
           throw new Error(
-            `Page ${pageIndex + 1} worker received no consistencyInput.`
+            "Could not extract base64 data from consistency input."
           );
-
-        const subsequentPrompt = `The caption for the input image is "${consistencyInput.text}". In the same style, and with totally consistent characters to the input, generate another image for this caption: "${imagePrompt}"`;
-
-        if (imageProvider === "flux") {
-          const fluxClient = getFluxClient();
-          finalImageUrl = await retryWithBackoff(() =>
-            fluxClient.generateImageWithPolling({
-              prompt: subsequentPrompt,
-              input_image: consistencyInput.imageUrl,
-              aspect_ratio: "1:1",
-            })
-          );
-        } else {
-          // Gemini
-          const geminiClient = getGeminiClient();
-          const base64Data = consistencyInput.imageUrl.split(",")[1];
-          if (!base64Data)
-            throw new Error(
-              "Could not extract base64 data from consistency input."
-            );
-          finalImageUrl = await retryWithBackoff(() =>
-            geminiClient.editImage(subsequentPrompt, base64Data)
-          );
-        }
-        console.log(`[Worker] Page ${pageIndex + 1}: Generated new image.`);
+        finalImageUrl = await retryWithBackoff(() =>
+          geminiClient.editImage(subsequentPrompt, base64Data)
+        );
       }
+      console.log(`[Worker] Page ${pageIndex + 1}: Generated new image.`);
 
       const storagePath = await uploadImageToStorage(
         finalImageUrl,
@@ -92,15 +79,14 @@ export const generateSingleImage = onMessagePublished(
       );
       console.log(`[Worker] Uploaded to ${storagePath}.`);
 
-      // --- ATOMIC UPDATE AND COMPLETION CHECK ---
+      // Atomic update and completion check
       await admin.firestore().runTransaction(async (transaction) => {
         const doc = await transaction.get(storyRef);
         if (!doc.exists) throw new Error("Document does not exist!");
 
         const storyData = doc.data();
-        if (!storyData || !Array.isArray(storyData.storyContent)) {
+        if (!storyData || !Array.isArray(storyData.storyContent))
           throw new Error("Story content is not a valid array.");
-        }
 
         const newStoryContent = [...storyData.storyContent];
         if (newStoryContent[pageIndex]) {
@@ -117,15 +103,9 @@ export const generateSingleImage = onMessagePublished(
           imagesGenerated: admin.firestore.FieldValue.increment(1),
         };
 
-        if (isFirstPage) {
-          updateData.coverImageUrl = storagePath;
-        }
-
         const currentImagesGenerated = storyData.imagesGenerated || 0;
         const totalImages = storyData.totalImages || 0;
 
-        // If this increment will meet or exceed the total, mark as completed.
-        // Using >= makes it more robust against potential double-runs.
         if (totalImages > 0 && currentImagesGenerated + 1 >= totalImages) {
           console.log(
             `[Worker] This is the final image (${currentImagesGenerated + 1}/${totalImages}). Setting status to 'completed'.`
