@@ -100,10 +100,14 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     (idx: number) => {
       if (!story.storyContent) return;
       if (idx < 0 || idx >= story.storyContent.length) return;
-      
+
       // Only scroll if we have a valid ref, don't update state until scroll completes
       if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ x: idx * width, y: 0, animated: true });
+        scrollViewRef.current.scrollTo({
+          x: idx * width,
+          y: 0,
+          animated: true,
+        });
         // The handleHorizontalScroll will update currentPage when scroll completes
       }
     },

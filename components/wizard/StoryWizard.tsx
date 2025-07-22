@@ -20,7 +20,15 @@ import { StoryAbout } from "./steps/StoryAbout";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { MoodSelection } from "./steps/MoodSelection";
 
-const WIZARD_STEPS = ["child", "theme", "mood", "characters", "about", "customization", "generation"] as const;
+const WIZARD_STEPS = [
+  "child",
+  "theme",
+  "mood",
+  "characters",
+  "about",
+  "customization",
+  "generation",
+] as const;
 
 type WizardStep = (typeof WIZARD_STEPS)[number];
 

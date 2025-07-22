@@ -13,13 +13,17 @@ export async function retryWithBackoff<T>(
       lastError = error;
 
       // Check if it's a retryable error
-      const isRetryableError = 
+      const isRetryableError =
         error.status === 429 || // Rate limit error
-        (error.message && error.message.includes("No image data in Gemini response")); // Gemini no image data error
+        (error.message &&
+          error.message.includes("No image data in Gemini response")); // Gemini no image data error
 
       if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i); // Exponential backoff
-        const errorType = error.status === 429 ? "Rate limited" : "Gemini image generation failed";
+        const errorType =
+          error.status === 429
+            ? "Rate limited"
+            : "Gemini image generation failed";
         console.log(
           `${errorType}. Retrying after ${delay}ms (attempt ${
             i + 1

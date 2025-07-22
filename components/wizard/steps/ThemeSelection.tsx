@@ -148,26 +148,28 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
           .filter((child) => child.childPreferences?.trim())
           .map((child) => {
             let age = 5; // Default age if dateOfBirth is not provided
-            
+
             if (child.dateOfBirth) {
               const today = new Date();
               const birthDate = new Date(child.dateOfBirth);
-              const calculatedAge = today.getFullYear() - birthDate.getFullYear();
+              const calculatedAge =
+                today.getFullYear() - birthDate.getFullYear();
               const monthDiff = today.getMonth() - birthDate.getMonth();
               const dayDiff = today.getDate() - birthDate.getDate();
-              
+
               // Adjust age if birthday hasn't occurred this year
-              age = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) 
-                ? calculatedAge - 1 
-                : calculatedAge;
+              age =
+                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+                  ? calculatedAge - 1
+                  : calculatedAge;
             }
-            
+
             return {
               preferences: child.childPreferences!.trim(),
-              age: age
+              age: age,
             };
           });
-          
+
         if (childrenInfo.length > 0) {
           const suggestions = await generateThemeSuggestions(childrenInfo);
           setAiThemes(suggestions);

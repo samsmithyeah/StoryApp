@@ -43,19 +43,25 @@ export class GeminiClient {
   }
 
   async generateImage(prompt: string): Promise<string> {
-    console.log(`[GeminiClient] Generating image with prompt: ${prompt.substring(0, 100)}...`);
-    
+    console.log(
+      `[GeminiClient] Generating image with prompt: ${prompt.substring(0, 100)}...`
+    );
+
     const request: GeminiGenerateRequest = {
-      contents: [{
-        role: "user",
-        parts: [{
-          text: prompt
-        }]
-      }],
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: prompt,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
-        temperature: 0.9
-      }
+        temperature: 0.9,
+      },
     };
 
     const response = await fetch(
@@ -71,12 +77,18 @@ export class GeminiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`);
-      throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`);
+      console.error(
+        `[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`
+      );
+      throw new Error(
+        `Gemini API request failed: ${response.status} ${response.statusText}`
+      );
     }
 
     const responseData = (await response.json()) as GeminiResponse;
-    console.log(`[GeminiClient] Response received with ${responseData.candidates?.length || 0} candidates`);
+    console.log(
+      `[GeminiClient] Response received with ${responseData.candidates?.length || 0} candidates`
+    );
 
     // Find the image in the response
     const candidate = responseData.candidates?.[0];
@@ -84,40 +96,50 @@ export class GeminiClient {
       throw new Error("No candidates in Gemini response");
     }
 
-    const imagePart = candidate.content.parts.find(part => part.inlineData);
+    const imagePart = candidate.content.parts.find((part) => part.inlineData);
     if (!imagePart || !imagePart.inlineData) {
       throw new Error("No image data in Gemini response");
     }
 
     // Convert base64 to data URL
     const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    console.log(`[GeminiClient] Image generated successfully, mime type: ${imagePart.inlineData.mimeType}`);
-    
+    console.log(
+      `[GeminiClient] Image generated successfully, mime type: ${imagePart.inlineData.mimeType}`
+    );
+
     return imageDataUrl;
   }
 
-  async editImage(prompt: string, inputImageBase64: string, mimeType: string = "image/png"): Promise<string> {
-    console.log(`[GeminiClient] Editing image with prompt: ${prompt.substring(0, 100)}...`);
-    
+  async editImage(
+    prompt: string,
+    inputImageBase64: string,
+    mimeType: string = "image/png"
+  ): Promise<string> {
+    console.log(
+      `[GeminiClient] Editing image with prompt: ${prompt.substring(0, 100)}...`
+    );
+
     const request: GeminiGenerateRequest = {
-      contents: [{
-        role: "user",
-        parts: [
-          {
-            text: prompt
-          },
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: inputImageBase64
-            }
-          }
-        ]
-      }],
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: prompt,
+            },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: inputImageBase64,
+              },
+            },
+          ],
+        },
+      ],
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
-        temperature: 0.9
-      }
+        temperature: 0.9,
+      },
     };
 
     const response = await fetch(
@@ -133,12 +155,18 @@ export class GeminiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`);
-      throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`);
+      console.error(
+        `[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`
+      );
+      throw new Error(
+        `Gemini API request failed: ${response.status} ${response.statusText}`
+      );
     }
 
     const responseData = (await response.json()) as GeminiResponse;
-    console.log(`[GeminiClient] Edit response received with ${responseData.candidates?.length || 0} candidates`);
+    console.log(
+      `[GeminiClient] Edit response received with ${responseData.candidates?.length || 0} candidates`
+    );
 
     // Find the image in the response
     const candidate = responseData.candidates?.[0];
@@ -146,15 +174,17 @@ export class GeminiClient {
       throw new Error("No candidates in Gemini response");
     }
 
-    const imagePart = candidate.content.parts.find(part => part.inlineData);
+    const imagePart = candidate.content.parts.find((part) => part.inlineData);
     if (!imagePart || !imagePart.inlineData) {
       throw new Error("No image data in Gemini response");
     }
 
     // Convert base64 to data URL
     const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    console.log(`[GeminiClient] Image edited successfully, mime type: ${imagePart.inlineData.mimeType}`);
-    
+    console.log(
+      `[GeminiClient] Image edited successfully, mime type: ${imagePart.inlineData.mimeType}`
+    );
+
     return imageDataUrl;
   }
 }

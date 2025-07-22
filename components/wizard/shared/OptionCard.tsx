@@ -34,11 +34,7 @@ export const OptionCard: React.FC<OptionCardProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={[
-        styles.optionCard,
-        isSelected && styles.selectedCard,
-        style,
-      ]}
+      style={[styles.optionCard, isSelected && styles.selectedCard, style]}
       onPress={() => onSelect(option.id)}
     >
       <View
@@ -49,7 +45,11 @@ export const OptionCard: React.FC<OptionCardProps> = ({
             : styles.unselectedIconContainer,
         ]}
       >
-        <IconSymbol name={option.icon as any} size={24} color={Colors.textDark} />
+        <IconSymbol
+          name={option.icon as any}
+          size={24}
+          color={Colors.textDark}
+        />
       </View>
       <View style={styles.optionInfo}>
         <Text style={[styles.optionTitle, isSelected && styles.selectedText]}>

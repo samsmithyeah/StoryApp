@@ -79,13 +79,19 @@ export class FluxClient {
     maxPollingTimeMs: number = 120000, // 2 minutes default
     pollingIntervalMs: number = 2000 // 2 seconds default
   ): Promise<string> {
-    console.log(`[FluxClient] Starting image generation with prompt: ${request.prompt.substring(0, 100)}...`);
-    console.log(`[FluxClient] Request params: aspect_ratio=${request.aspect_ratio}, has_input_image=${!!request.input_image}`);
-    
+    console.log(
+      `[FluxClient] Starting image generation with prompt: ${request.prompt.substring(0, 100)}...`
+    );
+    console.log(
+      `[FluxClient] Request params: aspect_ratio=${request.aspect_ratio}, has_input_image=${!!request.input_image}`
+    );
+
     // Start the image generation task
     const createResponse = await this.createImage(request);
-    console.log(`[FluxClient] Create response: id=${createResponse.id}, polling_url=${createResponse.polling_url}`);
-    
+    console.log(
+      `[FluxClient] Create response: id=${createResponse.id}, polling_url=${createResponse.polling_url}`
+    );
+
     if (!createResponse.polling_url) {
       throw new Error(`FLUX API did not return a polling URL`);
     }
@@ -96,26 +102,36 @@ export class FluxClient {
     // Poll until completion or timeout
     while (Date.now() - startTime < maxPollingTimeMs) {
       pollCount++;
-      console.log(`[FluxClient] Polling attempt ${pollCount} for task ${createResponse.id}`);
+      console.log(
+        `[FluxClient] Polling attempt ${pollCount} for task ${createResponse.id}`
+      );
       const pollResponse = await this.pollTask(createResponse.polling_url);
       console.log(`[FluxClient] Poll response: status=${pollResponse.status}`);
 
       if (pollResponse.status === "Error") {
-        console.error(`[FluxClient] Image generation failed: ${pollResponse.error}`);
+        console.error(
+          `[FluxClient] Image generation failed: ${pollResponse.error}`
+        );
         throw new Error(`FLUX image generation failed: ${pollResponse.error}`);
       }
 
       if (pollResponse.status === "Ready" && pollResponse.result?.sample) {
-        console.log(`[FluxClient] Image ready after ${pollCount} polls (${Date.now() - startTime}ms): ${pollResponse.result.sample.substring(0, 50)}...`);
+        console.log(
+          `[FluxClient] Image ready after ${pollCount} polls (${Date.now() - startTime}ms): ${pollResponse.result.sample.substring(0, 50)}...`
+        );
         return pollResponse.result.sample;
       }
 
       // Wait before polling again
-      await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
     }
 
-    console.error(`[FluxClient] Image generation timed out after ${maxPollingTimeMs}ms`);
-    throw new Error(`FLUX image generation timed out after ${maxPollingTimeMs}ms`);
+    console.error(
+      `[FluxClient] Image generation timed out after ${maxPollingTimeMs}ms`
+    );
+    throw new Error(
+      `FLUX image generation timed out after ${maxPollingTimeMs}ms`
+    );
   }
 }
 

@@ -364,7 +364,8 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
                     <Text
                       style={[
                         styles.providerDescription,
-                        imageProvider === "gemini" && styles.selectedDescription,
+                        imageProvider === "gemini" &&
+                          styles.selectedDescription,
                       ]}
                     >
                       Fast generation with excellent character consistency

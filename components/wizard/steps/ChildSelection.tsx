@@ -18,9 +18,7 @@ import {
 
 interface ChildSelectionProps {
   selectedChildren: string[];
-  onUpdate: (data: {
-    selectedChildren?: string[];
-  }) => void;
+  onUpdate: (data: { selectedChildren?: string[] }) => void;
   onNext: () => void;
   onCancel: () => void;
 }
@@ -85,7 +83,9 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             <View style={styles.childrenGrid}>
               {children.map((child) => {
                 const isSelected = selectedChildren.includes(child.id);
-                const age = calculateAge(child.dateOfBirth);
+                const age = child.dateOfBirth
+                  ? calculateAge(child.dateOfBirth)
+                  : null;
 
                 return (
                   <TouchableOpacity
@@ -132,7 +132,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                         isSelected && styles.selectedText,
                       ]}
                     >
-                      Age {age} • {child.childPreferences || "No interests set"}
+                      {age ? `Age ${age}` : "Age not set"} •{" "}
+                      {child.childPreferences || "No interests set"}
                     </Text>
                   </TouchableOpacity>
                 );

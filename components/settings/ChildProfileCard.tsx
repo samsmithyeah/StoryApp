@@ -66,8 +66,13 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
   };
 
   const hasAppearanceDetails = () => {
-    return !!(child.hairColor || child.eyeColor || child.skinColor || 
-             child.hairStyle || child.appearanceDetails);
+    return !!(
+      child.hairColor ||
+      child.eyeColor ||
+      child.skinColor ||
+      child.hairStyle ||
+      child.appearanceDetails
+    );
   };
 
   const getInitials = (name: string) => {

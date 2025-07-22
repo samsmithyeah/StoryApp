@@ -81,7 +81,9 @@ export const generateStory = onCall(
         allCharacters.map(async (char) => {
           if (char.isChild && char.childId) {
             // Use selectedChildrenData instead of all children
-            const childData = selectedChildrenData.find((c: any) => c.id === char.childId);
+            const childData = selectedChildrenData.find(
+              (c: any) => c.id === char.childId
+            );
 
             if (childData) {
               const characterDetails: string[] = [];
@@ -135,7 +137,9 @@ export const generateStory = onCall(
       const characterNamesWithAges = await Promise.all(
         allCharacters.map(async (char) => {
           if (char.isChild && char.childId) {
-            const childData = selectedChildrenData.find((c: any) => c.id === char.childId);
+            const childData = selectedChildrenData.find(
+              (c: any) => c.id === char.childId
+            );
             if (childData && childData.dateOfBirth) {
               const today = new Date();
               const birthDate = new Date(childData.dateOfBirth.seconds * 1000);

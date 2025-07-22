@@ -86,8 +86,9 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   const [customMood, setCustomMood] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  const isCustomMoodSelected = selectedMood === "custom" || 
-    (!!selectedMood && !MOOD_OPTIONS.find(m => m.id === selectedMood));
+  const isCustomMoodSelected =
+    selectedMood === "custom" ||
+    (!!selectedMood && !MOOD_OPTIONS.find((m) => m.id === selectedMood));
 
   const handleMoodSelect = (moodId: string) => {
     if (moodId === "custom") {
@@ -109,7 +110,8 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
     }
   };
 
-  const isNextDisabled = !selectedMood || 
+  const isNextDisabled =
+    !selectedMood ||
     (isCustomMoodSelected && !customMood.trim() && selectedMood === "custom");
 
   return (
@@ -127,9 +129,14 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
-          <View style={isTablet ? styles.moodsSectionTablet : styles.moodsSection}>
+          <View
+            style={isTablet ? styles.moodsSectionTablet : styles.moodsSection}
+          >
             {MOOD_OPTIONS.map((mood) => (
-              <View key={mood.id} style={isTablet ? styles.optionCardWrapper : {}}>
+              <View
+                key={mood.id}
+                style={isTablet ? styles.optionCardWrapper : {}}
+              >
                 <OptionCard
                   option={mood}
                   isSelected={mood.id === selectedMood}
@@ -138,7 +145,7 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
                 />
               </View>
             ))}
-            
+
             {/* Custom mood option */}
             <View style={isTablet ? styles.optionCardWrapper : {}}>
               <OptionCard
