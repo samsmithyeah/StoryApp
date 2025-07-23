@@ -4,6 +4,7 @@ import {
 } from "@/services/firebase/stories";
 import { StoryConfiguration } from "@/types/story.types";
 import { useChildren } from "@/hooks/useChildren";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -42,15 +43,13 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
+  const { preferences } = useUserPreferences();
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
     length: "medium",
     illustrationStyle: "watercolor",
     enableIllustrations: true,
-    imageProvider: "flux",
-    textModel: "gpt-4o",
-    coverImageModel: "gemini-2.0-flash-preview-image-generation",
     storyAbout: "",
     characters: [],
   });
@@ -91,6 +90,10 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       const generationRequest: StoryGenerationRequest = {
         ...wizardData,
         enableIllustrations: wizardData.enableIllustrations ?? true,
+        // Add preferences from user settings
+        textModel: preferences.textModel,
+        coverImageModel: preferences.coverImageModel,
+        imageProvider: preferences.pageImageModel,
       } as StoryGenerationRequest;
 
       const result = await generateStory(generationRequest);
@@ -178,9 +181,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             length={wizardData.length || "medium"}
             illustrationStyle={wizardData.illustrationStyle || "watercolor"}
             enableIllustrations={wizardData.enableIllustrations}
-            imageProvider={wizardData.imageProvider || "flux"}
-            textModel={wizardData.textModel || "gpt-4o"}
-            coverImageModel={wizardData.coverImageModel || "gemini-2.0-flash-preview-image-generation"}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
