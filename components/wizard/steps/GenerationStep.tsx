@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -12,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface GenerationStepProps {
   isGenerating: boolean;
@@ -41,7 +41,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const rotationAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.3)).current;
-  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
+  
+  // Use safe area bottom instead of tab bar height since we're outside tabs
+  const tabBarHeight = insets.bottom + Spacing.lg;
 
   useEffect(() => {
     if (!isGenerating) return;

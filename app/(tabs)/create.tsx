@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React from "react";
 import {
   Alert,
   SafeAreaView,
@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
-import { StoryWizard } from "../../components/wizard/StoryWizard";
 import {
   Colors,
   CommonStyles,
@@ -19,11 +18,9 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
-import { StoryConfiguration } from "../../types/story.types";
 
 export default function CreateScreen() {
   const { children } = useChildren();
-  const [showWizard, setShowWizard] = useState(false);
 
   const handleCreateStory = () => {
     if (children.length === 0) {
@@ -40,41 +37,8 @@ export default function CreateScreen() {
       );
       return;
     }
-    setShowWizard(true);
+    router.push("/wizard" as any);
   };
-
-  const handleWizardComplete = async (wizardData: StoryConfiguration) => {
-    setShowWizard(false);
-
-    try {
-      // If we have a storyId, the story was already generated
-      if (wizardData.storyId) {
-        // Navigate directly to the story viewer
-        router.push({
-          pathname: "/story/[id]",
-          params: { id: wizardData.storyId },
-        });
-      }
-    } catch (error) {
-      console.error("Error navigating to story:", error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to load story. Please try again.",
-        [{ text: "OK" }]
-      );
-    }
-  };
-
-  if (showWizard) {
-    return (
-      <StoryWizard
-        onComplete={handleWizardComplete}
-        onCancel={() => setShowWizard(false)}
-      />
-    );
-  }
 
   return (
     <BackgroundContainer showDecorations={true}>
