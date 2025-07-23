@@ -25,12 +25,12 @@ export default function CreateScreen() {
   const handleCreateStory = () => {
     if (children.length === 0) {
       Alert.alert(
-        "No Children Added",
-        "Please add at least one child profile in Settings before creating a story.",
+        "No children added",
+        "Please add at least one child profile in settings before creating a story.",
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Go to Settings",
+            text: "Go to settings",
             onPress: () => router.push("/(tabs)/settings"),
           },
         ]
