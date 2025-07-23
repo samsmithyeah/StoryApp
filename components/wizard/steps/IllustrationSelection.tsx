@@ -70,10 +70,9 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   {
     id: "wonky-rhythmic-whimsy",
     name: "Wiggly Whimsy",
-    description:
-      "Curvy, off-kilter shapes and rhythmic repetition, playful chaos",
+    description: "Curvy, off-kilter shapes and playful chaos",
     aiDescription:
-      "Elastic, curvilinear architecture, striped patterns, and bouncy rhyme-like repetition. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
+      "Elastic, curvilinear architecture, striped patterns. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
   },
   // Oliver Jeffers
   {

@@ -1,9 +1,9 @@
-import * as FileSystem from 'expo-file-system';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuthenticatedUrl } from './firebase/storage';
+import * as FileSystem from "expo-file-system";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getAuthenticatedUrl } from "./firebase/storage";
 
 const CACHE_DIR = `${FileSystem.documentDirectory}imageCache/`;
-const CACHE_INDEX_KEY = 'imageCacheIndex';
+const CACHE_INDEX_KEY = "imageCacheIndex";
 const MAX_CACHE_SIZE_MB = 100; // 100MB cache limit
 const CACHE_EXPIRY_DAYS = 30; // Files expire after 30 days
 
@@ -38,7 +38,7 @@ class ImageCacheService {
         this.cacheIndex = JSON.parse(indexData);
       }
     } catch (error) {
-      console.warn('Failed to load cache index:', error);
+      console.warn("Failed to load cache index:", error);
       this.cacheIndex = {};
     }
 
@@ -50,22 +50,25 @@ class ImageCacheService {
 
   private async saveCacheIndex(): Promise<void> {
     try {
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(this.cacheIndex));
+      await AsyncStorage.setItem(
+        CACHE_INDEX_KEY,
+        JSON.stringify(this.cacheIndex)
+      );
     } catch (error) {
-      console.warn('Failed to save cache index:', error);
+      console.warn("Failed to save cache index:", error);
     }
   }
 
   private async cleanupExpired(): Promise<void> {
     const now = Date.now();
     const expiryTime = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-    
+
     const expiredPaths: string[] = [];
-    
+
     for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
       if (now - entry.timestamp > expiryTime) {
         expiredPaths.push(storagePath);
-        
+
         // Delete the file
         try {
           const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
@@ -73,7 +76,7 @@ class ImageCacheService {
             await FileSystem.deleteAsync(entry.filePath);
           }
         } catch (error) {
-          console.warn('Failed to delete expired cache file:', error);
+          console.warn("Failed to delete expired cache file:", error);
         }
       }
     }
@@ -90,20 +93,20 @@ class ImageCacheService {
 
   private async enforceMaxCacheSize(): Promise<void> {
     const maxSizeBytes = MAX_CACHE_SIZE_MB * 1024 * 1024;
-    
+
     // Calculate current cache size
     const entries = Object.values(this.cacheIndex);
     const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
-    
+
     if (totalSize <= maxSizeBytes) return;
 
     // Sort by timestamp (oldest first) and delete until under limit
     const sortedEntries = entries.sort((a, b) => a.timestamp - b.timestamp);
     let currentSize = totalSize;
-    
+
     for (const entry of sortedEntries) {
       if (currentSize <= maxSizeBytes) break;
-      
+
       try {
         const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
         if (fileInfo.exists) {
@@ -112,16 +115,16 @@ class ImageCacheService {
         delete this.cacheIndex[entry.storagePath];
         currentSize -= entry.size;
       } catch (error) {
-        console.warn('Failed to delete cache file during cleanup:', error);
+        console.warn("Failed to delete cache file during cleanup:", error);
       }
     }
-    
+
     await this.saveCacheIndex();
   }
 
   private generateCacheFilePath(storagePath: string): string {
     // Create a safe filename from the storage path
-    const safeFileName = storagePath.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeFileName = storagePath.replace(/[^a-zA-Z0-9.-]/g, "_");
     return `${CACHE_DIR}${safeFileName}`;
   }
 
@@ -130,7 +133,7 @@ class ImageCacheService {
 
     const cacheEntry = this.cacheIndex[storagePath];
     if (!cacheEntry) {
-      console.log('🔍 Cache MISS for:', storagePath.split('/').pop());
+      console.log("🔍 Cache MISS for:", storagePath.split("/").pop());
       return null;
     }
 
@@ -155,7 +158,7 @@ class ImageCacheService {
     }
 
     // Return local file URI
-    console.log('✅ Cache HIT for:', storagePath.split('/').pop());
+    console.log("✅ Cache HIT for:", storagePath.split("/").pop());
     return cacheEntry.filePath;
   }
 
@@ -171,16 +174,22 @@ class ImageCacheService {
       const cacheFilePath = this.generateCacheFilePath(storagePath);
 
       // Download and save the file
-      const downloadResult = await FileSystem.downloadAsync(downloadUrl, cacheFilePath);
-      
+      const downloadResult = await FileSystem.downloadAsync(
+        downloadUrl,
+        cacheFilePath
+      );
+
       if (downloadResult.status !== 200) {
-        console.warn('Failed to download image:', downloadResult.status);
+        console.warn("Failed to download image:", downloadResult.status);
         return null;
       }
 
       // Get file size
       const fileInfo = await FileSystem.getInfoAsync(cacheFilePath);
-      const fileSize = (fileInfo.exists && !fileInfo.isDirectory && 'size' in fileInfo) ? fileInfo.size : 0;
+      const fileSize =
+        fileInfo.exists && !fileInfo.isDirectory && "size" in fileInfo
+          ? fileInfo.size
+          : 0;
 
       // Update cache index
       this.cacheIndex[storagePath] = {
@@ -191,14 +200,14 @@ class ImageCacheService {
       };
 
       await this.saveCacheIndex();
-      
+
       // Enforce cache size limit
       await this.enforceMaxCacheSize();
 
-      console.log('📥 Cached new image:', storagePath.split('/').pop());
+      console.log("📥 Cached new image:", storagePath.split("/").pop());
       return cacheFilePath;
     } catch (error) {
-      console.error('Error caching image:', error);
+      console.error("Error caching image:", error);
       return null;
     }
   }
@@ -227,7 +236,7 @@ class ImageCacheService {
       this.cacheIndex = {};
       await AsyncStorage.removeItem(CACHE_INDEX_KEY);
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      console.error("Error clearing cache:", error);
     }
   }
 
@@ -236,7 +245,7 @@ class ImageCacheService {
 
     const entries = Object.values(this.cacheIndex);
     const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
-    
+
     return {
       totalSize,
       fileCount: entries.length,

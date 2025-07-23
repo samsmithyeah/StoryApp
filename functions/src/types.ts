@@ -9,7 +9,7 @@ export interface StoryGenerationRequest {
   selectedChildren: string[];
   theme: string;
   mood?: string;
-  length: "short" | "medium" | "long";
+  pageCount: number;
   shouldRhyme?: boolean;
   illustrationStyle: string;
   illustrationAiDescription?: string;

@@ -49,10 +49,11 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
-    length: "medium",
+    pageCount: 5,
     shouldRhyme: false,
     illustrationStyle: "loose-ink-wash",
-    illustrationAiDescription: "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
+    illustrationAiDescription:
+      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
     enableIllustrations: true,
     storyAbout: "",
     characters: [],
@@ -133,7 +134,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       data.selectedChildren &&
       data.selectedChildren.length > 0 &&
       data.theme &&
-      data.length &&
+      data.pageCount &&
       data.illustrationStyle
     );
   };
@@ -194,7 +195,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       case "length":
         return (
           <StoryDetails
-            length={wizardData.length || "medium"}
+            pageCount={wizardData.pageCount || 5}
             shouldRhyme={wizardData.shouldRhyme || false}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

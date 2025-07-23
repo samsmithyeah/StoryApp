@@ -42,7 +42,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.3)).current;
   const insets = useSafeAreaInsets();
-  
+
   // Use safe area bottom instead of tab bar height since we're outside tabs
   const tabBarHeight = insets.bottom + Spacing.lg;
 
