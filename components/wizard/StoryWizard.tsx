@@ -49,6 +49,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     illustrationStyle: "watercolor",
     enableIllustrations: true,
     imageProvider: "flux",
+    textModel: "gpt-4o",
+    coverImageModel: "gemini-2.0-flash-preview-image-generation",
     storyAbout: "",
     characters: [],
   });
@@ -177,6 +179,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             illustrationStyle={wizardData.illustrationStyle || "watercolor"}
             enableIllustrations={wizardData.enableIllustrations}
             imageProvider={wizardData.imageProvider || "flux"}
+            textModel={wizardData.textModel || "gpt-4o"}
+            coverImageModel={wizardData.coverImageModel || "gemini-2.0-flash-preview-image-generation"}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}

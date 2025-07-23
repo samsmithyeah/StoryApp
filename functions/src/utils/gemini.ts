@@ -36,10 +36,76 @@ interface GeminiResponse {
 export class GeminiClient {
   private apiKey: string;
   private baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-  private model = "gemini-2.0-flash-preview-image-generation";
+  private imageModel = "gemini-2.0-flash-preview-image-generation";
+  private textModel = "gemini-2.5-pro";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+  }
+
+  async generateText(systemPrompt: string, userPrompt: string, temperature: number = 0.9): Promise<string> {
+    console.log(
+      `[GeminiClient] Generating text with prompt: ${userPrompt.substring(0, 100)}...`
+    );
+
+    const request = {
+      contents: [
+        {
+          role: "user" as const,
+          parts: [
+            {
+              text: userPrompt,
+            },
+          ],
+        },
+      ],
+      systemInstruction: {
+        parts: [{
+          text: systemPrompt
+        }]
+      },
+      generationConfig: {
+        temperature,
+      },
+    };
+
+    const response = await fetch(
+      `${this.baseUrl}/models/${this.textModel}:generateContent?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[GeminiClient] Text API error: ${response.status} ${response.statusText}: ${errorText}`
+      );
+      throw new Error(
+        `Gemini text API request failed: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const responseData = (await response.json()) as GeminiResponse;
+    console.log(
+      `[GeminiClient] Text response received with ${responseData.candidates?.length || 0} candidates`
+    );
+
+    const candidate = responseData.candidates?.[0];
+    if (!candidate) {
+      throw new Error("No candidates in Gemini text response");
+    }
+
+    const textPart = candidate.content.parts.find((part) => part.text);
+    if (!textPart || !textPart.text) {
+      throw new Error("No text data in Gemini response");
+    }
+
+    return textPart.text;
   }
 
   async generateImage(prompt: string): Promise<string> {
@@ -65,7 +131,7 @@ export class GeminiClient {
     };
 
     const response = await fetch(
-      `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/${this.imageModel}:generateContent?key=${this.apiKey}`,
       {
         method: "POST",
         headers: {
@@ -143,7 +209,7 @@ export class GeminiClient {
     };
 
     const response = await fetch(
-      `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/${this.imageModel}:generateContent?key=${this.apiKey}`,
       {
         method: "POST",
         headers: {

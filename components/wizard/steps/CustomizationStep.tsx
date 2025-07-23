@@ -85,11 +85,15 @@ interface CustomizationStepProps {
   illustrationStyle: string;
   enableIllustrations?: boolean;
   imageProvider?: "flux" | "gemini";
+  textModel?: "gpt-4o" | "gemini-2.5-pro";
+  coverImageModel?: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1";
   onUpdate: (data: {
     length?: "short" | "medium" | "long";
     illustrationStyle?: string;
     enableIllustrations?: boolean;
     imageProvider?: "flux" | "gemini";
+    textModel?: "gpt-4o" | "gemini-2.5-pro";
+    coverImageModel?: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1";
   }) => void;
   onNext: () => void;
   onBack: () => void;
@@ -101,6 +105,8 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
   illustrationStyle,
   enableIllustrations = true,
   imageProvider = "flux",
+  textModel = "gpt-4o",
+  coverImageModel = "gemini-2.0-flash-preview-image-generation",
   onUpdate,
   onNext,
   onBack,
@@ -148,6 +154,14 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
 
   const handleImageProviderSelect = (provider: "flux" | "gemini") => {
     onUpdate({ imageProvider: provider });
+  };
+
+  const handleTextModelSelect = (model: "gpt-4o" | "gemini-2.5-pro") => {
+    onUpdate({ textModel: model });
+  };
+
+  const handleCoverImageModelSelect = (model: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1") => {
+    onUpdate({ coverImageModel: model });
   };
 
   return (
@@ -380,6 +394,176 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
               </View>
             </>
           )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Text Generation Model</Text>
+          <View style={styles.providerContainer}>
+            <TouchableOpacity
+              style={[
+                styles.providerCard,
+                textModel === "gpt-4o" && styles.selectedCard,
+              ]}
+              onPress={() => handleTextModelSelect("gpt-4o")}
+            >
+              <View style={styles.providerInfo}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    textModel === "gpt-4o" && styles.selectedText,
+                  ]}
+                >
+                  GPT-4o
+                </Text>
+                <Text
+                  style={[
+                    styles.providerDescription,
+                    textModel === "gpt-4o" && styles.selectedDescription,
+                  ]}
+                >
+                  OpenAI's latest model for creative storytelling
+                </Text>
+              </View>
+              {textModel === "gpt-4o" && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.providerCard,
+                textModel === "gemini-2.5-pro" && styles.selectedCard,
+              ]}
+              onPress={() => handleTextModelSelect("gemini-2.5-pro")}
+            >
+              <View style={styles.providerInfo}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    textModel === "gemini-2.5-pro" && styles.selectedText,
+                  ]}
+                >
+                  Gemini 2.5 Pro
+                </Text>
+                <Text
+                  style={[
+                    styles.providerDescription,
+                    textModel === "gemini-2.5-pro" && styles.selectedDescription,
+                  ]}
+                >
+                  Google's advanced reasoning model for complex narratives
+                </Text>
+              </View>
+              {textModel === "gemini-2.5-pro" && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cover Image Model</Text>
+          <View style={styles.providerContainer}>
+            <TouchableOpacity
+              style={[
+                styles.providerCard,
+                coverImageModel === "gemini-2.0-flash-preview-image-generation" && styles.selectedCard,
+              ]}
+              onPress={() => handleCoverImageModelSelect("gemini-2.0-flash-preview-image-generation")}
+            >
+              <View style={styles.providerInfo}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    coverImageModel === "gemini-2.0-flash-preview-image-generation" && styles.selectedText,
+                  ]}
+                >
+                  Gemini Image
+                </Text>
+                <Text
+                  style={[
+                    styles.providerDescription,
+                    coverImageModel === "gemini-2.0-flash-preview-image-generation" && styles.selectedDescription,
+                  ]}
+                >
+                  Current model - reliable character consistency
+                </Text>
+              </View>
+              {coverImageModel === "gemini-2.0-flash-preview-image-generation" && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.providerCard,
+                coverImageModel === "dall-e-3" && styles.selectedCard,
+              ]}
+              onPress={() => handleCoverImageModelSelect("dall-e-3")}
+            >
+              <View style={styles.providerInfo}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    coverImageModel === "dall-e-3" && styles.selectedText,
+                  ]}
+                >
+                  DALL-E 3
+                </Text>
+                <Text
+                  style={[
+                    styles.providerDescription,
+                    coverImageModel === "dall-e-3" && styles.selectedDescription,
+                  ]}
+                >
+                  OpenAI's premium image generation with artistic detail
+                </Text>
+              </View>
+              {coverImageModel === "dall-e-3" && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.providerCard,
+                coverImageModel === "gpt-image-1" && styles.selectedCard,
+              ]}
+              onPress={() => handleCoverImageModelSelect("gpt-image-1")}
+            >
+              <View style={styles.providerInfo}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    coverImageModel === "gpt-image-1" && styles.selectedText,
+                  ]}
+                >
+                  GPT Image-1
+                </Text>
+                <Text
+                  style={[
+                    styles.providerDescription,
+                    coverImageModel === "gpt-image-1" && styles.selectedDescription,
+                  ]}
+                >
+                  OpenAI's latest experimental image model
+                </Text>
+              </View>
+              {coverImageModel === "gpt-image-1" && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 

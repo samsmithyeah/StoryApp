@@ -19,6 +19,8 @@ export interface StoryConfiguration {
   illustrationStyle: string;
   enableIllustrations?: boolean;
   imageProvider?: "flux" | "gemini";
+  textModel?: "gpt-4o" | "gemini-2.5-pro";
+  coverImageModel?: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1";
   targetAge?: number;
   storyId?: string;
   storyAbout?: string;
