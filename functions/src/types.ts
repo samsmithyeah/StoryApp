@@ -12,6 +12,7 @@ export interface StoryGenerationRequest {
   length: "short" | "medium" | "long";
   shouldRhyme?: boolean;
   illustrationStyle: string;
+  illustrationAiDescription?: string;
   enableIllustrations: boolean;
   imageProvider?: "flux" | "gemini"; // Optional, defaults to flux for backward compatibility
   textModel?: "gpt-4o" | "gemini-2.5-pro";

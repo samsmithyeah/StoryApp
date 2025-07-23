@@ -18,6 +18,7 @@ export interface StoryConfiguration {
   length: "short" | "medium" | "long";
   shouldRhyme?: boolean;
   illustrationStyle: string;
+  illustrationAiDescription?: string;
   enableIllustrations?: boolean;
   imageProvider?: "flux" | "gemini";
   textModel?: "gpt-4o" | "gemini-2.5-pro";

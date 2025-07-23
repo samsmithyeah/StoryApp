@@ -51,7 +51,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     selectedChildren: [],
     length: "medium",
     shouldRhyme: false,
-    illustrationStyle: "watercolor",
+    illustrationStyle: "loose-ink-wash",
+    illustrationAiDescription: "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
     enableIllustrations: true,
     storyAbout: "",
     characters: [],
@@ -204,7 +205,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       case "illustrations":
         return (
           <IllustrationSelection
-            illustrationStyle={wizardData.illustrationStyle || "watercolor"}
+            illustrationStyle={wizardData.illustrationStyle || "loose-ink-wash"}
             enableIllustrations={wizardData.enableIllustrations}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

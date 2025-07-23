@@ -21,33 +21,91 @@ interface IllustrationStyle {
   id: string;
   name: string;
   description: string;
+  aiDescription: string;
 }
 
 const ILLUSTRATION_STYLES: IllustrationStyle[] = [
+  // Quentin Blake
   {
-    id: "watercolor",
-    name: "Watercolor",
-    description: "Soft, dreamy paintings",
+    id: "loose-ink-wash",
+    name: "Splashy Ink & Paint",
+    description: "Scratchy pen lines with energetic watercolor splashes",
+    aiDescription:
+      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
   },
+  // Axel Scheffler
   {
-    id: "cartoon",
-    name: "Cartoon",
-    description: "Playful, colorful drawings",
+    id: "bold-outline-flat-color",
+    name: "Big Bold Lines",
+    description: "Thick black lines, bright flats, friendly character shapes",
+    aiDescription:
+      "Confident, uniform black outlines around chunky, friendly characters; bright flat fills, minimal shading. Clean European storybook vibe from the late ’90s/early 2000s where a certain woodland monster might lurk.",
   },
+  // Anthony Browne
   {
-    id: "realistic",
-    name: "Realistic",
-    description: "Detailed, lifelike art",
+    id: "surreal-painterly-realism",
+    name: "Dreamy Realism",
+    description: "Detailed realism with odd, dreamlike twists",
+    aiDescription:
+      "Smooth, carefully modeled realism with soft gradients and theatrical lighting, yet peppered with subtle surreal clues—hidden faces, bananas, warped scale. Feels like psychologically rich 1980s UK picture books.",
   },
+  // Maurice Sendak
   {
-    id: "minimalist",
-    name: "Minimalist",
-    description: "Simple, clean designs",
+    id: "classic-crosshatch-storybook",
+    name: "Vintage Storybook",
+    description: "Fine pen shading, muted palettes, vintage picture-book feel",
+    aiDescription:
+      "Fine pen-and-ink crosshatching, stippling, and muted watercolor washes. Cozy-but-wild mid-century American picture-book mood, where a rumpus could break out any minute.",
+  },
+  // Beatrix Potter
+  {
+    id: "delicate-botanical-watercolour",
+    name: "Gentle Watercolours",
+    description:
+      "Soft washes, naturalistic animals and plants, gentle nostalgia",
+    aiDescription:
+      "Pastel watercolour washes and precise naturalist drawing of small countryside creatures and flora. Early 1900s English cottage-garden gentleness, porcelain-teacup delicate.",
+  },
+  // Dr. Seuss
+  {
+    id: "wonky-rhythmic-whimsy",
+    name: "Wiggly Whimsy",
+    description:
+      "Curvy, off-kilter shapes and rhythmic repetition, playful chaos",
+    aiDescription:
+      "Elastic, curvilinear architecture, striped patterns, and bouncy rhyme-like repetition. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
+  },
+  // Oliver Jeffers
+  {
+    id: "naive-textured-brushwork",
+    name: "Scribbly Paint & Pencil",
+    description: "Childlike marks, visible brush texture, handwritten notes",
+    aiDescription:
+      "Intentionally wobbly linework with visible brush and pencil texture, hand-lettered notes, and roomy negative space. Contemporary Irish/American picture-book feel—simple shapes but big heart.",
+  },
+  // Jon Klassen
+  {
+    id: "deadpan-minimal-graphic",
+    name: "Quiet & Simple",
+    description:
+      "Muted earth tones, simple shapes, tiny eyes & big negative space",
+    aiDescription:
+      "Flat, graphic shapes in hushed earth tones, subtle paper textures, and lots of negative space. Characters with dot eyes and bone-dry humor—modern North American deadpan minimalism.",
+  },
+  // E. H. Shepard
+  {
+    id: "fine-ink-soft-wash",
+    name: "Fine Ink & Tint",
+    description: "Precise pen contours, light watercolour tints, gentle charm",
+    aiDescription:
+      "Elegant, controlled pen contours with light transparent washes, capturing gentle motion. Early 20th-century English nursery classic energy—tea-stained nostalgia and soft woodland rambles.",
   },
   {
     id: "custom",
     name: "Custom",
     description: "Create your own unique illustration style",
+    aiDescription:
+      "User-defined: describe medium, line quality, palette, texture, composition, motifs, era, and mood in detail.",
   },
 ];
 
@@ -56,6 +114,7 @@ interface IllustrationSelectionProps {
   enableIllustrations?: boolean;
   onUpdate: (data: {
     illustrationStyle?: string;
+    illustrationAiDescription?: string;
     enableIllustrations?: boolean;
   }) => void;
   onNext: () => void;
@@ -87,11 +146,20 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     if (selectedStyle === "custom") {
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
-      onUpdate({ illustrationStyle: customStyle.trim() || "custom" });
+      onUpdate({
+        illustrationStyle: customStyle.trim() || "custom",
+        illustrationAiDescription: customStyle.trim(),
+      });
     } else {
       setIsCustomStyleSelected(false);
       setCustomStyle(""); // Clear custom style when selecting predefined
-      onUpdate({ illustrationStyle: selectedStyle });
+      const selectedStyleData = ILLUSTRATION_STYLES.find(
+        (s) => s.id === selectedStyle
+      );
+      onUpdate({
+        illustrationStyle: selectedStyle,
+        illustrationAiDescription: selectedStyleData?.aiDescription || "",
+      });
     }
   };
 
@@ -103,7 +171,10 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     setCustomStyle(text);
     if (isCustomStyleSelected) {
       // Update the selection with the typed text
-      onUpdate({ illustrationStyle: text.trim() || "custom" });
+      onUpdate({
+        illustrationStyle: text.trim() || "custom",
+        illustrationAiDescription: text.trim(),
+      });
     }
   };
 

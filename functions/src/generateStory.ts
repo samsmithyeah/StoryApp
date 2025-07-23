@@ -271,7 +271,8 @@ Return the story in this JSON format:
         );
         const selectedCoverImageModel =
           data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
-        const coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
+        const illustrationStyleDescription = data.illustrationAiDescription || data.illustrationStyle;
+        const coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
 
         if (
           selectedCoverImageModel ===
