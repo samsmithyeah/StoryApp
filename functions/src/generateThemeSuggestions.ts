@@ -64,7 +64,7 @@ Each theme should be:
 - ONE WORD ONLY
 - Age-appropriate specifically for ${ageRange} year olds
 - Developmentally suitable (e.g., simpler concepts for younger kids, more complex for older)
-- Calming and suitable for bedtime
+- Not a "mood" but a distinct theme. The user will select a mood (ie. calm, scary, exciting) themself.
 - Engaging and fun for their age group
 - Thematically related to their interests but not identical
 - Completely different from the preset themes listed above

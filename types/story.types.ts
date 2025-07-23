@@ -16,6 +16,7 @@ export interface StoryConfiguration {
   theme: string;
   mood?: string;
   length: "short" | "medium" | "long";
+  shouldRhyme?: boolean;
   illustrationStyle: string;
   enableIllustrations?: boolean;
   imageProvider?: "flux" | "gemini";

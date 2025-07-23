@@ -19,7 +19,7 @@ import { ThemeSelection } from "./steps/ThemeSelection";
 import { StoryAbout } from "./steps/StoryAbout";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { MoodSelection } from "./steps/MoodSelection";
-import { LengthSelection } from "./steps/LengthSelection";
+import { StoryDetails } from "./steps/StoryDetails";
 import { IllustrationSelection } from "./steps/IllustrationSelection";
 
 const WIZARD_STEPS = [
@@ -50,6 +50,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
     length: "medium",
+    shouldRhyme: false,
     illustrationStyle: "watercolor",
     enableIllustrations: true,
     storyAbout: "",
@@ -191,8 +192,9 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         );
       case "length":
         return (
-          <LengthSelection
+          <StoryDetails
             length={wizardData.length || "medium"}
+            shouldRhyme={wizardData.shouldRhyme || false}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}

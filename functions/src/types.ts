@@ -10,6 +10,7 @@ export interface StoryGenerationRequest {
   theme: string;
   mood?: string;
   length: "short" | "medium" | "long";
+  shouldRhyme?: boolean;
   illustrationStyle: string;
   enableIllustrations: boolean;
   imageProvider?: "flux" | "gemini"; // Optional, defaults to flux for backward compatibility

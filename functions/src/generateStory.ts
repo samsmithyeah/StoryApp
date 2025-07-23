@@ -179,12 +179,13 @@ Requirements:
 2. Each page should be an appropriate length for a ${averageAge}-year-old.
 3. ${data.storyAbout ? `The story should incorporate the concept: ${data.storyAbout}` : "Feel free to create any engaging storyline within the theme."}
 4. ${data.mood ? `The story should have a ${data.mood} mood throughout.` : "Keep the mood appropriate for bedtime."}
-5. ${
+5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
+6. ${
         data.enableIllustrations
           ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}.`
           : "No image prompts needed."
       }
-6. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
+7. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {

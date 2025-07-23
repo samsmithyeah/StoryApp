@@ -5,6 +5,7 @@ import {
   Dimensions,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -44,16 +45,21 @@ const LENGTHS: Length[] = [
   },
 ];
 
-interface LengthSelectionProps {
+interface StoryDetailsProps {
   length: "short" | "medium" | "long";
-  onUpdate: (data: { length: "short" | "medium" | "long" }) => void;
+  shouldRhyme?: boolean;
+  onUpdate: (data: { 
+    length?: "short" | "medium" | "long";
+    shouldRhyme?: boolean;
+  }) => void;
   onNext: () => void;
   onBack: () => void;
   onCancel?: () => void;
 }
 
-export const LengthSelection: React.FC<LengthSelectionProps> = ({
+export const StoryDetails: React.FC<StoryDetailsProps> = ({
   length,
+  shouldRhyme = false,
   onUpdate,
   onNext,
   onBack,
@@ -63,11 +69,15 @@ export const LengthSelection: React.FC<LengthSelectionProps> = ({
     onUpdate({ length: selectedLength });
   };
 
+  const handleRhymeToggle = (value: boolean) => {
+    onUpdate({ shouldRhyme: value });
+  };
+
   return (
     <WizardContainer>
       <WizardStepHeader
-        title="Story length"
-        subtitle="How long would you like your story to be?"
+        title="Story details"
+        subtitle="Choose the length and style for your story"
         stepNumber={6}
         totalSteps={7}
         onBack={onBack}
@@ -79,6 +89,7 @@ export const LengthSelection: React.FC<LengthSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Story Length</Text>
           <View style={isTablet ? styles.lengthRow : styles.lengthColumn}>
             {LENGTHS.map((lengthOption) => {
               const isSelected = lengthOption.id === length;
@@ -126,6 +137,30 @@ export const LengthSelection: React.FC<LengthSelectionProps> = ({
             })}
           </View>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.toggleSection}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.sectionTitle}>Rhyming</Text>
+              <View style={styles.descriptionRow}>
+                <Text style={styles.toggleDescription}>
+                  Make the story rhyme like a poem or nursery rhyme
+                </Text>
+                <Switch
+                  value={shouldRhyme}
+                  onValueChange={handleRhymeToggle}
+                  trackColor={{
+                    false: "#374151",
+                    true: "rgba(212, 175, 55, 0.3)",
+                  }}
+                  thumbColor={
+                    shouldRhyme ? Colors.primary : Colors.textSecondary
+                  }
+                />
+              </View>
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       <WizardFooter onNext={onNext} />
@@ -141,6 +176,12 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
     paddingTop: 16,
+  },
+  sectionTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: "600",
+    color: Colors.primary,
+    marginBottom: 16,
   },
   lengthRow: {
     flexDirection: "row",
@@ -202,5 +243,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
     alignItems: "center",
     justifyContent: "center",
+  },
+  toggleSection: {
+    paddingVertical: 8,
+  },
+  toggleInfo: {
+    flex: 1,
+  },
+  descriptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  toggleDescription: {
+    fontSize: isTablet ? 16 : 14,
+    color: Colors.textSecondary,
+    flex: 1,
+    paddingRight: 16,
   },
 });
