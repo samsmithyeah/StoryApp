@@ -50,8 +50,7 @@ export const generateStory = onCall(
           child && child.id && data.selectedChildren.includes(child.id)
       );
 
-      const pageCount =
-        data.length === "short" ? 4 : data.length === "medium" ? 6 : 8;
+      const pageCount = data.pageCount;
 
       // Get audience info (for age-appropriate content)
       const ages = selectedChildrenData
@@ -179,22 +178,23 @@ Requirements:
 2. Each page should be an appropriate length for a ${averageAge}-year-old.
 3. ${data.storyAbout ? `The story should incorporate the concept: ${data.storyAbout}` : "Feel free to create any engaging storyline within the theme."}
 4. ${data.mood ? `The story should have a ${data.mood} mood throughout.` : "Keep the mood appropriate for bedtime."}
-5. ${
+5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
+6. ${
         data.enableIllustrations
-          ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}.`
+          ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
           : "No image prompts needed."
       }
-6. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
+7. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {
   "title": "Story Title",
-  "coverImagePrompt": "A detailed description for the book cover. It should describe the main characters' appearances (e.g., 'a brave knight with a shiny silver helmet and a blue cape, and a friendly dragon with green scales and a happy smile') in a simple scene.",
+  "coverImagePrompt": "A detailed description for the book cover. It should describe the main characters' appearances (e.g., 'a brave knight with a shiny silver helmet and a blue cape, and a friendly dragon with green scales and a happy smile stand at the top of a mountain. The dragon is wearing a blue scarf and has big, friendly eyes.')",
   "pages": [
     {
       "page": 1,
       "text": "Page text here",
-      "imagePrompt": "A visual description of the scene on this page, including characters and setting."
+      "imagePrompt": "A detailed visual description of the scene on this page, including characters, objects and setting."
     }
   ]
 }`;
@@ -270,7 +270,9 @@ Return the story in this JSON format:
         );
         const selectedCoverImageModel =
           data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
-        const coverPrompt = `${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 4:3 aspect ratio format.`;
+        const illustrationStyleDescription =
+          data.illustrationAiDescription || data.illustrationStyle;
+        const coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
 
         if (
           selectedCoverImageModel ===

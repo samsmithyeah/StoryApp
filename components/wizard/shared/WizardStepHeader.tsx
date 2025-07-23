@@ -1,12 +1,12 @@
+import { Colors, Typography } from "@/constants/Theme";
 import React from "react";
 import {
-  View,
+  Dimensions,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Dimensions,
+  View,
 } from "react-native";
-import { Colors } from "@/constants/Theme";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -37,10 +37,7 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
         </TouchableOpacity>
 
         <View style={styles.headerContent}>
-          <Text style={styles.brand}>DreamWeaver</Text>
-          <Text style={styles.stepIndicator}>
-            Step {stepNumber} of {totalSteps}
-          </Text>
+          <Text style={styles.headerTitle}>{title}</Text>
         </View>
 
         {onCancel && (
@@ -50,9 +47,15 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
         )}
       </View>
 
-      {/* Title */}
+      {/* Step indicator */}
+      <View style={styles.stepIndicatorSection}>
+        <Text style={styles.stepIndicator}>
+          Step {stepNumber} of {totalSteps}
+        </Text>
+      </View>
+
+      {/* Subtitle */}
       <View style={styles.titleSection}>
-        <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
     </>
@@ -61,15 +64,13 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 24,
     paddingTop: isTablet ? 60 : 10,
-    paddingBottom: 8,
   },
   backButton: {
-    position: "absolute",
-    top: isTablet ? 10 : -10,
-    left: 24,
     padding: 8,
   },
   backText: {
@@ -78,9 +79,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   cancelButton: {
-    position: "absolute",
-    top: isTablet ? 10 : -10,
-    right: 24,
     padding: 8,
   },
   cancelText: {
@@ -89,35 +87,33 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   headerContent: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  brand: {
-    fontSize: isTablet ? 48 : 32,
-    fontWeight: "600",
+  headerTitle: {
+    fontSize: isTablet ? Typography.fontSize.h1 : Typography.fontSize.h3,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
-    fontFamily: "PlayfairDisplay-Regular",
+    textAlign: "center",
+    fontFamily: Typography.fontFamily.primary,
+  },
+  stepIndicatorSection: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 4,
   },
   stepIndicator: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
-    marginTop: 2,
   },
   titleSection: {
     paddingHorizontal: 24,
     paddingVertical: 20,
     alignItems: "center",
   },
-  title: {
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "600",
-    color: Colors.primary,
-    marginBottom: 4,
-    textAlign: "center",
-    fontFamily: "PlayfairDisplay-Regular",
-  },
   subtitle: {
-    fontSize: isTablet ? 20 : 14,
+    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,

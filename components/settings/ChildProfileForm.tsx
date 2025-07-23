@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +14,9 @@ import { Child } from "../../types/child.types";
 import { Button } from "../ui/Button";
 import { DatePicker } from "../ui/DatePicker";
 import { Input } from "../ui/Input";
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 interface ChildProfileFormProps {
   child?: Child;
@@ -221,7 +225,12 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
           </View>
 
           <View style={styles.appearanceRow}>
-            <View style={styles.halfFieldContainer}>
+            <View
+              style={[
+                styles.halfFieldContainer,
+                !isTablet && styles.fullFieldContainer,
+              ]}
+            >
               <Input
                 label="Hair color"
                 placeholder="e.g., Brown, Black"
@@ -231,7 +240,22 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 optional
               />
             </View>
-            <View style={styles.halfFieldContainer}>
+            {isTablet && (
+              <View style={styles.halfFieldContainer}>
+                <Input
+                  label="Eye color"
+                  placeholder="e.g., Blue, Brown"
+                  value={eyeColor}
+                  onChangeText={setEyeColor}
+                  leftIcon="eye.fill"
+                  optional
+                />
+              </View>
+            )}
+          </View>
+
+          {!isTablet && (
+            <View style={styles.fieldContainer}>
               <Input
                 label="Eye color"
                 placeholder="e.g., Blue, Brown"
@@ -241,10 +265,15 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 optional
               />
             </View>
-          </View>
+          )}
 
           <View style={styles.appearanceRow}>
-            <View style={styles.halfFieldContainer}>
+            <View
+              style={[
+                styles.halfFieldContainer,
+                !isTablet && styles.fullFieldContainer,
+              ]}
+            >
               <Input
                 label="Skin color"
                 placeholder="e.g., Fair, Olive"
@@ -254,7 +283,22 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 optional
               />
             </View>
-            <View style={styles.halfFieldContainer}>
+            {isTablet && (
+              <View style={styles.halfFieldContainer}>
+                <Input
+                  label="Hair style"
+                  placeholder="e.g., Curly, Short"
+                  value={hairStyle}
+                  onChangeText={setHairStyle}
+                  leftIcon="scissors"
+                  optional
+                />
+              </View>
+            )}
+          </View>
+
+          {!isTablet && (
+            <View style={styles.fieldContainer}>
               <Input
                 label="Hair style"
                 placeholder="e.g., Curly, Short"
@@ -264,7 +308,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 optional
               />
             </View>
-          </View>
+          )}
 
           <View style={styles.fieldContainer}>
             <Input
@@ -322,7 +366,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.screenPadding,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   header: {
     marginBottom: Spacing.xxxl,
@@ -383,6 +427,10 @@ const styles = StyleSheet.create({
   },
   halfFieldContainer: {
     flex: 1,
+  },
+  fullFieldContainer: {
+    flex: 1,
+    marginRight: 0,
   },
   textAreaInput: {
     minHeight: 80,

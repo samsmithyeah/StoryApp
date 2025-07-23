@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { getAuthenticatedUrl } from "../services/firebase/storage";
+import { imageCache } from "../services/imageCache";
 
-// Cache for download URLs to avoid repeated calls
+// Cache for download URLs to avoid repeated calls (fallback for non-cached images)
 const urlCache = new Map<string, string>();
 
 /**
- * Hook to get an authenticated download URL for a Firebase Storage path
+ * Hook to get a cached local URL or authenticated download URL for a Firebase Storage path
  * @param storagePath - The storage path from Firestore
- * @returns The authenticated download URL or null
+ * @param useLocalCache - Whether to use local file caching (default: true)
+ * @returns The local cached URL or authenticated download URL
  */
 export function useStorageUrl(
-  storagePath: string | null | undefined
+  storagePath: string | null | undefined,
+  useLocalCache: boolean = true
 ): string | null {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,53 +25,69 @@ export function useStorageUrl(
       return;
     }
 
-    // Check cache first
-    const cached = urlCache.get(storagePath);
-    if (cached) {
-      setUrl(cached);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch the authenticated URL
     let cancelled = false;
 
-    getAuthenticatedUrl(storagePath)
-      .then((downloadUrl) => {
+    const loadImage = async () => {
+      try {
+        if (useLocalCache) {
+          // Try to get from local cache first
+          const cachedUrl = await imageCache.getImageUrl(storagePath);
+          if (!cancelled && cachedUrl) {
+            setUrl(cachedUrl);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Fallback to memory cache and direct URL
+        const cached = urlCache.get(storagePath);
+        if (cached) {
+          if (!cancelled) {
+            setUrl(cached);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Fetch the authenticated URL as final fallback
+        const downloadUrl = await getAuthenticatedUrl(storagePath);
         if (!cancelled && downloadUrl) {
           urlCache.set(storagePath, downloadUrl);
           setUrl(downloadUrl);
         } else if (!cancelled) {
           setUrl(null);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error in useStorageUrl:", error);
         if (!cancelled) {
           setUrl(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    loadImage();
 
     return () => {
       cancelled = true;
     };
-  }, [storagePath]);
+  }, [storagePath, useLocalCache]);
 
   return url;
 }
 
 /**
- * Hook to get multiple authenticated download URLs
+ * Hook to get multiple cached local URLs or authenticated download URLs
  * @param storagePaths - Array of storage paths
- * @returns Array of authenticated download URLs
+ * @param useLocalCache - Whether to use local file caching (default: true)
+ * @returns Array of local cached URLs or authenticated download URLs
  */
 export function useStorageUrls(
-  storagePaths: (string | null | undefined)[]
+  storagePaths: (string | null | undefined)[],
+  useLocalCache: boolean = true
 ): (string | null)[] {
   const [urls, setUrls] = useState<(string | null)[]>([]);
 
@@ -80,36 +99,46 @@ export function useStorageUrls(
 
     let cancelled = false;
 
-    Promise.all(
-      storagePaths.map((path) => {
-        if (!path) return Promise.resolve(null);
+    const loadImages = async () => {
+      try {
+        const results = await Promise.all(
+          storagePaths.map(async (path) => {
+            if (!path) return null;
 
-        // Check cache first
-        const cached = urlCache.get(path);
-        if (cached) return Promise.resolve(cached);
+            if (useLocalCache) {
+              // Try to get from local cache first
+              const cachedUrl = await imageCache.getImageUrl(path);
+              if (cachedUrl) return cachedUrl;
+            }
 
-        return getAuthenticatedUrl(path).then((url) => {
-          if (url) urlCache.set(path, url);
-          return url;
-        });
-      })
-    )
-      .then((results) => {
+            // Fallback to memory cache
+            const cached = urlCache.get(path);
+            if (cached) return cached;
+
+            // Fetch the authenticated URL as final fallback
+            const url = await getAuthenticatedUrl(path);
+            if (url) urlCache.set(path, url);
+            return url;
+          })
+        );
+
         if (!cancelled) {
           setUrls(results);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error in useStorageUrls:", error);
         if (!cancelled) {
           setUrls(storagePaths.map(() => null));
         }
-      });
+      }
+    };
+
+    loadImages();
 
     return () => {
       cancelled = true;
     };
-  }, [JSON.stringify(storagePaths)]);
+  }, [JSON.stringify(storagePaths), useLocalCache]);
 
   return urls;
 }

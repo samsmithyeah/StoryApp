@@ -1,8 +1,7 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Button } from "../../ui/Button";
 import { Spacing } from "../../../constants/Theme";
+import { Button } from "../../ui/Button";
 
 interface WizardFooterProps {
   onNext: () => void;
@@ -15,10 +14,8 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   nextDisabled = false,
   nextText = "Next",
 }) => {
-  const tabBarHeight = useBottomTabBarHeight();
-
   return (
-    <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
+    <View style={[styles.footer]}>
       <Button
         title={nextText}
         onPress={onNext}
@@ -34,5 +31,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
 });

@@ -66,6 +66,18 @@ const MOOD_OPTIONS: MoodOption[] = [
     description: "Heartwarming and touching moments",
     icon: "heart.fill",
   },
+  {
+    id: "interesting",
+    title: "Interesting",
+    description: "Intriguing and thought-provoking",
+    icon: "book.fill",
+  },
+  {
+    id: "adsurd",
+    title: "Absurd",
+    description: "Bizarre and nonsensical fun",
+    icon: "gamecontroller.fill",
+  },
 ];
 
 interface MoodSelectionProps {
@@ -120,7 +132,7 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
         title="Set the mood"
         subtitle="What feeling should the story have?"
         stepNumber={3}
-        totalSteps={6}
+        totalSteps={7}
         onBack={onBack}
         onCancel={onCancel}
       />

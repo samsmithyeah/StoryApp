@@ -70,7 +70,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
             title="What's the story about?"
             subtitle="You can be as vague or specific as you like"
             stepNumber={5}
-            totalSteps={6}
+            totalSteps={7}
             onBack={onBack}
             onCancel={onCancel}
           />

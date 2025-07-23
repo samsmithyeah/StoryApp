@@ -90,13 +90,13 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign out", "Are you sure you want to sign out?", [
       {
         text: "Cancel",
         style: "cancel",
       },
       {
-        text: "Sign Out",
+        text: "Sign out",
         style: "destructive",
         onPress: signOut,
       },
@@ -215,7 +215,9 @@ export default function SettingsScreen() {
             )}
 
             <Button
-              title="Add another child"
+              title={
+                children.length === 0 ? "Add a child" : "Add another child"
+              }
               onPress={handleAddChild}
               leftIcon="plus"
               variant="outline"

@@ -15,8 +15,10 @@ export interface StoryConfiguration {
   selectedChildren: string[];
   theme: string;
   mood?: string;
-  length: "short" | "medium" | "long";
+  pageCount: number;
+  shouldRhyme?: boolean;
   illustrationStyle: string;
+  illustrationAiDescription?: string;
   enableIllustrations?: boolean;
   imageProvider?: "flux" | "gemini";
   textModel?: "gpt-4o" | "gemini-2.5-pro";

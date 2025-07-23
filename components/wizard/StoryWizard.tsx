@@ -14,12 +14,13 @@ import {
   View,
 } from "react-native";
 import { ChildSelection } from "./steps/ChildSelection";
-import { CustomizationStep } from "./steps/CustomizationStep";
 import { GenerationStep } from "./steps/GenerationStep";
 import { ThemeSelection } from "./steps/ThemeSelection";
 import { StoryAbout } from "./steps/StoryAbout";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { MoodSelection } from "./steps/MoodSelection";
+import { StoryDetails } from "./steps/StoryDetails";
+import { IllustrationSelection } from "./steps/IllustrationSelection";
 
 const WIZARD_STEPS = [
   "child",
@@ -27,7 +28,8 @@ const WIZARD_STEPS = [
   "mood",
   "characters",
   "about",
-  "customization",
+  "length",
+  "illustrations",
   "generation",
 ] as const;
 
@@ -47,8 +49,11 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
-    length: "medium",
-    illustrationStyle: "watercolor",
+    pageCount: 5,
+    shouldRhyme: false,
+    illustrationStyle: "loose-ink-wash",
+    illustrationAiDescription:
+      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
     enableIllustrations: true,
     storyAbout: "",
     characters: [],
@@ -129,7 +134,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       data.selectedChildren &&
       data.selectedChildren.length > 0 &&
       data.theme &&
-      data.length &&
+      data.pageCount &&
       data.illustrationStyle
     );
   };
@@ -187,11 +192,21 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onCancel={onCancel}
           />
         );
-      case "customization":
+      case "length":
         return (
-          <CustomizationStep
-            length={wizardData.length || "medium"}
-            illustrationStyle={wizardData.illustrationStyle || "watercolor"}
+          <StoryDetails
+            pageCount={wizardData.pageCount || 5}
+            shouldRhyme={wizardData.shouldRhyme || false}
+            onUpdate={(data) => updateWizardData(data)}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onCancel={onCancel}
+          />
+        );
+      case "illustrations":
+        return (
+          <IllustrationSelection
+            illustrationStyle={wizardData.illustrationStyle || "loose-ink-wash"}
             enableIllustrations={wizardData.enableIllustrations}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

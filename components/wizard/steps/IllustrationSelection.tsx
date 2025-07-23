@@ -1,4 +1,3 @@
-import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Theme";
 import React, { useState } from "react";
 import {
@@ -18,75 +17,103 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-interface Length {
-  id: "short" | "medium" | "long";
-  name: string;
-  description: string;
-  pages: string;
-}
-
 interface IllustrationStyle {
   id: string;
   name: string;
   description: string;
+  aiDescription: string;
 }
 
-const LENGTHS: Length[] = [
-  {
-    id: "short",
-    name: "Short",
-    description: "Quick bedtime story",
-    pages: "3-4 pages",
-  },
-  {
-    id: "medium",
-    name: "Medium",
-    description: "Perfect for most nights",
-    pages: "5-6 pages",
-  },
-  {
-    id: "long",
-    name: "Long",
-    description: "Extended adventure",
-    pages: "7-8 pages",
-  },
-];
-
 const ILLUSTRATION_STYLES: IllustrationStyle[] = [
+  // Quentin Blake
   {
-    id: "watercolor",
-    name: "Watercolor",
-    description: "Soft, dreamy paintings",
+    id: "loose-ink-wash",
+    name: "Splashy Ink & Paint",
+    description: "Scratchy pen lines with energetic watercolor splashes",
+    aiDescription:
+      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
   },
+  // Axel Scheffler
   {
-    id: "cartoon",
-    name: "Cartoon",
-    description: "Playful, colorful drawings",
+    id: "bold-outline-flat-color",
+    name: "Big Bold Lines",
+    description: "Thick black lines, bright flats, friendly character shapes",
+    aiDescription:
+      "Confident, uniform black outlines around chunky, friendly characters; bright flat fills, minimal shading. Clean European storybook vibe from the late ’90s/early 2000s where a certain woodland monster might lurk.",
   },
+  // Anthony Browne
   {
-    id: "realistic",
-    name: "Realistic",
-    description: "Detailed, lifelike art",
+    id: "surreal-painterly-realism",
+    name: "Dreamy Realism",
+    description: "Detailed realism with odd, dreamlike twists",
+    aiDescription:
+      "Smooth, carefully modeled realism with soft gradients and theatrical lighting, yet peppered with subtle surreal clues—hidden faces, bananas, warped scale. Feels like psychologically rich 1980s UK picture books.",
   },
+  // Maurice Sendak
   {
-    id: "minimalist",
-    name: "Minimalist",
-    description: "Simple, clean designs",
+    id: "classic-crosshatch-storybook",
+    name: "Vintage Storybook",
+    description: "Fine pen shading, muted palettes, vintage picture-book feel",
+    aiDescription:
+      "Fine pen-and-ink crosshatching, stippling, and muted watercolor washes. Cozy-but-wild mid-century American picture-book mood, where a rumpus could break out any minute.",
+  },
+  // Beatrix Potter
+  {
+    id: "delicate-botanical-watercolour",
+    name: "Gentle Watercolours",
+    description:
+      "Soft washes, naturalistic animals and plants, gentle nostalgia",
+    aiDescription:
+      "Pastel watercolour washes and precise naturalist drawing of small countryside creatures and flora. Early 1900s English cottage-garden gentleness, porcelain-teacup delicate.",
+  },
+  // Dr. Seuss
+  {
+    id: "wonky-rhythmic-whimsy",
+    name: "Wiggly Whimsy",
+    description: "Curvy, off-kilter shapes and playful chaos",
+    aiDescription:
+      "Elastic, curvilinear architecture, striped patterns. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
+  },
+  // Oliver Jeffers
+  {
+    id: "naive-textured-brushwork",
+    name: "Scribbly Paint & Pencil",
+    description: "Childlike marks, visible brush texture, handwritten notes",
+    aiDescription:
+      "Intentionally wobbly linework with visible brush and pencil texture, hand-lettered notes, and roomy negative space. Contemporary Irish/American picture-book feel—simple shapes but big heart.",
+  },
+  // Jon Klassen
+  {
+    id: "deadpan-minimal-graphic",
+    name: "Quiet & Simple",
+    description:
+      "Muted earth tones, simple shapes, tiny eyes & big negative space",
+    aiDescription:
+      "Flat, graphic shapes in hushed earth tones, subtle paper textures, and lots of negative space. Characters with dot eyes and bone-dry humor—modern North American deadpan minimalism.",
+  },
+  // E. H. Shepard
+  {
+    id: "fine-ink-soft-wash",
+    name: "Fine Ink & Tint",
+    description: "Precise pen contours, light watercolour tints, gentle charm",
+    aiDescription:
+      "Elegant, controlled pen contours with light transparent washes, capturing gentle motion. Early 20th-century English nursery classic energy—tea-stained nostalgia and soft woodland rambles.",
   },
   {
     id: "custom",
     name: "Custom",
     description: "Create your own unique illustration style",
+    aiDescription:
+      "User-defined: describe medium, line quality, palette, texture, composition, motifs, era, and mood in detail.",
   },
 ];
 
-interface CustomizationStepProps {
-  length: "short" | "medium" | "long";
+interface IllustrationSelectionProps {
   illustrationStyle: string;
   enableIllustrations?: boolean;
   onUpdate: (data: {
-    length?: "short" | "medium" | "long";
     illustrationStyle?: string;
+    illustrationAiDescription?: string;
     enableIllustrations?: boolean;
   }) => void;
   onNext: () => void;
@@ -94,8 +121,7 @@ interface CustomizationStepProps {
   onCancel?: () => void;
 }
 
-export const CustomizationStep: React.FC<CustomizationStepProps> = ({
-  length,
+export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
   illustrationStyle,
   enableIllustrations = true,
   onUpdate,
@@ -115,19 +141,24 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
     isCurrentStyleCustom || illustrationStyle === "custom"
   );
 
-  const handleLengthSelect = (selectedLength: "short" | "medium" | "long") => {
-    onUpdate({ length: selectedLength });
-  };
-
   const handleStyleSelect = (selectedStyle: string) => {
     if (selectedStyle === "custom") {
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
-      onUpdate({ illustrationStyle: customStyle.trim() || "custom" });
+      onUpdate({
+        illustrationStyle: customStyle.trim() || "custom",
+        illustrationAiDescription: customStyle.trim(),
+      });
     } else {
       setIsCustomStyleSelected(false);
       setCustomStyle(""); // Clear custom style when selecting predefined
-      onUpdate({ illustrationStyle: selectedStyle });
+      const selectedStyleData = ILLUSTRATION_STYLES.find(
+        (s) => s.id === selectedStyle
+      );
+      onUpdate({
+        illustrationStyle: selectedStyle,
+        illustrationAiDescription: selectedStyleData?.aiDescription || "",
+      });
     }
   };
 
@@ -139,17 +170,20 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
     setCustomStyle(text);
     if (isCustomStyleSelected) {
       // Update the selection with the typed text
-      onUpdate({ illustrationStyle: text.trim() || "custom" });
+      onUpdate({
+        illustrationStyle: text.trim() || "custom",
+        illustrationAiDescription: text.trim(),
+      });
     }
   };
 
   return (
     <WizardContainer>
       <WizardStepHeader
-        title="Customise story"
-        subtitle="Choose the perfect length and illustration style"
-        stepNumber={6}
-        totalSteps={6}
+        title="Illustrations"
+        subtitle="Choose the perfect illustration style for your story"
+        stepNumber={7}
+        totalSteps={7}
         onBack={onBack}
         onCancel={onCancel}
       />
@@ -159,59 +193,9 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Story Length</Text>
-          <View style={isTablet ? styles.lengthRow : styles.lengthColumn}>
-            {LENGTHS.map((lengthOption) => {
-              const isSelected = lengthOption.id === length;
-
-              return (
-                <TouchableOpacity
-                  key={lengthOption.id}
-                  style={[
-                    isTablet ? styles.lengthCardTablet : styles.lengthCard,
-                    isSelected && styles.selectedCard,
-                  ]}
-                  onPress={() => handleLengthSelect(lengthOption.id)}
-                >
-                  <Text
-                    style={[
-                      styles.lengthName,
-                      isSelected && styles.selectedText,
-                    ]}
-                  >
-                    {lengthOption.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.lengthDescription,
-                      isSelected && styles.selectedDescription,
-                    ]}
-                  >
-                    {lengthOption.description}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.lengthPages,
-                      isSelected && styles.selectedText,
-                    ]}
-                  >
-                    {lengthOption.pages}
-                  </Text>
-                  {isSelected && (
-                    <View style={styles.selectedIndicator}>
-                      <IconSymbol name="checkmark" size={16} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.section}>
           <View style={styles.toggleSection}>
             <View style={styles.toggleInfo}>
-              <Text style={styles.sectionTitle}>Illustrations</Text>
+              <Text style={styles.sectionTitle}>Add illustrations</Text>
               <View style={styles.descriptionRow}>
                 <Text style={styles.toggleDescription}>
                   Add beautiful AI-generated illustrations to your story
@@ -306,7 +290,6 @@ export const CustomizationStep: React.FC<CustomizationStepProps> = ({
         </View>
       </ScrollView>
 
-      {/* Footer */}
       <WizardFooter onNext={onNext} nextText="Create story" />
     </WizardContainer>
   );
@@ -319,56 +302,13 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+    paddingTop: 16,
   },
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "600",
     color: Colors.primary,
-    marginBottom: 16,
-  },
-  lengthRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  lengthColumn: {
-    gap: 12,
-  },
-  lengthCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative",
-  },
-  lengthCardTablet: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative",
-  },
-  selectedCard: {
-    backgroundColor: "rgba(212, 175, 55, 0.2)",
-    borderColor: Colors.primary,
-  },
-  lengthName: {
-    fontSize: isTablet ? 18 : 16,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  lengthDescription: {
-    fontSize: isTablet ? 16 : 14,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  lengthPages: {
-    fontSize: isTablet ? 14 : 12,
-    fontWeight: "500",
-    color: Colors.textSecondary,
+    marginBottom: 8,
   },
   stylesList: {
     gap: 12,
@@ -399,6 +339,10 @@ const styles = StyleSheet.create({
     width: "48%",
     marginHorizontal: 6,
   },
+  selectedCard: {
+    backgroundColor: "rgba(212, 175, 55, 0.2)",
+    borderColor: Colors.primary,
+  },
   styleInfo: {
     flex: 1,
   },
@@ -419,17 +363,6 @@ const styles = StyleSheet.create({
   selectedDescription: {
     color: Colors.primary,
   },
-  selectedIndicator: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#10B981",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   checkmark: {
     width: 24,
     height: 24,
@@ -444,25 +377,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-  infoSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 32,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-  },
-  infoText: {
-    flex: 1,
-    fontSize: isTablet ? 16 : 14,
-    color: Colors.primary,
-    lineHeight: 20,
-  },
   toggleSection: {
-    marginBottom: 16,
+    marginBottom: 24,
     paddingVertical: 8,
   },
   toggleInfo: {
