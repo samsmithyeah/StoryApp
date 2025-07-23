@@ -14,12 +14,13 @@ import {
   View,
 } from "react-native";
 import { ChildSelection } from "./steps/ChildSelection";
-import { CustomizationStep } from "./steps/CustomizationStep";
 import { GenerationStep } from "./steps/GenerationStep";
 import { ThemeSelection } from "./steps/ThemeSelection";
 import { StoryAbout } from "./steps/StoryAbout";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { MoodSelection } from "./steps/MoodSelection";
+import { LengthSelection } from "./steps/LengthSelection";
+import { IllustrationSelection } from "./steps/IllustrationSelection";
 
 const WIZARD_STEPS = [
   "child",
@@ -27,7 +28,8 @@ const WIZARD_STEPS = [
   "mood",
   "characters",
   "about",
-  "customization",
+  "length",
+  "illustrations",
   "generation",
 ] as const;
 
@@ -187,10 +189,19 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onCancel={onCancel}
           />
         );
-      case "customization":
+      case "length":
         return (
-          <CustomizationStep
+          <LengthSelection
             length={wizardData.length || "medium"}
+            onUpdate={(data) => updateWizardData(data)}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onCancel={onCancel}
+          />
+        );
+      case "illustrations":
+        return (
+          <IllustrationSelection
             illustrationStyle={wizardData.illustrationStyle || "watercolor"}
             enableIllustrations={wizardData.enableIllustrations}
             onUpdate={(data) => updateWizardData(data)}

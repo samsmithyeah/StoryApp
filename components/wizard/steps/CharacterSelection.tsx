@@ -118,7 +118,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
           title="Who are the characters?"
           subtitle="Select from saved children or add custom characters"
           stepNumber={4}
-          totalSteps={6}
+          totalSteps={7}
           onBack={onBack}
           onCancel={onCancel}
         />

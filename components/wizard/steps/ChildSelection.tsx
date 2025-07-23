@@ -1,8 +1,6 @@
+import { Colors } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { Child } from "@/types/child.types";
-import { Colors } from "@/constants/Theme";
-import { WizardFooter } from "../shared/WizardFooter";
-import { WizardStepHeader } from "../shared/WizardStepHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
@@ -15,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { WizardFooter } from "../shared/WizardFooter";
+import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 interface ChildSelectionProps {
   selectedChildren: string[];
@@ -69,7 +69,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           title="Who's the story for?"
           subtitle="Select one or more children"
           stepNumber={1}
-          totalSteps={5}
+          totalSteps={7}
           onBack={() => {}}
           onCancel={onCancel}
         />

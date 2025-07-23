@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import {
+  ChildInfo,
   generateThemeSuggestions,
   ThemeSuggestion,
-  ChildInfo,
 } from "@/services/firebase/stories";
 import React, { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -192,10 +192,10 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   return (
     <WizardContainer>
       <WizardStepHeader
-        title="Choose theme"
+        title="Choose a theme"
         subtitle="What kind of story shall we create?"
         stepNumber={2}
-        totalSteps={5}
+        totalSteps={7}
         onBack={onBack}
         onCancel={onCancel}
       />

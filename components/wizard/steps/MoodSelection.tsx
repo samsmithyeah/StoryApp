@@ -120,7 +120,7 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
         title="Set the mood"
         subtitle="What feeling should the story have?"
         stepNumber={3}
-        totalSteps={6}
+        totalSteps={7}
         onBack={onBack}
         onCancel={onCancel}
       />
