@@ -46,7 +46,8 @@ export class GeminiClient {
   async generateText(
     systemPrompt: string,
     userPrompt: string,
-    temperature: number = 0.9
+    temperature: number = 0.9,
+    thinkingBudget?: number
   ): Promise<string> {
     console.log(
       `[GeminiClient] Generating text with prompt: ${userPrompt.substring(0, 100)}...`
@@ -72,6 +73,11 @@ export class GeminiClient {
       },
       generationConfig: {
         temperature,
+        ...(thinkingBudget !== undefined && {
+          thinking_config: {
+            thinking_budget: thinkingBudget,
+          },
+        }),
       },
     };
 

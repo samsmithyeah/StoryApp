@@ -71,6 +71,7 @@ export const generateStory = onCall(
 
       // 3. Generate story text and prompts using selected model
       const selectedTextModel = data.textModel || "gpt-4o";
+      const temperature = data.temperature ?? 0.9; // Use user preference or default
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       // Build character info from character selection screen
@@ -209,7 +210,7 @@ Return the story in this JSON format:
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
-            temperature: 0.9,
+            temperature,
             response_format: { type: "json_object" },
           })
         );
@@ -223,7 +224,8 @@ Return the story in this JSON format:
             systemPrompt,
             userPrompt +
               "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
-            0.9
+            temperature,
+            data.geminiThinkingBudget
           )
         );
 

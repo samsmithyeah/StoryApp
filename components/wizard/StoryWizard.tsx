@@ -98,6 +98,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         textModel: preferences.textModel,
         coverImageModel: preferences.coverImageModel,
         imageProvider: preferences.pageImageModel,
+        temperature: preferences.temperature,
+        geminiThinkingBudget: preferences.geminiThinkingBudget,
       } as StoryGenerationRequest;
 
       const result = await generateStory(generationRequest);

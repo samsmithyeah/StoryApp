@@ -28,6 +28,8 @@ export interface StoryConfiguration {
   storyId?: string;
   storyAbout?: string;
   characters?: StoryCharacter[];
+  temperature?: number;
+  geminiThinkingBudget?: number;
 }
 
 export interface Story {

@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -281,6 +282,139 @@ export default function SettingsScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
+                </View>
+
+                {preferences.textModel === "gemini-2.5-pro" && (
+                  <View style={styles.settingItem}>
+                    <Text style={styles.settingLabel}>
+                      Gemini Thinking Budget
+                    </Text>
+                    <Text style={styles.settingDescription}>
+                      Control how much reasoning the model applies to complex tasks
+                    </Text>
+                    <View style={styles.modelOptions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.geminiThinkingBudget === -1 &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ geminiThinkingBudget: -1 })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.geminiThinkingBudget === -1 &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          Dynamic
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.geminiThinkingBudget === 128 &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ geminiThinkingBudget: 128 })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.geminiThinkingBudget === 128 &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          Minimal (128)
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.geminiThinkingBudget === 1024 &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ geminiThinkingBudget: 1024 })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.geminiThinkingBudget === 1024 &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          Low (1024)
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.geminiThinkingBudget === 4096 &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ geminiThinkingBudget: 4096 })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.geminiThinkingBudget === 4096 &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          Medium (4096)
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.geminiThinkingBudget === 16384 &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ geminiThinkingBudget: 16384 })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.geminiThinkingBudget === 16384 &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          High (16384)
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.settingItem}>
+                  <Text style={styles.settingLabel}>Temperature</Text>
+                  <Text style={styles.settingDescription}>
+                    Controls creativity and randomness (0.1 - 2.0)
+                  </Text>
+                  <TextInput
+                    style={styles.temperatureInput}
+                    value={preferences.temperature.toString()}
+                    onChangeText={(text) => {
+                      const value = parseFloat(text);
+                      if (!isNaN(value) && value >= 0.1 && value <= 2.0) {
+                        updatePreferences({ temperature: value });
+                      }
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="0.9"
+                    placeholderTextColor={Colors.textSecondary}
+                  />
                 </View>
 
                 <View style={styles.settingItem}>
@@ -640,6 +774,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
+  settingDescription: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
   modelOptions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -664,5 +803,17 @@ const styles = StyleSheet.create({
   selectedModelOptionText: {
     color: Colors.primary,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  temperatureInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    marginTop: Spacing.sm,
+    maxWidth: 120,
   },
 });

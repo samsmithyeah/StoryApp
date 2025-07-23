@@ -17,12 +17,17 @@ export interface UserPreferences {
     | "dall-e-3"
     | "gpt-image-1";
   pageImageModel: "flux" | "gemini";
+  // Model generation settings
+  temperature: number; // 0.0 to 2.0, controls randomness/creativity
+  geminiThinkingBudget: number; // -1 for dynamic, 128-32768 for fixed budget
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   textModel: "gemini-2.5-pro",
   coverImageModel: "gpt-image-1",
   pageImageModel: "gemini",
+  temperature: 0.9, // Balanced creativity for storytelling
+  geminiThinkingBudget: -1, // Dynamic thinking by default
 };
 
 export const useUserPreferences = () => {

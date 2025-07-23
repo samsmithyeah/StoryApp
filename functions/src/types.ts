@@ -20,6 +20,8 @@ export interface StoryGenerationRequest {
     | "gpt-image-1";
   storyAbout?: string;
   characters?: StoryCharacter[];
+  temperature?: number; // 0.0 to 2.0, controls randomness/creativity
+  geminiThinkingBudget?: number; // -1 for dynamic, 128-32768 for fixed budget
 }
 
 export interface StoryPage {
