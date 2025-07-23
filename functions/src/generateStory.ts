@@ -6,7 +6,7 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 import { StoryGenerationRequest, StoryPage } from "./types";
-import { fluxApiKey, getFluxClient } from "./utils/flux";
+import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
@@ -69,8 +69,9 @@ export const generateStory = onCall(
             )
           : 5;
 
-      // 3. Generate story text and prompts from OpenAI
-      const openai = getOpenAIClient();
+      // 3. Generate story text and prompts using selected model
+      const selectedTextModel = data.textModel || "gpt-4o";
+      const temperature = data.temperature ?? 0.9; // Use user preference or default
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       // Build character info from character selection screen
@@ -198,20 +199,52 @@ Return the story in this JSON format:
   ]
 }`;
 
-      const chatResponse = await retryWithBackoff(() =>
-        openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.9,
-          response_format: { type: "json_object" },
-        })
-      );
-      const storyContent = JSON.parse(
-        chatResponse.choices[0].message.content || "{}"
-      );
+      let storyContent: any;
+
+      if (selectedTextModel === "gpt-4o") {
+        const openai = getOpenAIClient();
+        const chatResponse = await retryWithBackoff(() =>
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            temperature,
+            response_format: { type: "json_object" },
+          })
+        );
+        storyContent = JSON.parse(
+          chatResponse.choices[0].message.content || "{}"
+        );
+      } else if (selectedTextModel === "gemini-2.5-pro") {
+        const geminiClient = getGeminiClient();
+        const geminiResponse = await retryWithBackoff(() =>
+          geminiClient.generateText(
+            systemPrompt,
+            userPrompt +
+              "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
+            temperature,
+            data.geminiThinkingBudget
+          )
+        );
+
+        // Clean the response to extract JSON
+        let jsonText = geminiResponse;
+        if (jsonText.includes("```json")) {
+          const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            jsonText = jsonMatch[1];
+          }
+        }
+
+        try {
+          storyContent = JSON.parse(jsonText.trim());
+        } catch (error) {
+          console.error("Failed to parse Gemini response as JSON:", jsonText);
+          throw new HttpsError("internal", "Invalid JSON response from Gemini");
+        }
+      }
       if (
         !storyContent.title ||
         !storyContent.pages ||
@@ -235,23 +268,45 @@ Return the story in this JSON format:
         console.log(
           `[Orchestrator] Generating cover image for final storyId: ${storyId}`
         );
-        const imageProvider = data.imageProvider || "flux";
+        const selectedCoverImageModel =
+          data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
         const coverPrompt = `${storyContent.coverImagePrompt}. Style: ${data.illustrationStyle}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 4:3 aspect ratio format.`;
 
-        if (imageProvider === "flux") {
-          const fluxClient = getFluxClient();
-          coverImageUrlForWorkers = await retryWithBackoff(() =>
-            fluxClient.generateImageWithPolling({
-              prompt: coverPrompt,
-              aspect_ratio: "4:3",
-            })
-          );
-        } else {
-          // Gemini
+        if (
+          selectedCoverImageModel ===
+          "gemini-2.0-flash-preview-image-generation"
+        ) {
           const geminiClient = getGeminiClient();
           coverImageUrlForWorkers = await retryWithBackoff(() =>
             geminiClient.generateImage(coverPrompt)
           );
+        } else if (
+          selectedCoverImageModel === "dall-e-3" ||
+          selectedCoverImageModel === "gpt-image-1"
+        ) {
+          const openai = getOpenAIClient();
+          const dalleResponse = await retryWithBackoff(() =>
+            openai.images.generate({
+              model: selectedCoverImageModel,
+              prompt: coverPrompt,
+              size: "1024x1024",
+              quality: "medium",
+              n: 1,
+              // Use base64 for both models for consistency
+              ...(selectedCoverImageModel === "dall-e-3" && {
+                response_format: "b64_json",
+              }),
+            })
+          );
+
+          // Both models now return base64 for consistency
+          const imageData = dalleResponse.data?.[0];
+          if (!imageData?.b64_json) {
+            throw new Error("No base64 image data returned from OpenAI");
+          }
+
+          // Convert base64 to data URL for both models
+          coverImageUrlForWorkers = `data:image/png;base64,${imageData.b64_json}`;
         }
 
         console.log(
@@ -326,12 +381,54 @@ Return the story in this JSON format:
       return { success: true, storyId };
     } catch (error: any) {
       console.error("Error in generateStory orchestrator:", error);
+
+      // If it's already an HttpsError, just re-throw it
       if (error instanceof HttpsError) {
         throw error;
       }
+
+      // Handle specific OpenAI API errors
+      if (error.name === "BadRequestError" || error.status === 400) {
+        if (error.message && error.message.includes("safety system")) {
+          throw new HttpsError(
+            "invalid-argument",
+            "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright."
+          );
+        }
+      }
+
+      // Handle rate limiting
+      if (error.status === 429) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "The AI service is currently busy. Please try again in a few minutes."
+        );
+      }
+
+      // Handle authentication errors
+      if (error.status === 401 || error.status === 403) {
+        throw new HttpsError(
+          "permission-denied",
+          "There was an issue with the AI service. Please try again later."
+        );
+      }
+
+      // Handle network/timeout errors
+      if (
+        error.code === "ECONNRESET" ||
+        error.code === "ETIMEDOUT" ||
+        error.message?.includes("timeout")
+      ) {
+        throw new HttpsError(
+          "deadline-exceeded",
+          "The story generation is taking longer than expected. Please try again."
+        );
+      }
+
+      // Generic fallback error
       throw new HttpsError(
         "internal",
-        `Failed to generate story: ${error.message || "Unknown error"}`
+        "We're having trouble generating your story right now. Please try again in a few moments."
       );
     }
   }
