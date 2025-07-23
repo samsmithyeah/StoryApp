@@ -24,7 +24,7 @@ export interface UserPreferences {
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   textModel: "gemini-2.5-pro",
-  coverImageModel: "gpt-image-1", 
+  coverImageModel: "gpt-image-1",
   pageImageModel: "gemini",
   temperature: 0.9,
   geminiThinkingBudget: -1, // Dynamic thinking
