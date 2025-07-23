@@ -48,6 +48,9 @@ export default function SettingsScreen() {
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
+  // Only show advanced settings for developer
+  const isDeveloper = user?.uid === "s772Li2Zb1QzfZc1YASX9LoJACC2";
+
   const handleAddChild = () => {
     setEditingChild(null);
     setShowForm(true);
@@ -220,25 +223,26 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => setShowAdvancedSettings(!showAdvancedSettings)}
-            >
-              <View>
-                <Text style={styles.sectionTitle}>Advanced Settings</Text>
-                <Text style={styles.sectionDescription}>
-                  Configure AI model preferences
-                </Text>
-              </View>
-              <IconSymbol
-                name={showAdvancedSettings ? "chevron.up" : "chevron.down"}
-                size={20}
-                color={Colors.textSecondary}
-              />
-            </TouchableOpacity>
+          {isDeveloper && (
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.sectionHeader}
+                onPress={() => setShowAdvancedSettings(!showAdvancedSettings)}
+              >
+                <View>
+                  <Text style={styles.sectionTitle}>Advanced Settings</Text>
+                  <Text style={styles.sectionDescription}>
+                    Configure AI model preferences
+                  </Text>
+                </View>
+                <IconSymbol
+                  name={showAdvancedSettings ? "chevron.up" : "chevron.down"}
+                  size={20}
+                  color={Colors.textSecondary}
+                />
+              </TouchableOpacity>
 
-            {showAdvancedSettings && (
+              {showAdvancedSettings && (
               <View style={styles.advancedSettingsContent}>
                 <View style={styles.settingItem}>
                   <Text style={styles.settingLabel}>Story Text Model</Text>
@@ -533,9 +537,10 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            )}
-          </View>
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>

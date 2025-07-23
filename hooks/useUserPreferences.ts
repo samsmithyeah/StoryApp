@@ -24,10 +24,10 @@ export interface UserPreferences {
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   textModel: "gemini-2.5-pro",
-  coverImageModel: "gpt-image-1",
+  coverImageModel: "gpt-image-1", 
   pageImageModel: "gemini",
-  temperature: 0.9, // Balanced creativity for storytelling
-  geminiThinkingBudget: -1, // Dynamic thinking by default
+  temperature: 0.9,
+  geminiThinkingBudget: -1, // Dynamic thinking
 };
 
 export const useUserPreferences = () => {
