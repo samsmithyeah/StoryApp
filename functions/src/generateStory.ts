@@ -291,7 +291,9 @@ Return the story in this JSON format:
               quality: "medium",
               n: 1,
               // Use base64 for both models for consistency
-              ...(selectedCoverImageModel === "dall-e-3" && { response_format: "b64_json" }),
+              ...(selectedCoverImageModel === "dall-e-3" && {
+                response_format: "b64_json",
+              }),
             })
           );
 
@@ -300,7 +302,7 @@ Return the story in this JSON format:
           if (!imageData?.b64_json) {
             throw new Error("No base64 image data returned from OpenAI");
           }
-          
+
           // Convert base64 to data URL for both models
           coverImageUrlForWorkers = `data:image/png;base64,${imageData.b64_json}`;
         }
@@ -377,12 +379,54 @@ Return the story in this JSON format:
       return { success: true, storyId };
     } catch (error: any) {
       console.error("Error in generateStory orchestrator:", error);
+
+      // If it's already an HttpsError, just re-throw it
       if (error instanceof HttpsError) {
         throw error;
       }
+
+      // Handle specific OpenAI API errors
+      if (error.name === "BadRequestError" || error.status === 400) {
+        if (error.message && error.message.includes("safety system")) {
+          throw new HttpsError(
+            "invalid-argument",
+            "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright."
+          );
+        }
+      }
+
+      // Handle rate limiting
+      if (error.status === 429) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "The AI service is currently busy. Please try again in a few minutes."
+        );
+      }
+
+      // Handle authentication errors
+      if (error.status === 401 || error.status === 403) {
+        throw new HttpsError(
+          "permission-denied",
+          "There was an issue with the AI service. Please try again later."
+        );
+      }
+
+      // Handle network/timeout errors
+      if (
+        error.code === "ECONNRESET" ||
+        error.code === "ETIMEDOUT" ||
+        error.message?.includes("timeout")
+      ) {
+        throw new HttpsError(
+          "deadline-exceeded",
+          "The story generation is taking longer than expected. Please try again."
+        );
+      }
+
+      // Generic fallback error
       throw new HttpsError(
         "internal",
-        `Failed to generate story: ${error.message || "Unknown error"}`
+        "We're having trouble generating your story right now. Please try again in a few moments."
       );
     }
   }

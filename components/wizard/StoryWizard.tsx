@@ -54,6 +54,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     characters: [],
   });
   const [_isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
@@ -82,6 +83,9 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
   const handleGeneration = async () => {
     try {
+      // Clear any previous errors
+      setGenerationError(null);
+
       if (!isWizardComplete(wizardData)) {
         console.error("Wizard data incomplete");
         return;
@@ -103,10 +107,16 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         ...(wizardData as StoryConfiguration),
         storyId: result.storyId,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating story:", error);
       setIsGenerating(false);
-      // Handle error state
+
+      // Use the error message from the cloud function, or provide a fallback
+      const errorMessage =
+        error?.message ||
+        "We're having trouble generating your story right now. Please try again in a few moments.";
+
+      setGenerationError(errorMessage);
     }
   };
 
@@ -189,7 +199,16 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         );
       case "generation":
         return (
-          <GenerationStep isGenerating={_isGenerating} onCancel={onCancel} />
+          <GenerationStep
+            isGenerating={_isGenerating}
+            error={generationError}
+            onCancel={onCancel}
+            onStartOver={() => {
+              setGenerationError(null);
+              setIsGenerating(false);
+              setCurrentStep("child");
+            }}
+          />
         );
     }
   };

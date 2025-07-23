@@ -12,7 +12,10 @@ import { useAuth } from "./useAuth";
 export interface UserPreferences {
   // Model preferences
   textModel: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1";
+  coverImageModel:
+    | "gemini-2.0-flash-preview-image-generation"
+    | "dall-e-3"
+    | "gpt-image-1";
   pageImageModel: "flux" | "gemini";
 }
 
@@ -24,7 +27,8 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 
 export const useUserPreferences = () => {
   const { user } = useAuth();
-  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
+  const [preferences, setPreferences] =
+    useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,11 +42,9 @@ export const useUserPreferences = () => {
     const loadPreferences = async () => {
       try {
         setLoading(true);
-        const docRef = firestore()
-          .collection("users")
-          .doc(user.uid);
+        const docRef = firestore().collection("users").doc(user.uid);
         const docSnap = await docRef.get();
-        
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           // Extract preferences from user document
@@ -68,7 +70,9 @@ export const useUserPreferences = () => {
     loadPreferences();
   }, [user]);
 
-  const updatePreferences = async (newPreferences: Partial<UserPreferences>) => {
+  const updatePreferences = async (
+    newPreferences: Partial<UserPreferences>
+  ) => {
     if (!user) {
       setError("User must be logged in to update preferences");
       return;
@@ -76,10 +80,8 @@ export const useUserPreferences = () => {
 
     try {
       const updatedPreferences = { ...preferences, ...newPreferences };
-      const docRef = firestore()
-        .collection("users")
-        .doc(user.uid);
-      
+      const docRef = firestore().collection("users").doc(user.uid);
+
       try {
         // Try to update the preferences field in the user document
         await docRef.update({
@@ -88,11 +90,14 @@ export const useUserPreferences = () => {
         });
       } catch (updateError: any) {
         // If update fails (document doesn't exist), create it with set
-        if (updateError.code === 'not-found') {
-          await docRef.set({
-            preferences: updatedPreferences,
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-          }, { merge: true });
+        if (updateError.code === "not-found") {
+          await docRef.set(
+            {
+              preferences: updatedPreferences,
+              updatedAt: firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
         } else {
           throw updateError;
         }

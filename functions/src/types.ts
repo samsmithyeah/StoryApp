@@ -14,7 +14,10 @@ export interface StoryGenerationRequest {
   enableIllustrations: boolean;
   imageProvider?: "flux" | "gemini"; // Optional, defaults to flux for backward compatibility
   textModel?: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel?: "gemini-2.0-flash-preview-image-generation" | "dall-e-3" | "gpt-image-1";
+  coverImageModel?:
+    | "gemini-2.0-flash-preview-image-generation"
+    | "dall-e-3"
+    | "gpt-image-1";
   storyAbout?: string;
   characters?: StoryCharacter[];
 }

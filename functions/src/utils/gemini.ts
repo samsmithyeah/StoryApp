@@ -3,16 +3,16 @@ import { defineSecret } from "firebase-functions/params";
 export const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 interface GeminiGenerateRequest {
-  contents: Array<{
+  contents: {
     role?: "user";
-    parts: Array<{
+    parts: {
       text?: string;
       inlineData?: {
         mimeType: string;
         data: string; // base64 encoded image
       };
-    }>;
-  }>;
+    }[];
+  }[];
   generationConfig: {
     responseModalities: string[];
     temperature?: number;
@@ -20,17 +20,17 @@ interface GeminiGenerateRequest {
 }
 
 interface GeminiResponse {
-  candidates: Array<{
+  candidates: {
     content: {
-      parts: Array<{
+      parts: {
         text?: string;
         inlineData?: {
           mimeType: string;
           data: string; // base64 encoded image
         };
-      }>;
+      }[];
     };
-  }>;
+  }[];
 }
 
 export class GeminiClient {
@@ -43,7 +43,11 @@ export class GeminiClient {
     this.apiKey = apiKey;
   }
 
-  async generateText(systemPrompt: string, userPrompt: string, temperature: number = 0.9): Promise<string> {
+  async generateText(
+    systemPrompt: string,
+    userPrompt: string,
+    temperature: number = 0.9
+  ): Promise<string> {
     console.log(
       `[GeminiClient] Generating text with prompt: ${userPrompt.substring(0, 100)}...`
     );
@@ -60,9 +64,11 @@ export class GeminiClient {
         },
       ],
       systemInstruction: {
-        parts: [{
-          text: systemPrompt
-        }]
+        parts: [
+          {
+            text: systemPrompt,
+          },
+        ],
       },
       generationConfig: {
         temperature,

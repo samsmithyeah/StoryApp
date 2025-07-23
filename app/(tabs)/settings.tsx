@@ -245,14 +245,16 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.textModel === "gpt-4o" && styles.selectedModelOption,
+                        preferences.textModel === "gpt-4o" &&
+                          styles.selectedModelOption,
                       ]}
                       onPress={() => updatePreferences({ textModel: "gpt-4o" })}
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.textModel === "gpt-4o" && styles.selectedModelOptionText,
+                          preferences.textModel === "gpt-4o" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         GPT-4o
@@ -261,14 +263,18 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.textModel === "gemini-2.5-pro" && styles.selectedModelOption,
+                        preferences.textModel === "gemini-2.5-pro" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ textModel: "gemini-2.5-pro" })}
+                      onPress={() =>
+                        updatePreferences({ textModel: "gemini-2.5-pro" })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.textModel === "gemini-2.5-pro" && styles.selectedModelOptionText,
+                          preferences.textModel === "gemini-2.5-pro" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         Gemini 2.5 Pro
@@ -283,14 +289,18 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.coverImageModel === "gpt-image-1" && styles.selectedModelOption,
+                        preferences.coverImageModel === "gpt-image-1" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ coverImageModel: "gpt-image-1" })}
+                      onPress={() =>
+                        updatePreferences({ coverImageModel: "gpt-image-1" })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.coverImageModel === "gpt-image-1" && styles.selectedModelOptionText,
+                          preferences.coverImageModel === "gpt-image-1" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         GPT Image-1
@@ -299,14 +309,18 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.coverImageModel === "dall-e-3" && styles.selectedModelOption,
+                        preferences.coverImageModel === "dall-e-3" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ coverImageModel: "dall-e-3" })}
+                      onPress={() =>
+                        updatePreferences({ coverImageModel: "dall-e-3" })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.coverImageModel === "dall-e-3" && styles.selectedModelOptionText,
+                          preferences.coverImageModel === "dall-e-3" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         DALL-E 3
@@ -315,14 +329,23 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.coverImageModel === "gemini-2.0-flash-preview-image-generation" && styles.selectedModelOption,
+                        preferences.coverImageModel ===
+                          "gemini-2.0-flash-preview-image-generation" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ coverImageModel: "gemini-2.0-flash-preview-image-generation" })}
+                      onPress={() =>
+                        updatePreferences({
+                          coverImageModel:
+                            "gemini-2.0-flash-preview-image-generation",
+                        })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.coverImageModel === "gemini-2.0-flash-preview-image-generation" && styles.selectedModelOptionText,
+                          preferences.coverImageModel ===
+                            "gemini-2.0-flash-preview-image-generation" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         Gemini
@@ -337,14 +360,18 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.pageImageModel === "flux" && styles.selectedModelOption,
+                        preferences.pageImageModel === "flux" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ pageImageModel: "flux" })}
+                      onPress={() =>
+                        updatePreferences({ pageImageModel: "flux" })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.pageImageModel === "flux" && styles.selectedModelOptionText,
+                          preferences.pageImageModel === "flux" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         FLUX
@@ -353,14 +380,18 @@ export default function SettingsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modelOption,
-                        preferences.pageImageModel === "gemini" && styles.selectedModelOption,
+                        preferences.pageImageModel === "gemini" &&
+                          styles.selectedModelOption,
                       ]}
-                      onPress={() => updatePreferences({ pageImageModel: "gemini" })}
+                      onPress={() =>
+                        updatePreferences({ pageImageModel: "gemini" })
+                      }
                     >
                       <Text
                         style={[
                           styles.modelOptionText,
-                          preferences.pageImageModel === "gemini" && styles.selectedModelOptionText,
+                          preferences.pageImageModel === "gemini" &&
+                            styles.selectedModelOptionText,
                         ]}
                       >
                         Gemini

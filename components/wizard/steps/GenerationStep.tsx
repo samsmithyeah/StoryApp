@@ -15,7 +15,9 @@ import {
 
 interface GenerationStepProps {
   isGenerating: boolean;
+  error?: string | null;
   onCancel: () => void;
+  onStartOver?: () => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -31,7 +33,9 @@ const GENERATION_MESSAGES = [
 
 export const GenerationStep: React.FC<GenerationStepProps> = ({
   isGenerating,
+  error,
   onCancel,
+  onStartOver,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -121,6 +125,38 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+
+  // Show error state if there's an error
+  if (error && !isGenerating) {
+    return (
+      <BackgroundContainer showDecorations={true}>
+        <View style={styles.container}>
+          <View style={styles.content}>
+            <View style={styles.errorContainer}>
+              <IconSymbol
+                name="exclamationmark.triangle"
+                size={isTablet ? 80 : 64}
+                color={Colors.error}
+              />
+              <Text style={styles.errorTitle}>Story Generation Failed</Text>
+              <Text style={styles.errorMessage}>{error}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
+            {onStartOver && (
+              <Button
+                title="Try a different story"
+                onPress={onStartOver}
+                variant="primary"
+                size="large"
+              />
+            )}
+          </View>
+        </View>
+      </BackgroundContainer>
+    );
+  }
 
   return (
     <BackgroundContainer showDecorations={true}>
@@ -265,5 +301,37 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: "rgba(15, 17, 41, 0.5)",
+  },
+  errorContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.screenPadding,
+  },
+  errorTitle: {
+    fontSize: isTablet ? Typography.fontSize.h1Tablet : Typography.fontSize.h2,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.lg,
+    textAlign: "center",
+    fontFamily: Typography.fontFamily.primary,
+  },
+  errorMessage: {
+    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: isTablet ? 28 : 24,
+    marginBottom: Spacing.xxxl,
+    maxWidth: isTablet ? 600 : 320,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  retryButton: {
+    flex: 1,
+  },
+  backButton: {
+    flex: 1,
   },
 });
