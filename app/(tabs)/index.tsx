@@ -5,6 +5,7 @@ import {
   query,
   where,
 } from "@react-native-firebase/firestore";
+import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -63,11 +64,13 @@ export default function LibraryScreen() {
       orderBy("createdAt", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate() || new Date(),
-      })) as Story[];
+      const list = snap.docs.map(
+        (d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
+          id: d.id,
+          ...d.data(),
+          createdAt: d.data().createdAt?.toDate() || new Date(),
+        })
+      ) as Story[];
       setStories(list);
       setLoading(false);
     });
