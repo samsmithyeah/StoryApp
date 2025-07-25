@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
 import { useChildren } from "./useChildren";
 
@@ -14,41 +14,40 @@ export const useOnboarding = () => {
   const { children, loading: childrenLoading } = useChildren();
 
   const checkOnboardingStatus = useCallback(async () => {
+    // If there's no user, we can't check onboarding status
     if (!user) {
+      setHasCompletedOnboarding(false);
       setLoading(false);
       return;
     }
 
-    // Wait for children to finish loading before making onboarding decision
+    // Wait until children data is loaded
     if (childrenLoading) {
       return;
     }
 
     try {
-      // Check if user has completed onboarding for this specific user
-      const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
-      const hasOnboarded = await AsyncStorage.getItem(onboardingKey);
-
-      if (hasOnboarded === "true") {
+      if (children.length > 0) {
         setHasCompletedOnboarding(true);
-      } else if (hasOnboarded === "false") {
-        // Explicitly set to false, don't auto-complete
-        setHasCompletedOnboarding(false);
-      } else {
-        // No onboarding status stored - check if they have children (legacy users)
-        if (children.length > 0) {
-          setHasCompletedOnboarding(true);
-          // Save this state to avoid showing onboarding again
-          await AsyncStorage.setItem(onboardingKey, "true");
-        } else {
-          setHasCompletedOnboarding(false);
-          // Store false explicitly to prevent auto-completion during onboarding
-          await AsyncStorage.setItem(onboardingKey, "false");
-        }
+        // We'll also ensure the flag is set correctly in storage for consistency.
+        const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
+        await AsyncStorage.setItem(onboardingKey, "true");
+        setLoading(false);
+        return;
       }
+
+      // If we reach this point, the user has NO children.
+      // Now, we fall back to checking the stored flag for users who may have
+      // completed onboarding but haven't added a child yet.
+      const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
+      const hasOnboardedFlag = await AsyncStorage.getItem(onboardingKey);
+
+      // They are only considered onboarded if the flag is explicitly 'true'.
+      // If the flag is null, 'false', or anything else, they need onboarding.
+      setHasCompletedOnboarding(hasOnboardedFlag === "true");
     } catch (error) {
       console.error("Error checking onboarding status:", error);
-      // Default to showing onboarding if we can't check
+      // Default to showing onboarding if we encounter an error
       setHasCompletedOnboarding(false);
     } finally {
       setLoading(false);

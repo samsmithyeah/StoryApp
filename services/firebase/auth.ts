@@ -1,30 +1,29 @@
+import type { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import auth, {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "@react-native-firebase/auth";
+import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithCredential,
-  signOut,
-  updateProfile,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-} from "@react-native-firebase/auth";
-import auth from "@react-native-firebase/auth";
-import { authService, db } from "./config";
-import {
-  User,
   LoginCredentials,
   SignUpCredentials,
+  User,
 } from "../../types/auth.types";
-import type { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { authService, db } from "./config";
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
   firebaseUser: FirebaseAuthTypes.User
 ): Promise<User> => {
   try {
-    const { doc, getDoc } = require("@react-native-firebase/firestore");
     const userDocRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
@@ -55,7 +54,6 @@ const convertFirebaseUser = async (
 // Create user document in Firestore
 const createUserDocument = async (user: FirebaseAuthTypes.User) => {
   try {
-    const { doc, getDoc, setDoc } = require("@react-native-firebase/firestore");
     const userDocRef = doc(db, "users", user.uid);
     const userSnapshot = await getDoc(userDocRef);
 

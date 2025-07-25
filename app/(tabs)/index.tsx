@@ -1,3 +1,4 @@
+import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import {
   collection,
   onSnapshot,
@@ -5,7 +6,6 @@ import {
   query,
   where,
 } from "@react-native-firebase/firestore";
-import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -57,7 +57,11 @@ export default function LibraryScreen() {
 
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setStories([]);
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),

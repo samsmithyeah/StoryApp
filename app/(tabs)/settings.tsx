@@ -181,10 +181,10 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Children's profiles</Text>
-              <Text style={styles.sectionDescription}>
-                Add your children to create personalised stories
-              </Text>
             </View>
+            <Text style={styles.sectionDescription}>
+              Add your children to create personalised stories
+            </Text>
 
             {children.length === 0 ? (
               <View style={styles.emptyState}>
@@ -679,7 +679,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxxl,
   },
   sectionHeader: {
-    marginBottom: Spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -694,6 +693,7 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   emptyState: {
     alignItems: "center",
