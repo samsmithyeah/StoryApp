@@ -8,7 +8,6 @@ import {
   Animated,
   ImageBackground,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,7 +15,10 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { useStorageUrls } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
@@ -37,10 +39,17 @@ interface StoryViewerProps {
 }
 
 export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-  const isTablet = Math.min(width, height) >= 768;
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  const isLandscape = winWidth > winHeight;
+  const isTablet = Math.min(winWidth, winHeight) >= 768;
+  const isIPhoneLandscape = Platform.OS === "ios" && !isTablet && isLandscape;
+
+  // **Critical piece** – this is the width we actually use for paging/layout
+  const pageWidth = isIPhoneLandscape
+    ? winWidth - (insets.left + insets.right)
+    : winWidth;
 
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
@@ -56,8 +65,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
   const headerHeight = isTablet ? 72 : 56;
   const cardChrome = 10 + 6;
+
+  // Height can still use total height minus top/bottom insets
   const availableHeight =
-    height - (insets.top + insets.bottom + headerHeight + cardChrome);
+    winHeight - (insets.top + insets.bottom + headerHeight + cardChrome);
 
   const textPanelMaxPct = isTablet ? (isLandscape ? 0.38 : 0.44) : 0.48;
   const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
@@ -80,14 +91,14 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     ]).start();
   }, [story, fadeAnim, slideAnim]);
 
-  // keep correct offset after rotation
+  // keep correct offset after rotation / inset change
   useEffect(() => {
     scrollViewRef.current?.scrollTo({
-      x: currentPage * width,
+      x: currentPage * pageWidth,
       y: 0,
       animated: false,
     });
-  }, [width, currentPage]);
+  }, [pageWidth, currentPage]);
 
   const handleImageLoad = (idx: number) =>
     setImageLoading((prev) => {
@@ -101,21 +112,19 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       if (!story.storyContent) return;
       if (idx < 0 || idx >= story.storyContent.length) return;
 
-      // Only scroll if we have a valid ref, don't update state until scroll completes
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
-          x: idx * width,
+          x: idx * pageWidth,
           y: 0,
           animated: true,
         });
-        // The handleHorizontalScroll will update currentPage when scroll completes
       }
     },
-    [story.storyContent, width]
+    [story.storyContent, pageWidth]
   );
 
   const handleHorizontalScroll = (e: any) => {
-    const pageIdx = Math.round(e.nativeEvent.contentOffset.x / width);
+    const pageIdx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
     if (pageIdx !== currentPage) setCurrentPage(pageIdx);
   };
 
@@ -124,68 +133,72 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     const imageUrl = imageUrls[index];
 
     return (
-      <View key={index} style={[styles.pageContainer, { width }]}>
+      <View key={index} style={[styles.pageContainer, { width: pageWidth }]}>
         <View style={styles.pageContent}>
-          <View style={[styles.storyCard, { height: availableHeight }]}>
-            {hasImages && (
-              <View style={[styles.imageContainer, styles.imageFlex]}>
-                {imageLoading[index] && (
-                  <ActivityIndicator
-                    size="large"
-                    color={Colors.primary}
-                    style={styles.imageLoader}
-                  />
-                )}
-                {imageUrl ? (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.pageImage}
-                    contentFit="cover"
-                    onLoad={() => handleImageLoad(index)}
-                  />
-                ) : (
-                  <View style={styles.placeholderImage}>
-                    <IconSymbol
-                      name="photo"
-                      size={48}
-                      color={Colors.textMuted}
+          <View style={styles.storyCardWrapper}>
+            <View style={[styles.storyCard, { height: availableHeight }]}>
+              {hasImages && (
+                <View style={[styles.imageContainer, styles.imageFlex]}>
+                  {imageLoading[index] && (
+                    <ActivityIndicator
+                      size="large"
+                      color={Colors.primary}
+                      style={styles.imageLoader}
                     />
-                  </View>
-                )}
-              </View>
-            )}
+                  )}
+                  {imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.pageImage}
+                      contentFit="cover"
+                      onLoad={() => handleImageLoad(index)}
+                    />
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                      <IconSymbol
+                        name="photo"
+                        size={48}
+                        color={Colors.textMuted}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
 
-            <View
-              style={[
-                styles.textPanel,
-                !hasImages && styles.textPanelNoImages,
-                { maxHeight: hasImages ? textPanelMaxHeight : availableHeight },
-              ]}
-            >
-              <ScrollView
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={false}
-                style={{
-                  flexGrow: 0,
-                  maxHeight: hasImages
-                    ? textPanelMaxHeight - 24
-                    : availableHeight - 28,
-                }}
-                contentContainerStyle={{ paddingBottom: Spacing.sm }}
+              <View
+                style={[
+                  styles.textPanel,
+                  !hasImages && styles.textPanelNoImages,
+                  {
+                    maxHeight: hasImages ? textPanelMaxHeight : availableHeight,
+                  },
+                ]}
               >
-                <Text
-                  style={[
-                    styles.pageText,
-                    !hasImages && styles.pageTextLarge,
-                    { textAlign: "center" },
-                  ]}
+                <ScrollView
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={false}
+                  style={{
+                    flexGrow: 0,
+                    maxHeight: hasImages
+                      ? textPanelMaxHeight - 24
+                      : availableHeight - 28,
+                  }}
+                  contentContainerStyle={{ paddingBottom: Spacing.sm }}
                 >
-                  {pageText}
+                  <Text
+                    style={[
+                      styles.pageText,
+                      !hasImages && styles.pageTextLarge,
+                      { textAlign: "center" },
+                    ]}
+                  >
+                    {pageText}
+                  </Text>
+                </ScrollView>
+                <Text style={styles.pageNumber}>
+                  Page {page.page} of {story.storyContent?.length || 0}
                 </Text>
-              </ScrollView>
-              <Text style={styles.pageNumber}>
-                Page {page.page} of {story.storyContent?.length || 0}
-              </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -207,7 +220,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
           ]}
           style={StyleSheet.absoluteFill}
         />
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.header}>
             <TouchableOpacity
               onPress={onClose || (() => router.replace("/(tabs)"))}
@@ -244,7 +257,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* HEADER */}
         <View style={[styles.header, { height: headerHeight }]}>
           <View style={styles.closeButtonContainer}>
@@ -288,7 +301,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={handleHorizontalScroll}
-              style={styles.scrollView}
+              style={[
+                styles.scrollView,
+                { width: pageWidth, alignSelf: "center" },
+              ]}
               scrollEnabled={true}
               decelerationRate="fast"
             >
@@ -296,11 +312,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             </ScrollView>
           </Animated.View>
 
-          {/* NAV ARROWS (positioned over content) */}
+          {/* NAV ARROWS */}
           <TouchableOpacity
             onPress={() => goToPage(currentPage - 1)}
             disabled={isFirst}
-            style={[styles.navArrowLeft, isFirst && styles.navArrowDisabled]}
+            style={[
+              styles.navArrowLeft,
+              isFirst && styles.navArrowDisabled,
+              // Keep them visually inside safe area on iPhone landscape
+              isIPhoneLandscape && { left: Spacing.xs + insets.left },
+            ]}
             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             activeOpacity={0.7}
           >
@@ -314,7 +335,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
           <TouchableOpacity
             onPress={() => goToPage(currentPage + 1)}
             disabled={isLast}
-            style={[styles.navArrowRight, isLast && styles.navArrowDisabled]}
+            style={[
+              styles.navArrowRight,
+              isLast && styles.navArrowDisabled,
+              isIPhoneLandscape && { right: Spacing.xs + insets.right },
+            ]}
             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             activeOpacity={0.7}
           >
@@ -371,6 +396,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
+
+  storyCardWrapper: { flex: 1 },
 
   storyCard: {
     flex: 1,

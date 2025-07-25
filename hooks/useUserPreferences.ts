@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import firestore from "@react-native-firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} from "@react-native-firebase/firestore";
+import { db } from "../services/firebase/config";
 import { useAuth } from "./useAuth";
 
 // Note: Firestore security rules must allow read/write access to:
@@ -47,8 +55,8 @@ export const useUserPreferences = () => {
     const loadPreferences = async () => {
       try {
         setLoading(true);
-        const docRef = firestore().collection("users").doc(user.uid);
-        const docSnap = await docRef.get();
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -85,21 +93,22 @@ export const useUserPreferences = () => {
 
     try {
       const updatedPreferences = { ...preferences, ...newPreferences };
-      const docRef = firestore().collection("users").doc(user.uid);
+      const docRef = doc(db, "users", user.uid);
 
       try {
         // Try to update the preferences field in the user document
-        await docRef.update({
+        await updateDoc(docRef, {
           preferences: updatedPreferences,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
+          updatedAt: serverTimestamp(),
         });
       } catch (updateError: any) {
         // If update fails (document doesn't exist), create it with set
         if (updateError.code === "not-found") {
-          await docRef.set(
+          await setDoc(
+            docRef,
             {
               preferences: updatedPreferences,
-              updatedAt: firestore.FieldValue.serverTimestamp(),
+              updatedAt: serverTimestamp(),
             },
             { merge: true }
           );

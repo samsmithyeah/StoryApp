@@ -1,5 +1,5 @@
 import { PubSub } from "@google-cloud/pubsub";
-import * as admin from "firebase-admin";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import {
   CallableRequest,
   HttpsError,
@@ -34,39 +34,73 @@ export const generateStory = onCall(
 
     try {
       // 2. Fetch user and children data for personalization
-      const userDoc = await admin
-        .firestore()
-        .collection("users")
-        .doc(userId)
-        .get();
+      const db = getFirestore();
+      const userDoc = await db.collection("users").doc(userId).get();
       const userData = userDoc.data();
       if (!userData) {
         throw new HttpsError("not-found", "User not found");
       }
 
       const children = userData.children || [];
-      const selectedChildrenData = children.filter(
+
+      // Get audience children (those who will read/hear the story)
+      const audienceChildren = children.filter(
         (child: any) =>
           child && child.id && data.selectedChildren.includes(child.id)
       );
 
+      // Get all children who appear as characters (may include non-audience children)
+      const allCharacterChildIds = (data.characters || [])
+        .filter((char) => char.isChild && char.childId)
+        .map((char) => char.childId);
+
+      const allRelevantChildren = children.filter(
+        (child: any) =>
+          child &&
+          child.id &&
+          (data.selectedChildren.includes(child.id) || // audience children
+            allCharacterChildIds.includes(child.id)) // character children
+      );
+
       const pageCount = data.pageCount;
 
-      // Get audience info (for age-appropriate content)
-      const ages = selectedChildrenData
+      // Calculate age range based on AUDIENCE children only
+      const audienceAges = audienceChildren
         .filter((child: any) => child.dateOfBirth)
         .map((child: any) => {
           const today = new Date();
           const birthDate = new Date(child.dateOfBirth.seconds * 1000);
-          return today.getFullYear() - birthDate.getFullYear();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          const dayDiff = today.getDate() - birthDate.getDate();
+
+          // Adjust age if birthday hasn't occurred this year
+          return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+            ? age - 1
+            : age;
         });
-      const averageAge =
-        ages.length > 0
-          ? Math.round(
-              ages.reduce((sum: number, age: number) => sum + age, 0) /
-                ages.length
-            )
-          : 5;
+
+      // Create age range string
+      let ageRangeStr: string;
+      let averageAge: number;
+      if (audienceAges.length === 0) {
+        ageRangeStr = "5 years old";
+        averageAge = 5;
+      } else if (audienceAges.length === 1) {
+        ageRangeStr = `${audienceAges[0]} years old`;
+        averageAge = audienceAges[0];
+      } else {
+        const minAge = Math.min(...audienceAges);
+        const maxAge = Math.max(...audienceAges);
+        ageRangeStr =
+          minAge === maxAge
+            ? `${minAge} years old`
+            : `${minAge} to ${maxAge} years old`;
+        averageAge = Math.round(
+          audienceAges.reduce((sum: number, age: number) => sum + age, 0) /
+            audienceAges.length
+        );
+      }
 
       // 3. Generate story text and prompts using selected model
       const selectedTextModel = data.textModel || "gpt-4o";
@@ -80,8 +114,8 @@ export const generateStory = onCall(
       const characterDescriptions = await Promise.all(
         allCharacters.map(async (char) => {
           if (char.isChild && char.childId) {
-            // Use selectedChildrenData instead of all children
-            const childData = selectedChildrenData.find(
+            // Use allRelevantChildren to include both audience and character children
+            const childData = allRelevantChildren.find(
               (c: any) => c.id === char.childId
             );
 
@@ -137,7 +171,7 @@ export const generateStory = onCall(
       const characterNamesWithAges = await Promise.all(
         allCharacters.map(async (char) => {
           if (char.isChild && char.childId) {
-            const childData = selectedChildrenData.find(
+            const childData = allRelevantChildren.find(
               (c: any) => c.id === char.childId
             );
             if (childData && childData.dateOfBirth) {
@@ -167,7 +201,7 @@ ${
     ? `- Main character(s): ${characterNamesString}`
     : "- Create engaging characters for the story"
 }
-- Reader age level: ${averageAge} years old
+- Reader age level: ${ageRangeStr}
 - Theme: ${data.theme}
 ${data.mood ? `- Mood: ${data.mood}` : ""}
 - Story length: ${pageCount} pages
@@ -175,16 +209,17 @@ ${data.storyAbout ? `- Story concept: ${data.storyAbout}` : ""}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
-2. Each page should be an appropriate length for a ${averageAge}-year-old.
+2. Each page should be an appropriate length for a ${ageRangeStr} reader.
 3. ${data.storyAbout ? `The story should incorporate the concept: ${data.storyAbout}` : "Feel free to create any engaging storyline within the theme."}
 4. ${data.mood ? `The story should have a ${data.mood} mood throughout.` : "Keep the mood appropriate for bedtime."}
 5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
 6. ${
         data.enableIllustrations
-          ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
+          ? `For each page, include an image prompt description - a visual description of how you envisage the scene. Include who and what should appear in the image. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
           : "No image prompts needed."
       }
-7. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
+7. Make sure the story has a clear beginning, middle, and end.
+8. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {
@@ -257,12 +292,13 @@ Return the story in this JSON format:
       }
 
       // 4. Generate the final Story ID *before* any uploads or writes
-      const storyRef = admin.firestore().collection("stories").doc();
+      const storyRef = db.collection("stories").doc();
       const storyId = storyRef.id;
 
       // 5. Generate and Upload Cover Image to its FINAL path
       let coverImageStoragePath = "";
       let coverImageUrlForWorkers = "";
+      let coverPrompt = "";
 
       if (data.enableIllustrations) {
         console.log(
@@ -272,7 +308,7 @@ Return the story in this JSON format:
           data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
         const illustrationStyleDescription =
           data.illustrationAiDescription || data.illustrationStyle;
-        const coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
+        coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
 
         if (
           selectedCoverImageModel ===
@@ -335,7 +371,7 @@ Return the story in this JSON format:
       const storyDocData = {
         userId,
         title: storyContent.title,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         storyContent: storyPages,
         coverImageUrl: coverImageStoragePath,
         storyConfiguration: data,
@@ -344,6 +380,51 @@ Return the story in this JSON format:
           : "not_requested",
         imagesGenerated: 0,
         totalImages: data.enableIllustrations ? storyPages.length : 0,
+        // Store generation metadata
+        generationMetadata: {
+          // Text generation details
+          textModel: selectedTextModel,
+          textPrompts: {
+            system: systemPrompt,
+            user: userPrompt,
+          },
+          temperature,
+          geminiThinkingBudget:
+            selectedTextModel === "gemini-2.5-pro"
+              ? data.geminiThinkingBudget
+              : undefined,
+          // Cover image generation details
+          coverImageModel: data.enableIllustrations
+            ? data.coverImageModel ||
+              "gemini-2.0-flash-preview-image-generation"
+            : null,
+          coverImagePrompt: data.enableIllustrations ? coverPrompt : null,
+          // Page image generation details
+          pageImageModel: data.enableIllustrations
+            ? data.imageProvider || "flux"
+            : null,
+          pageImagePrompts: data.enableIllustrations
+            ? storyContent.pages.map((p: any) => p.imagePrompt)
+            : null,
+          pageImageGenerationData: {}, // Will be populated as individual pages are generated
+          illustrationStyle: data.illustrationStyle,
+          illustrationAiDescription: data.illustrationAiDescription,
+          // Character information used
+          charactersUsed: allCharacters,
+          characterDescriptions: characterInfo,
+          // User preferences captured
+          userPreferences: {
+            theme: data.theme,
+            mood: data.mood,
+            pageCount: data.pageCount,
+            shouldRhyme: data.shouldRhyme,
+            storyAbout: data.storyAbout,
+            enableIllustrations: data.enableIllustrations,
+          },
+          // Computed values
+          averageChildAge: averageAge,
+          selectedChildrenIds: data.selectedChildren,
+        },
       };
 
       await storyRef.set(storyDocData);

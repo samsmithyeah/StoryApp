@@ -15,7 +15,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { Button } from "../ui/Button";
 
@@ -31,7 +30,6 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
   onGoBack,
 }) => {
   const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const coverImageUrl = useStorageUrl(story.coverImageUrl);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -86,10 +84,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: insets.bottom + Spacing.xxxl },
-          ]}
+          contentContainerStyle={[styles.scrollContent]}
         >
           <Animated.View
             style={[
@@ -203,22 +198,26 @@ const createStyles = ({
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: Spacing.screenPadding,
+      justifyContent: "center",
+      alignItems: "center",
     },
     animatedWrapper: {
       width: "100%",
-      minHeight: height * 0.85,
+      maxWidth: isLandscape ? width * 0.9 : "100%",
+      flex: 1,
       justifyContent: "center",
+      alignItems: "center",
     },
     mainRow: {
       flexDirection: isLandscape ? "row" : "column",
       alignItems: "center",
-      justifyContent: "center",
-      ...(supportsGap ? { gap: isLandscape ? Spacing.xxxl : 0 } : {}),
+      justifyContent: isLandscape ? "space-evenly" : "center",
+      width: "100%",
     },
     textBlock: {
       flex: isLandscape ? 1 : undefined,
       alignItems: "center",
+      justifyContent: "center",
       maxWidth: isLandscape ? width * 0.48 : "100%",
       ...(supportsGap ? {} : isLandscape ? { marginRight: Spacing.xxxl } : {}),
     },
@@ -243,7 +242,9 @@ const createStyles = ({
       ...commonImageFrame,
     },
     imageColumn: {
+      flex: 1,
       alignItems: "center",
+      justifyContent: "center",
     },
     imageLandscape: {
       width: landscapeSize,

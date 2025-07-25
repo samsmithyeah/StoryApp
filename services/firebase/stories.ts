@@ -1,5 +1,6 @@
-import { functionsService, authService } from "./config";
-import { StoryConfiguration, Story } from "@/types/story.types";
+import { Story, StoryConfiguration } from "@/types/story.types";
+import { httpsCallable } from "@react-native-firebase/functions";
+import { authService, functionsService } from "./config";
 
 export interface StoryGenerationRequest extends StoryConfiguration {
   enableIllustrations: boolean;
@@ -7,7 +8,9 @@ export interface StoryGenerationRequest extends StoryConfiguration {
 
 export const generateStory = async (config: StoryGenerationRequest) => {
   try {
-    const generateStoryFn = functionsService.httpsCallable("generateStory");
+    const generateStoryFn = httpsCallable(functionsService, "generateStory", {
+      timeout: 180000, // 3 minutes timeout
+    });
     const result = await generateStoryFn(config);
 
     if ((result.data as any).success) {
@@ -27,7 +30,7 @@ export const generateStory = async (config: StoryGenerationRequest) => {
 
 export const getStories = async (): Promise<Story[]> => {
   try {
-    const getStoriesFn = functionsService.httpsCallable("getStories");
+    const getStoriesFn = httpsCallable(functionsService, "getStories");
     const result = await getStoriesFn();
 
     if ((result.data as any).success) {
@@ -65,7 +68,8 @@ export const generateThemeSuggestions = async (
 
     console.log("Current user ID:", currentUser.uid);
 
-    const generateThemesFn = functionsService.httpsCallable(
+    const generateThemesFn = httpsCallable(
+      functionsService,
       "generateThemeSuggestions"
     );
     const result = await generateThemesFn({ childrenInfo });
@@ -83,7 +87,7 @@ export const generateThemeSuggestions = async (
 
 export const getStory = async (storyId: string): Promise<Story> => {
   try {
-    const getStoryFn = functionsService.httpsCallable("getStory");
+    const getStoryFn = httpsCallable(functionsService, "getStory");
     const result = await getStoryFn({ storyId });
 
     if ((result.data as any).success) {

@@ -41,9 +41,9 @@ export const generateThemeSuggestions = onCall(
           ? `${Math.min(...ages)}-${Math.max(...ages)}`
           : ages[0]?.toString() || "5";
 
-      const prompt = `Based on these child preferences: "${preferencesText}" for children aged ${ageRange}, suggest 4 unique and creative bedtime story themes.
+      const prompt = `Based on these child preferences: "${preferencesText}" for children aged ${ageRange}, suggest 4 bedtime story themes.
 
-Important: The themes should be RELATED to their interests but NOT the exact same words. Think about what emotions, concepts, or related topics their interests might connect to.
+The themes can be directly pulled from the child's interests, or can be related to their interests but NOT the exact same words - or a mixture of both. Think about what emotions, concepts, or related topics their interests might connect to. If there are multiple children, consider the range of their interests and ages to create themes that are inclusive and engaging for all.
 
 For example:
 - If they like "sharks" → suggest themes like "monsters", "dinosaurs", or "ocean"
@@ -64,7 +64,7 @@ Each theme should be:
 - ONE WORD ONLY
 - Age-appropriate specifically for ${ageRange} year olds
 - Developmentally suitable (e.g., simpler concepts for younger kids, more complex for older)
-- Not a "mood" but a distinct theme. The user will select a mood (ie. calm, scary, exciting) themself.
+- IMPORTANT: Not a "mood" but a distinct theme. The user will select a mood (ie. calm, scary, exciting) themself.
 - Engaging and fun for their age group
 - Thematically related to their interests but not identical
 - Completely different from the preset themes listed above

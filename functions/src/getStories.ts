@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 export const getStories = onCall(async (request) => {
@@ -8,8 +8,8 @@ export const getStories = onCall(async (request) => {
 
   try {
     const userId = request.auth.uid;
-    const storiesSnapshot = await admin
-      .firestore()
+    const db = getFirestore();
+    const storiesSnapshot = await db
       .collection("stories")
       .where("userId", "==", userId)
       .orderBy("createdAt", "desc")

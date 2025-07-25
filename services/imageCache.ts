@@ -1,5 +1,5 @@
-import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
 import { getAuthenticatedUrl } from "./firebase/storage";
 
 const CACHE_DIR = `${FileSystem.documentDirectory}imageCache/`;
@@ -133,7 +133,6 @@ class ImageCacheService {
 
     const cacheEntry = this.cacheIndex[storagePath];
     if (!cacheEntry) {
-      console.log("🔍 Cache MISS for:", storagePath.split("/").pop());
       return null;
     }
 
@@ -158,7 +157,6 @@ class ImageCacheService {
     }
 
     // Return local file URI
-    console.log("✅ Cache HIT for:", storagePath.split("/").pop());
     return cacheEntry.filePath;
   }
 
@@ -203,8 +201,6 @@ class ImageCacheService {
 
       // Enforce cache size limit
       await this.enforceMaxCacheSize();
-
-      console.log("📥 Cached new image:", storagePath.split("/").pop());
       return cacheFilePath;
     } catch (error) {
       console.error("Error caching image:", error);
