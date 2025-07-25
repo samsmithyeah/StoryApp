@@ -42,23 +42,24 @@ export const generateStory = onCall(
       }
 
       const children = userData.children || [];
-      
+
       // Get audience children (those who will read/hear the story)
       const audienceChildren = children.filter(
         (child: any) =>
           child && child.id && data.selectedChildren.includes(child.id)
       );
-      
+
       // Get all children who appear as characters (may include non-audience children)
-      const allCharacterChildIds = (data.characters || []).filter(
-        (char) => char.isChild && char.childId
-      ).map((char) => char.childId);
-      
-      const allRelevantChildren = children.filter((child: any) => 
-        child && child.id && (
-          data.selectedChildren.includes(child.id) || // audience children
-          allCharacterChildIds.includes(child.id)     // character children
-        )
+      const allCharacterChildIds = (data.characters || [])
+        .filter((char) => char.isChild && char.childId)
+        .map((char) => char.childId);
+
+      const allRelevantChildren = children.filter(
+        (child: any) =>
+          child &&
+          child.id &&
+          (data.selectedChildren.includes(child.id) || // audience children
+            allCharacterChildIds.includes(child.id)) // character children
       );
 
       const pageCount = data.pageCount;
@@ -72,11 +73,13 @@ export const generateStory = onCall(
           const age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
           const dayDiff = today.getDate() - birthDate.getDate();
-          
+
           // Adjust age if birthday hasn't occurred this year
-          return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+          return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+            ? age - 1
+            : age;
         });
-      
+
       // Create age range string
       let ageRangeStr: string;
       let averageAge: number;
@@ -89,7 +92,10 @@ export const generateStory = onCall(
       } else {
         const minAge = Math.min(...audienceAges);
         const maxAge = Math.max(...audienceAges);
-        ageRangeStr = minAge === maxAge ? `${minAge} years old` : `${minAge} to ${maxAge} years old`;
+        ageRangeStr =
+          minAge === maxAge
+            ? `${minAge} years old`
+            : `${minAge} to ${maxAge} years old`;
         averageAge = Math.round(
           audienceAges.reduce((sum: number, age: number) => sum + age, 0) /
             audienceAges.length
@@ -383,13 +389,23 @@ Return the story in this JSON format:
             user: userPrompt,
           },
           temperature,
-          geminiThinkingBudget: selectedTextModel === "gemini-2.5-pro" ? data.geminiThinkingBudget : undefined,
+          geminiThinkingBudget:
+            selectedTextModel === "gemini-2.5-pro"
+              ? data.geminiThinkingBudget
+              : undefined,
           // Cover image generation details
-          coverImageModel: data.enableIllustrations ? (data.coverImageModel || "gemini-2.0-flash-preview-image-generation") : null,
+          coverImageModel: data.enableIllustrations
+            ? data.coverImageModel ||
+              "gemini-2.0-flash-preview-image-generation"
+            : null,
           coverImagePrompt: data.enableIllustrations ? coverPrompt : null,
           // Page image generation details
-          pageImageModel: data.enableIllustrations ? (data.imageProvider || "flux") : null,
-          pageImagePrompts: data.enableIllustrations ? storyContent.pages.map((p: any) => p.imagePrompt) : null,
+          pageImageModel: data.enableIllustrations
+            ? data.imageProvider || "flux"
+            : null,
+          pageImagePrompts: data.enableIllustrations
+            ? storyContent.pages.map((p: any) => p.imagePrompt)
+            : null,
           pageImageGenerationData: {}, // Will be populated as individual pages are generated
           illustrationStyle: data.illustrationStyle,
           illustrationAiDescription: data.illustrationAiDescription,

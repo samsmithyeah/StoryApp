@@ -119,7 +119,7 @@ REQUIREMENTS:
 
         // Store the prompt used for this specific image
         const imageGenerationPrompt = subsequentPrompt;
-        
+
         const updateData: { [key: string]: any } = {
           storyContent: newStoryContent,
           imagesGenerated: FieldValue.increment(1),
