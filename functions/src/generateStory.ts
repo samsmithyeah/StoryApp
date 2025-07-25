@@ -105,10 +105,12 @@ export const generateStory = onCall(
       // 3. Generate story text and prompts using selected model
       const selectedTextModel = data.textModel || "gpt-4o";
       const temperature = data.temperature ?? 0.9; // Use user preference or default
-      
+
       // Debug logging for page image model
       console.log(`[DEBUG] Received pageImageModel: ${data.pageImageModel}`);
-      console.log(`[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gemini"}`);
+      console.log(
+        `[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gemini"}`
+      );
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       // Build character info from character selection screen

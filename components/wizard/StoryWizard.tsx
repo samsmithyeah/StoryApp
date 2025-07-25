@@ -108,8 +108,11 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       } as StoryGenerationRequest;
 
       // Debug logging
-      console.log('[DEBUG] Frontend preferences:', preferences);
-      console.log('[DEBUG] Generation request pageImageModel:', generationRequest.pageImageModel);
+      console.log("[DEBUG] Frontend preferences:", preferences);
+      console.log(
+        "[DEBUG] Generation request pageImageModel:",
+        generationRequest.pageImageModel
+      );
 
       const result = await generateStory(generationRequest);
 
