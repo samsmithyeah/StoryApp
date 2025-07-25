@@ -1,5 +1,5 @@
-import { functionsService, authService } from "./config";
-import { StoryConfiguration, Story } from "@/types/story.types";
+import { Story, StoryConfiguration } from "@/types/story.types";
+import { authService, functionsService } from "./config";
 
 export interface StoryGenerationRequest extends StoryConfiguration {
   enableIllustrations: boolean;
@@ -7,7 +7,9 @@ export interface StoryGenerationRequest extends StoryConfiguration {
 
 export const generateStory = async (config: StoryGenerationRequest) => {
   try {
-    const generateStoryFn = functionsService.httpsCallable("generateStory");
+    const generateStoryFn = functionsService.httpsCallable("generateStory", {
+      timeout: 180000, // 3 minutes timeout
+    });
     const result = await generateStoryFn(config);
 
     if ((result.data as any).success) {
