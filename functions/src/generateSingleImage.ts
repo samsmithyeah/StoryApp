@@ -47,18 +47,20 @@ export const generateSingleImage = onMessagePublished(
     const storyRef = db.collection("stories").doc(storyId);
 
     try {
-      const subsequentPrompt = `The input image is the book's cover, which establishes the appearance of the main characters and overall art style.
+      const subsequentPrompt = `Create a children's book illustration based on the cover image's art style.
 
-IMPORTANT CHARACTER CONSISTENCY REQUIREMENTS:
-- The story features these specific characters: ${characters.names}
-- Character appearances: ${characters.descriptions}
-- Always maintain the EXACT same visual appearance for each character as shown in the cover image
-- Only include characters that are specifically mentioned or implied in the scene description
-- If no characters are mentioned in the scene, create an appropriate scene without characters
+SCENE DESCRIPTION:
+${imagePrompt}
 
-Create a new illustration for this page scene: ${imagePrompt}
+CHARACTER REFERENCE (from cover image):
+${characters.descriptions}
 
-Maintain the same art style, character designs, and visual consistency as the cover image. Create a well-composed children's book page illustration in 1:1 aspect ratio format.`;
+REQUIREMENTS:
+• Match the exact art style and character designs from the cover image
+• Only include characters explicitly mentioned in the scene description above
+• Maintain consistent character appearances throughout
+• Square format (1:1 aspect ratio)
+• Child-friendly illustration style`;
 
       console.log(
         `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
@@ -115,9 +117,19 @@ Maintain the same art style, character designs, and visual consistency as the co
           throw new Error(`Page index ${pageIndex} is out of bounds.`);
         }
 
+        // Store the prompt used for this specific image
+        const imageGenerationPrompt = subsequentPrompt;
+        
         const updateData: { [key: string]: any } = {
           storyContent: newStoryContent,
           imagesGenerated: FieldValue.increment(1),
+          // Store page-specific generation data
+          [`generationMetadata.pageImageGenerationData.page${pageIndex + 1}`]: {
+            prompt: imageGenerationPrompt,
+            originalImagePrompt: imagePrompt,
+            model: imageProvider,
+            generatedAt: FieldValue.serverTimestamp(),
+          },
         };
 
         const currentImagesGenerated = storyData.imagesGenerated || 0;
