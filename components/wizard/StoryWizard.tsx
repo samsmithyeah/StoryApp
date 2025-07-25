@@ -102,10 +102,14 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         // Add preferences from user settings
         textModel: preferences.textModel,
         coverImageModel: preferences.coverImageModel,
-        imageProvider: preferences.pageImageModel,
+        pageImageModel: preferences.pageImageModel,
         temperature: preferences.temperature,
         geminiThinkingBudget: preferences.geminiThinkingBudget,
       } as StoryGenerationRequest;
+
+      // Debug logging
+      console.log('[DEBUG] Frontend preferences:', preferences);
+      console.log('[DEBUG] Generation request pageImageModel:', generationRequest.pageImageModel);
 
       const result = await generateStory(generationRequest);
 

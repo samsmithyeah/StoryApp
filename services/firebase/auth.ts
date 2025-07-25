@@ -34,6 +34,7 @@ const convertFirebaseUser = async (
       displayName: firebaseUser.displayName,
       photoURL: firebaseUser.photoURL,
       createdAt: userData?.createdAt?.toDate() || new Date(),
+      isAdmin: userData?.isAdmin || false,
     };
   } catch (error) {
     console.log(
@@ -47,6 +48,7 @@ const convertFirebaseUser = async (
       displayName: firebaseUser.displayName,
       photoURL: firebaseUser.photoURL,
       createdAt: new Date(),
+      isAdmin: false,
     };
   }
 };

@@ -72,6 +72,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           totalSteps={7}
           onBack={() => {}}
           onCancel={onCancel}
+          showBackButton={false}
         />
 
         {/* Children List */}

@@ -6,6 +6,7 @@ export interface User {
   displayName: string | null;
   photoURL: string | null;
   createdAt: Date;
+  isAdmin?: boolean;
 }
 
 export interface AuthState {

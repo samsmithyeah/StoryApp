@@ -14,7 +14,7 @@ export interface StoryGenerationRequest {
   illustrationStyle: string;
   illustrationAiDescription?: string;
   enableIllustrations: boolean;
-  imageProvider?: "flux" | "gemini"; // Optional, defaults to flux for backward compatibility
+  pageImageModel?: "flux" | "gemini" | "gpt-image-1"; // Optional, defaults to gemini
   textModel?: "gpt-4o" | "gemini-2.5-pro";
   coverImageModel?:
     | "gemini-2.0-flash-preview-image-generation"
