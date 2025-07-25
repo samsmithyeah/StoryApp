@@ -1,5 +1,5 @@
 import { PubSub } from "@google-cloud/pubsub";
-import * as admin from "firebase-admin";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import {
   CallableRequest,
   HttpsError,
@@ -34,11 +34,8 @@ export const generateStory = onCall(
 
     try {
       // 2. Fetch user and children data for personalization
-      const userDoc = await admin
-        .firestore()
-        .collection("users")
-        .doc(userId)
-        .get();
+      const db = getFirestore();
+      const userDoc = await db.collection("users").doc(userId).get();
       const userData = userDoc.data();
       if (!userData) {
         throw new HttpsError("not-found", "User not found");
@@ -181,10 +178,11 @@ Requirements:
 5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
 6. ${
         data.enableIllustrations
-          ? `For each page, include an image prompt description. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
+          ? `For each page, include an image prompt description - a visual description of how you envisage the scene. Include who and what should appear in the image. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
           : "No image prompts needed."
       }
-7. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
+7. Make sure the story has a clear beginning, middle, and end.
+8. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {
@@ -257,7 +255,7 @@ Return the story in this JSON format:
       }
 
       // 4. Generate the final Story ID *before* any uploads or writes
-      const storyRef = admin.firestore().collection("stories").doc();
+      const storyRef = db.collection("stories").doc();
       const storyId = storyRef.id;
 
       // 5. Generate and Upload Cover Image to its FINAL path
@@ -335,7 +333,7 @@ Return the story in this JSON format:
       const storyDocData = {
         userId,
         title: storyContent.title,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         storyContent: storyPages,
         coverImageUrl: coverImageStoragePath,
         storyConfiguration: data,

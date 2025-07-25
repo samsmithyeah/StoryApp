@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { getFluxClient } from "./utils/flux";
 import { getGeminiClient } from "./utils/gemini";
@@ -43,7 +43,8 @@ export const generateSingleImage = onMessagePublished(
     console.log(
       `[Worker] Received job for story ${storyId}, page ${pageIndex + 1}`
     );
-    const storyRef = admin.firestore().collection("stories").doc(storyId);
+    const db = getFirestore();
+    const storyRef = db.collection("stories").doc(storyId);
 
     try {
       const subsequentPrompt = `The input image is the book's cover, which establishes the appearance of the main characters and overall art style.
@@ -96,7 +97,7 @@ Maintain the same art style, character designs, and visual consistency as the co
       console.log(`[Worker] Uploaded to ${storagePath}.`);
 
       // Atomic update and completion check
-      await admin.firestore().runTransaction(async (transaction) => {
+      await db.runTransaction(async (transaction) => {
         const doc = await transaction.get(storyRef);
         if (!doc.exists) throw new Error("Document does not exist!");
 
@@ -116,7 +117,7 @@ Maintain the same art style, character designs, and visual consistency as the co
 
         const updateData: { [key: string]: any } = {
           storyContent: newStoryContent,
-          imagesGenerated: admin.firestore.FieldValue.increment(1),
+          imagesGenerated: FieldValue.increment(1),
         };
 
         const currentImagesGenerated = storyData.imagesGenerated || 0;
