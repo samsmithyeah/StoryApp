@@ -52,10 +52,6 @@ yarn-error.*
 .env*.local
 .env
 
-# Firebase configuration files (contain sensitive keys)
-GoogleService-Info.plist
-google-services.json
-
 # typescript
 *.tsbuildinfo
 

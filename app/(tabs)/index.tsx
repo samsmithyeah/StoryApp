@@ -1,3 +1,4 @@
+import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import {
   collection,
   onSnapshot,
@@ -56,18 +57,24 @@ export default function LibraryScreen() {
 
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setStories([]);
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate() || new Date(),
-      })) as Story[];
+      const list = snap.docs.map(
+        (d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
+          id: d.id,
+          ...d.data(),
+          createdAt: d.data().createdAt?.toDate() || new Date(),
+        })
+      ) as Story[];
       setStories(list);
       setLoading(false);
     });

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { Redirect } from "expo-router";
-import { useAuth } from "@/hooks/useAuth";
-import { useOnboarding } from "@/hooks/useOnboarding";
 import { WelcomeOnboarding } from "@/components/onboarding/WelcomeOnboarding";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useAuth } from "@/hooks/useAuth";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
@@ -12,43 +12,44 @@ export default function Index() {
     loading: onboardingLoading,
     completeOnboarding,
   } = useOnboarding();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [completingOnboarding, setCompletingOnboarding] = useState(false);
+
+  // State to ensure we only render/redirect once everything is confirmed ready.
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Show onboarding if user is authenticated but hasn't completed onboarding
-    if (user && hasCompletedOnboarding === false) {
-      setShowOnboarding(true);
-    } else if (user && hasCompletedOnboarding === true) {
-      setShowOnboarding(false);
-      setCompletingOnboarding(false);
+    // Only when both hooks are done loading, mark the app as ready to proceed.
+    if (!authLoading && !onboardingLoading) {
+      setIsReady(true);
     }
-  }, [user, hasCompletedOnboarding]);
+  }, [authLoading, onboardingLoading]);
 
   const handleOnboardingComplete = async () => {
-    setCompletingOnboarding(true);
-    setShowOnboarding(false);
+    // The hook update will trigger a re-render, and the logic below will handle redirection.
     await completeOnboarding();
   };
 
-  if (authLoading || onboardingLoading) {
+  // While waiting for hooks to resolve, show a loading screen.
+  // This is our primary defense against the race condition.
+  if (!isReady) {
     return <LoadingScreen message="Setting up DreamWeaver..." />;
   }
 
-  if (completingOnboarding) {
-    return <LoadingScreen message="Completing setup..." />;
-  }
-
-  // Show onboarding modal if needed
-  if (user && showOnboarding) {
-    return (
-      <WelcomeOnboarding visible={true} onComplete={handleOnboardingComplete} />
-    );
-  }
-
+  // Once ready, we can safely check the state and render the correct screen.
   if (user) {
-    return <Redirect href="/(tabs)" />;
+    if (hasCompletedOnboarding) {
+      // User is logged in and fully onboarded.
+      return <Redirect href="/(tabs)" />;
+    } else {
+      // User is logged in but needs onboarding.
+      return (
+        <WelcomeOnboarding
+          visible={true}
+          onComplete={handleOnboardingComplete}
+        />
+      );
+    }
   } else {
+    // No user, show the login screen.
     return <Redirect href="/(auth)/login" />;
   }
 }
