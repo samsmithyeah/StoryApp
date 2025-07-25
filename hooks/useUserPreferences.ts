@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { collection, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "@react-native-firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} from "@react-native-firebase/firestore";
 import { db } from "../services/firebase/config";
 import { useAuth } from "./useAuth";
 

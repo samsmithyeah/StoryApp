@@ -11,10 +11,7 @@ export const getStory = onCall(async (request) => {
   try {
     const userId = request.auth.uid;
     const db = getFirestore();
-    const storyDoc = await db
-      .collection("stories")
-      .doc(data.storyId)
-      .get();
+    const storyDoc = await db.collection("stories").doc(data.storyId).get();
 
     if (!storyDoc.exists) {
       throw new HttpsError("not-found", "Story not found");
