@@ -24,7 +24,7 @@ export interface UserPreferences {
     | "gemini-2.0-flash-preview-image-generation"
     | "dall-e-3"
     | "gpt-image-1";
-  pageImageModel: "flux" | "gemini";
+  pageImageModel: "flux" | "gemini" | "gpt-image-1";
   // Model generation settings
   temperature: number; // 0.0 to 2.0, controls randomness/creativity
   geminiThinkingBudget: number; // -1 for dynamic, 128-32768 for fixed budget

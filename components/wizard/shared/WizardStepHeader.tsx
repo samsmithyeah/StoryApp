@@ -18,6 +18,7 @@ interface WizardStepHeaderProps {
   totalSteps: number;
   onBack: () => void;
   onCancel?: () => void;
+  showBackButton?: boolean;
 }
 
 export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
@@ -27,14 +28,19 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
   totalSteps,
   onBack,
   onCancel,
+  showBackButton = true,
 }) => {
   return (
     <>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
+        {showBackButton ? (
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Text style={styles.backText}>←</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backButton} />
+        )}
 
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{title}</Text>

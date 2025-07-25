@@ -48,8 +48,8 @@ export default function SettingsScreen() {
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
-  // Only show advanced settings for developer
-  const isDeveloper = user?.uid === "s772Li2Zb1QzfZc1YASX9LoJACC2";
+  // Only show advanced settings for admin users
+  const isAdmin = user?.isAdmin === true;
 
   const handleAddChild = () => {
     setEditingChild(null);
@@ -225,7 +225,7 @@ export default function SettingsScreen() {
             />
           </View>
 
-          {isDeveloper && (
+          {isAdmin && (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.sectionHeader}
@@ -500,6 +500,26 @@ export default function SettingsScreen() {
                   <View style={styles.settingItem}>
                     <Text style={styles.settingLabel}>Page Image Model</Text>
                     <View style={styles.modelOptions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.modelOption,
+                          preferences.pageImageModel === "gpt-image-1" &&
+                            styles.selectedModelOption,
+                        ]}
+                        onPress={() =>
+                          updatePreferences({ pageImageModel: "gpt-image-1" })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.modelOptionText,
+                            preferences.pageImageModel === "gpt-image-1" &&
+                              styles.selectedModelOptionText,
+                          ]}
+                        >
+                          GPT Image-1
+                        </Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={[
                           styles.modelOption,

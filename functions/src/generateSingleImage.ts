@@ -1,7 +1,10 @@
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
+import { toFile } from "openai";
+import { Readable } from "stream";
 import { getFluxClient } from "./utils/flux";
 import { getGeminiClient } from "./utils/gemini";
+import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
 
@@ -10,7 +13,7 @@ interface ImageGenerationPayload {
   userId: string;
   pageIndex: number;
   imagePrompt: string;
-  imageProvider: "flux" | "gemini";
+  imageProvider: "flux" | "gemini" | "gpt-image-1";
   consistencyInput: {
     imageUrl: string;
     text: string;
@@ -24,7 +27,7 @@ interface ImageGenerationPayload {
 export const generateSingleImage = onMessagePublished(
   {
     topic: "generate-story-image",
-    secrets: ["FLUX_API_KEY", "GEMINI_API_KEY"],
+    secrets: ["FLUX_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"],
     timeoutSeconds: 300,
     memory: "1GiB",
   },
@@ -76,6 +79,41 @@ REQUIREMENTS:
             aspect_ratio: "1:1",
           })
         );
+      } else if (imageProvider === "gpt-image-1") {
+        const openai = getOpenAIClient();
+
+        // Extract base64 data from the cover image
+        const base64Data = consistencyInput.imageUrl.split(",")[1];
+        if (!base64Data) {
+          throw new Error(
+            "Could not extract base64 data from cover image for GPT-4"
+          );
+        }
+
+        // Create a readable stream and convert to File using toFile utility
+        const imageBuffer = Buffer.from(base64Data, "base64");
+        const imageStream = Readable.from(imageBuffer);
+        const imageFile = await toFile(imageStream, "cover.png", {
+          type: "image/png",
+        });
+
+        const response = await retryWithBackoff(() =>
+          openai.images.edit({
+            model: "gpt-image-1",
+            image: imageFile,
+            prompt: subsequentPrompt,
+            quality: "medium",
+            size: "1024x1024",
+            n: 1,
+          })
+        );
+
+        const imageData = response.data?.[0];
+        if (!imageData?.b64_json) {
+          throw new Error("No base64 image data returned from OpenAI");
+        }
+
+        finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
       } else {
         // Gemini
         const geminiClient = getGeminiClient();

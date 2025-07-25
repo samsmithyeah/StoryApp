@@ -16,14 +16,21 @@ export async function retryWithBackoff<T>(
       const isRetryableError =
         error.status === 429 || // Rate limit error
         (error.message &&
-          error.message.includes("No image data in Gemini response")); // Gemini no image data error
+          error.message.includes("No image data in Gemini response")) || // Gemini no image data error
+        (error.status === 400 &&
+          error.message &&
+          (error.message.includes("content policy") ||
+            error.message.includes("safety system") ||
+            error.message.includes("content guidelines"))); // OpenAI content filter errors
 
       if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i); // Exponential backoff
         const errorType =
           error.status === 429
             ? "Rate limited"
-            : "Gemini image generation failed";
+            : error.message?.includes("No image data in Gemini response")
+              ? "Gemini image generation failed"
+              : "Content policy violation";
         console.log(
           `${errorType}. Retrying after ${delay}ms (attempt ${
             i + 1

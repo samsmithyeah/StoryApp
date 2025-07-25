@@ -105,6 +105,12 @@ export const generateStory = onCall(
       // 3. Generate story text and prompts using selected model
       const selectedTextModel = data.textModel || "gpt-4o";
       const temperature = data.temperature ?? 0.9; // Use user preference or default
+
+      // Debug logging for page image model
+      console.log(`[DEBUG] Received pageImageModel: ${data.pageImageModel}`);
+      console.log(
+        `[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gemini"}`
+      );
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       // Build character info from character selection screen
@@ -334,6 +340,10 @@ Return the story in this JSON format:
               ...(selectedCoverImageModel === "dall-e-3" && {
                 response_format: "b64_json",
               }),
+              // Use low moderation for gpt-image-1 to reduce false positives
+              ...(selectedCoverImageModel === "gpt-image-1" && {
+                moderation: "low",
+              }),
             })
           );
 
@@ -401,7 +411,7 @@ Return the story in this JSON format:
           coverImagePrompt: data.enableIllustrations ? coverPrompt : null,
           // Page image generation details
           pageImageModel: data.enableIllustrations
-            ? data.imageProvider || "flux"
+            ? data.pageImageModel || "gemini"
             : null,
           pageImagePrompts: data.enableIllustrations
             ? storyContent.pages.map((p: any) => p.imagePrompt)
@@ -438,7 +448,7 @@ Return the story in this JSON format:
               userId,
               pageIndex: index,
               imagePrompt: page.imagePrompt,
-              imageProvider: data.imageProvider || "flux",
+              imageProvider: data.pageImageModel || "gemini",
               consistencyInput: {
                 imageUrl: coverImageUrlForWorkers,
                 text: storyContent.coverImagePrompt,
