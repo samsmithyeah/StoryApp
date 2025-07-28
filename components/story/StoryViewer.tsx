@@ -30,6 +30,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
+import { TheEndScreen } from "./TheEndScreen";
 
 const CREAM_COLOR = "#F5E6C8";
 
@@ -73,6 +74,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   const textPanelMaxPct = isTablet ? (isLandscape ? 0.38 : 0.44) : 0.48;
   const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
 
+  const totalPages = story.storyContent ? story.storyContent.length + 1 : 0; // +1 for the end screen
+
   useEffect(() => {
     if (Array.isArray(story.storyContent)) {
       setImageLoading(Array(story.storyContent.length).fill(true));
@@ -110,7 +113,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   const goToPage = useCallback(
     (idx: number) => {
       if (!story.storyContent) return;
-      if (idx < 0 || idx >= story.storyContent.length) return;
+      if (idx < 0 || idx >= totalPages) return;
 
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
@@ -120,7 +123,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         });
       }
     },
-    [story.storyContent, pageWidth]
+    [story.storyContent, pageWidth, totalPages]
   );
 
   const handleHorizontalScroll = (e: any) => {
@@ -245,7 +248,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   }
 
   const isFirst = currentPage === 0;
-  const isLast = currentPage === story.storyContent.length - 1;
+  const isLast = currentPage === totalPages - 1;
 
   return (
     <ImageBackground
@@ -309,6 +312,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               decelerationRate="fast"
             >
               {story.storyContent.map((p, i) => renderPage(p, i))}
+              {/* The End Screen */}
+              <View
+                key="end-screen"
+                style={[styles.pageContainer, { width: pageWidth }]}
+              >
+                <TheEndScreen
+                  onNewStory={() => router.replace("/(tabs)/create")}
+                  onBackToLibrary={() => router.replace("/(tabs)")}
+                />
+              </View>
             </ScrollView>
           </Animated.View>
 
