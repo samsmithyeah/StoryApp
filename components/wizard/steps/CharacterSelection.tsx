@@ -18,6 +18,7 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 interface CharacterSelectionProps {
   savedChildren: Child[];
+  selectedChildren: string[];
   characters?: StoryCharacter[];
   onUpdate: (data: { characters: StoryCharacter[] }) => void;
   onNext: () => void;
@@ -27,17 +28,44 @@ interface CharacterSelectionProps {
 
 export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   savedChildren,
+  selectedChildren,
   characters = [],
   onUpdate,
   onNext,
   onBack,
   onCancel,
 }) => {
+  // Initialize characters from previously selected children
+  const initializeCharacters = () => {
+    if (characters.length > 0) {
+      return characters;
+    }
+
+    // If no characters but we have selected children, create character entries for them
+    const charactersFromSelectedChildren = selectedChildren
+      .map((childId) => {
+        const child = savedChildren.find((c) => c.id === childId);
+        if (child) {
+          return {
+            name: child.childName,
+            isChild: true,
+            childId: child.id,
+          } as StoryCharacter;
+        }
+        return null;
+      })
+      .filter((char): char is StoryCharacter => char !== null);
+
+    return charactersFromSelectedChildren;
+  };
+
+  const initialCharacters = initializeCharacters();
+
   const [mode, setMode] = useState<"surprise" | "custom">(
-    characters.length > 0 ? "custom" : "surprise"
+    initialCharacters.length > 0 ? "custom" : "surprise"
   );
   const [selectedCharacters, setSelectedCharacters] =
-    useState<StoryCharacter[]>(characters);
+    useState<StoryCharacter[]>(initialCharacters);
   const [newCharacterName, setNewCharacterName] = useState("");
   const [newCharacterDescription, setNewCharacterDescription] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
