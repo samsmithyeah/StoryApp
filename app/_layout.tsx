@@ -12,15 +12,39 @@ import "react-native-reanimated";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { revenueCatService } from "@/services/revenueCat";
+import { useSubscriptionStore } from "@/store/subscriptionStore";
+import { useEffect } from "react";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  const { checkSubscription } = useSubscriptionStore();
 
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
   });
+
+  useEffect(() => {
+    const initializeRevenueCat = async () => {
+      try {
+        // Initialize RevenueCat with user ID if available
+        await revenueCatService.initialize(user?.uid);
+        
+        // Check subscription status
+        if (user) {
+          await checkSubscription();
+        }
+      } catch (error) {
+        console.error('Error initializing RevenueCat:', error);
+      }
+    };
+
+    if (loaded && !loading) {
+      initializeRevenueCat();
+    }
+  }, [loaded, loading, user, checkSubscription]);
 
   if (!loaded || loading) {
     // Show loading screen instead of null

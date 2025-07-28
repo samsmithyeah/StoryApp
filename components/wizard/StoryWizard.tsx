@@ -5,6 +5,7 @@ import {
 import { StoryConfiguration } from "@/types/story.types";
 import { useChildren } from "@/hooks/useChildren";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useSubscriptionStore } from "@/store/subscriptionStore";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -12,6 +13,7 @@ import {
   SafeAreaView,
   StyleSheet,
   View,
+  Alert,
 } from "react-native";
 import { ChildSelection } from "./steps/ChildSelection";
 import { GenerationStep } from "./steps/GenerationStep";
@@ -21,6 +23,7 @@ import { CharacterSelection } from "./steps/CharacterSelection";
 import { MoodSelection } from "./steps/MoodSelection";
 import { StoryDetails } from "./steps/StoryDetails";
 import { IllustrationSelection } from "./steps/IllustrationSelection";
+import { Paywall } from "../subscription/Paywall";
 
 const WIZARD_STEPS = [
   "child",
@@ -46,6 +49,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 }) => {
   const { children } = useChildren();
   const { preferences } = useUserPreferences();
+  const subscriptionStore = useSubscriptionStore();
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
@@ -60,6 +64,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   });
   const [_isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
@@ -93,6 +98,27 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
       if (!isWizardComplete(wizardData)) {
         console.error("Wizard data incomplete");
+        return;
+      }
+
+      // Check subscription status
+      const canGenerate = await subscriptionStore.incrementStoryCount();
+      if (!canGenerate) {
+        setIsGenerating(false);
+        Alert.alert(
+          "Story Limit Reached",
+          `You've used all ${3} free stories this month. Upgrade to Pro for unlimited story generation!`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Upgrade to Pro", 
+              onPress: () => {
+                // Navigate to subscription screen
+                setShowPaywall(true);
+              }
+            }
+          ]
+        );
         return;
       }
 
@@ -238,14 +264,25 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.content}>{renderStep()}</View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoid}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.content}>{renderStep()}</View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+      
+      <Paywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchaseSuccess={() => {
+          // Continue with story generation after successful purchase
+          handleGeneration();
+        }}
+      />
+    </>
   );
 };
 

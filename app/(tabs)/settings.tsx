@@ -26,7 +26,9 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useChildren } from "../../hooks/useChildren";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
+import { useSubscriptionStore } from "../../store/subscriptionStore";
 import { Child } from "../../types/child.types";
+import { Paywall } from "../../components/subscription/Paywall";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -43,10 +45,12 @@ export default function SettingsScreen() {
     clearError,
   } = useChildren();
   const { preferences, updatePreferences } = useUserPreferences();
+  const { isPro, getRemainingStories, monthlyStoryCount } = useSubscriptionStore();
 
   const [showForm, setShowForm] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
@@ -145,7 +149,8 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ImageBackground
+    <>
+      <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
       resizeMode="cover"
       style={styles.container}
@@ -568,6 +573,58 @@ export default function SettingsScreen() {
           )}
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Subscription</Text>
+            
+            <View style={styles.subscriptionInfo}>
+              <View style={styles.subscriptionStatus}>
+                <View style={styles.subscriptionHeader}>
+                  <Text style={styles.subscriptionType}>
+                    {isPro ? 'Pro' : 'Free'} Plan
+                  </Text>
+                  {isPro && (
+                    <View style={styles.proBadge}>
+                      <Text style={styles.proBadgeText}>PRO</Text>
+                    </View>
+                  )}
+                </View>
+                
+                {!isPro && (
+                  <View style={styles.storyLimitInfo}>
+                    <Text style={styles.storyLimitText}>
+                      Stories this month: {monthlyStoryCount} / 3
+                    </Text>
+                    <Text style={styles.remainingText}>
+                      {getRemainingStories() > 0 
+                        ? `${getRemainingStories()} stories remaining`
+                        : 'Monthly limit reached'}
+                    </Text>
+                  </View>
+                )}
+                
+                {isPro ? (
+                  <Text style={styles.subscriptionDescription}>
+                    Unlimited story generation
+                  </Text>
+                ) : (
+                  <Text style={styles.subscriptionDescription}>
+                    3 stories per month
+                  </Text>
+                )}
+              </View>
+              
+              {!isPro && (
+                <Button
+                  title="Upgrade to Pro"
+                  onPress={() => setShowPaywall(true)}
+                  variant="primary"
+                  leftIcon="wand.and.stars"
+                  style={styles.upgradeButton}
+                />
+              )}
+            </View>
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
 
             <View style={styles.accountInfo}>
@@ -595,7 +652,13 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
+      </ImageBackground>
+      
+      <Paywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
+    </>
   );
 }
 
@@ -782,6 +845,57 @@ const styles = StyleSheet.create({
   signOutButton: {
     borderColor: Colors.error,
     backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  subscriptionInfo: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
+  },
+  subscriptionStatus: {
+    marginBottom: Spacing.md,
+  },
+  subscriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  subscriptionType: {
+    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+  },
+  proBadge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 4,
+  },
+  proBadgeText: {
+    fontSize: Typography.fontSize.tiny,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.background,
+  },
+  storyLimitInfo: {
+    marginBottom: Spacing.sm,
+  },
+  storyLimitText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  remainingText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+  },
+  subscriptionDescription: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+  },
+  upgradeButton: {
+    marginTop: Spacing.md,
   },
   star: {
     position: "absolute",

@@ -15,6 +15,7 @@ export const Colors = {
   // Text colors
   text: "#FFFFFF", // Primary text
   textSecondary: "#B8B8B8", // Secondary text
+  textTertiary: "#888", // Tertiary text
   textMuted: "#999", // Muted text
   textDark: "#1a1b3a", // Dark text (on light backgrounds)
 
