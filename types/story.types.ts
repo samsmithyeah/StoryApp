@@ -9,6 +9,7 @@ export interface StoryCharacter {
   description?: string;
   isChild?: boolean;
   childId?: string;
+  isOneOff?: boolean; // Add this flag
 }
 
 export interface StoryConfiguration {
@@ -61,11 +62,4 @@ export interface StoryWizardData {
   setting: string;
   mood: string;
   lesson?: string;
-}
-
-export interface StoryState {
-  stories: Story[];
-  currentStory: Story | null;
-  loading: boolean;
-  error: string | null;
 }

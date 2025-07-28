@@ -7,7 +7,6 @@ import {
 } from "@/services/firebase/stories";
 import React, { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AISuggestedThemes } from "../shared/AISuggestedThemes";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -204,7 +203,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
-          {hasPreferences && (
+          {/* {hasPreferences && (
             <AISuggestedThemes
               selectedChildProfiles={selectedChildProfiles}
               loadingAiThemes={loadingAiThemes}
@@ -213,7 +212,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
               selectedTheme={selectedTheme}
               onThemeSelect={handleThemeSelect}
             />
-          )}
+          )} */}
           <CustomThemeSection
             customTheme={customTheme}
             isCustomThemeSelected={isCustomThemeSelected}

@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
+import { SavedCharacterCard } from "../../components/settings/SavedCharacterCard";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import {
@@ -25,8 +26,10 @@ import {
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { useChildren } from "../../hooks/useChildren";
+import { useSavedCharacters } from "../../hooks/useSavedCharacters";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
 import { Child } from "../../types/child.types";
+import { SavedCharacter } from "../../types/savedCharacter.types";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -43,6 +46,13 @@ export default function SettingsScreen() {
     deleteChild,
     clearError,
   } = useChildren();
+  const {
+    savedCharacters,
+    loading: _savedCharsLoading,
+    error: savedCharsError,
+    deleteSavedCharacter,
+    clearError: clearSavedCharsError,
+  } = useSavedCharacters();
   const { preferences, updatePreferences } = useUserPreferences();
 
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -63,6 +73,22 @@ export default function SettingsScreen() {
       await deleteChild(childId);
     } catch (error) {
       Alert.alert("Error", "Failed to delete child profile");
+    }
+  };
+
+  const handleAddSavedCharacter = () => {
+    router.push("/saved-character-profile");
+  };
+
+  const handleEditSavedCharacter = (character: SavedCharacter) => {
+    router.push(`/saved-character-profile?characterId=${character.id}`);
+  };
+
+  const handleDeleteSavedCharacter = async (characterId: string) => {
+    try {
+      await deleteSavedCharacter(characterId);
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete saved character");
     }
   };
 
@@ -155,6 +181,63 @@ export default function SettingsScreen() {
                 children.length === 0 ? "Add a child" : "Add another child"
               }
               onPress={handleAddChild}
+              leftIcon="plus"
+              variant="outline"
+              style={styles.addButton}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Saved characters</Text>
+            </View>
+            <Text style={styles.sectionDescription}>
+              Create reusable characters for your stories
+            </Text>
+
+            {savedCharsError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{savedCharsError}</Text>
+                <TouchableOpacity onPress={clearSavedCharsError}>
+                  <IconSymbol name="xmark.circle" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {savedCharacters.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  name="person.2.circle"
+                  size={64}
+                  color="#D1D5DB"
+                />
+                <Text style={styles.emptyStateTitle}>
+                  No saved characters yet
+                </Text>
+                <Text style={styles.emptyStateText}>
+                  Create characters that can be reused across multiple stories
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.childrenList}>
+                {savedCharacters.map((character) => (
+                  <SavedCharacterCard
+                    key={character.id}
+                    character={character}
+                    onEdit={handleEditSavedCharacter}
+                    onDelete={handleDeleteSavedCharacter}
+                  />
+                ))}
+              </View>
+            )}
+
+            <Button
+              title={
+                savedCharacters.length === 0
+                  ? "Create a character"
+                  : "Create another character"
+              }
+              onPress={handleAddSavedCharacter}
               leftIcon="plus"
               variant="outline"
               style={styles.addButton}

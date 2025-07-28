@@ -32,6 +32,9 @@ export default function WizardScreen() {
   };
 
   return (
-    <StoryWizard onComplete={handleWizardComplete} onCancel={handleCancel} />
+    <StoryWizard 
+      onComplete={handleWizardComplete} 
+      onCancel={handleCancel}
+    />
   );
 }

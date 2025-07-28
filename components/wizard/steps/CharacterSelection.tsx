@@ -1,13 +1,15 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { useSavedCharacters } from "@/hooks/useSavedCharacters";
 import { Child } from "@/types/child.types";
+import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -35,14 +37,16 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   onBack,
   onCancel,
 }) => {
-  // Initialize characters from previously selected children
+  const router = useRouter();
+  const { savedCharacters, temporaryCharacter, clearTemporaryCharacter } =
+    useSavedCharacters();
+
+  // This function correctly sets up the initial state from props
   const initializeCharacters = () => {
-    if (characters.length > 0) {
+    if (characters && characters.length > 0) {
       return characters;
     }
-
-    // If no characters but we have selected children, create character entries for them
-    const charactersFromSelectedChildren = selectedChildren
+    return selectedChildren
       .map((childId) => {
         const child = savedChildren.find((c) => c.id === childId);
         if (child) {
@@ -55,60 +59,178 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
         return null;
       })
       .filter((char): char is StoryCharacter => char !== null);
-
-    return charactersFromSelectedChildren;
   };
 
   const initialCharacters = initializeCharacters();
 
+  // State for all temporary characters created in this session
+  const [oneOffCharacters, setOneOffCharacters] = useState<StoryCharacter[]>(
+    initialCharacters.filter((c) => c.isOneOff)
+  );
+
+  // Single source of truth for what is currently selected
+  const [selectedCharacters, setSelectedCharacters] =
+    useState<StoryCharacter[]>(initialCharacters);
+
   const [mode, setMode] = useState<"surprise" | "custom">(
     initialCharacters.length > 0 ? "custom" : "surprise"
   );
-  const [selectedCharacters, setSelectedCharacters] =
-    useState<StoryCharacter[]>(initialCharacters);
-  const [newCharacterName, setNewCharacterName] = useState("");
-  const [newCharacterDescription, setNewCharacterDescription] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [lastSavedCharactersLength, setLastSavedCharactersLength] = useState(
+    savedCharacters.length
+  );
+
+  useEffect(() => {
+    if (savedCharacters.length > lastSavedCharactersLength) {
+      const newestCharacter = savedCharacters[0];
+      if (newestCharacter) {
+        const newStoryCharacter: StoryCharacter = {
+          name: newestCharacter.name,
+          description: newestCharacter.description,
+          isChild: false,
+        };
+        setSelectedCharacters((prev) => {
+          const isAlreadySelected = prev.some(
+            (char) => char.name === newStoryCharacter.name && !char.isChild
+          );
+          if (!isAlreadySelected) {
+            setMode("custom");
+            return [...prev, newStoryCharacter];
+          }
+          return prev;
+        });
+      }
+    }
+    setLastSavedCharactersLength(savedCharacters.length);
+  }, [savedCharacters, lastSavedCharactersLength]);
+
+  useEffect(() => {
+    if (temporaryCharacter) {
+      const { character, indexToUpdate, removeIndex } = temporaryCharacter;
+      if (removeIndex !== undefined) {
+        // Remove a temp character (when it's converted to saved)
+        const charToRemove = oneOffCharacters[removeIndex];
+        setOneOffCharacters((prev) => prev.filter((_, index) => index !== removeIndex));
+        setSelectedCharacters((prev) => prev.filter((c) => c !== charToRemove));
+      } else if (indexToUpdate !== undefined) {
+        // This is an EDIT of an existing one-off character
+        const oldChar = oneOffCharacters[indexToUpdate];
+        setOneOffCharacters((prev) => {
+          const updated = [...prev];
+          updated[indexToUpdate] = character;
+          return updated;
+        });
+        setSelectedCharacters((prev) =>
+          prev.map((c) => (c === oldChar ? character : c))
+        );
+      } else {
+        // This is a NEW one-off character
+        setOneOffCharacters((prev) => [...prev, character]);
+        setSelectedCharacters((prev) => [...prev, character]);
+        setMode("custom");
+      }
+      clearTemporaryCharacter();
+    }
+  }, [temporaryCharacter, clearTemporaryCharacter, oneOffCharacters]);
 
   const handleToggleChild = (child: Child) => {
-    const existingIndex = selectedCharacters.findIndex(
-      (char) => char.isChild && char.childId === child.id
-    );
-
-    if (existingIndex >= 0) {
-      setSelectedCharacters(
-        selectedCharacters.filter((_, i) => i !== existingIndex)
+    setSelectedCharacters((prev) => {
+      const isSelected = prev.some(
+        (char) => char.isChild && char.childId === child.id
       );
-    } else {
-      setSelectedCharacters([
-        ...selectedCharacters,
-        {
-          name: child.childName,
-          isChild: true,
-          childId: child.id,
-        },
-      ]);
-    }
+      if (isSelected) {
+        return prev.filter(
+          (char) => !(char.isChild && char.childId === child.id)
+        );
+      } else {
+        return [
+          ...prev,
+          { name: child.childName, isChild: true, childId: child.id },
+        ];
+      }
+    });
   };
 
-  const handleAddCustomCharacter = () => {
-    if (newCharacterName.trim()) {
-      setSelectedCharacters([
-        ...selectedCharacters,
-        {
-          name: newCharacterName.trim(),
-          description: newCharacterDescription.trim() || undefined,
-          isChild: false,
-        },
-      ]);
-      setNewCharacterName("");
-      setNewCharacterDescription("");
-      setShowAddForm(false);
-    }
+  const handleToggleSavedCharacter = (savedChar: SavedCharacter) => {
+    setSelectedCharacters((prev) => {
+      const isSelected = prev.some(
+        (char) =>
+          !char.isChild &&
+          char.name === savedChar.name &&
+          char.description === savedChar.description
+      );
+      if (isSelected) {
+        return prev.filter(
+          (char) =>
+            !(
+              !char.isChild &&
+              char.name === savedChar.name &&
+              char.description === savedChar.description
+            )
+        );
+      } else {
+        return [
+          ...prev,
+          {
+            name: savedChar.name,
+            description: savedChar.description,
+            isChild: false,
+          },
+        ];
+      }
+    });
   };
 
-  const handleRemoveCharacter = (index: number) => {
-    setSelectedCharacters(selectedCharacters.filter((_, i) => i !== index));
+  const handleToggleOneOffCharacter = (charToToggle: StoryCharacter) => {
+    setSelectedCharacters((prev) => {
+      const isSelected = prev.some((char) => char === charToToggle);
+      if (isSelected) {
+        return prev.filter((char) => char !== charToToggle);
+      } else {
+        return [...prev, charToToggle];
+      }
+    });
+  };
+
+  const handleEditOneOffCharacter = (
+    character: StoryCharacter,
+    index: number
+  ) => {
+    const [description, appearance] = character.description?.split("; ") || [
+      "",
+      "",
+    ];
+    router.push({
+      pathname: "/saved-character-profile",
+      params: {
+        fromWizard: "true",
+        tempCharIndex: index.toString(),
+        name: character.name,
+        description,
+        appearance,
+      },
+    });
+  };
+
+  const handleEditSavedCharacter = (characterId: string) => {
+    router.push(`/saved-character-profile?characterId=${characterId}`);
+  };
+
+  const handleAddNewCharacter = () => {
+    router.push("/saved-character-profile?fromWizard=true");
+  };
+
+  const isCharacterSelected = (charToFind: StoryCharacter) => {
+    return selectedCharacters.some((char) => char === charToFind);
+  };
+
+  const isSavedCharacterSelected = (savedChar: SavedCharacter) => {
+    return selectedCharacters.some(
+      (char) =>
+        !char.isChild &&
+        !char.isOneOff &&
+        char.name === savedChar.name &&
+        char.description === savedChar.description
+    );
   };
 
   const handleNext = () => {
@@ -150,7 +272,6 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
           onBack={onBack}
           onCancel={onCancel}
         />
-
         <View style={styles.content}>
           <View style={styles.optionsContainer}>
             {options.map((option) => (
@@ -165,12 +286,11 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
               />
             ))}
           </View>
-
           {mode === "custom" && (
             <>
               {savedChildren.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Saved children</Text>
+                  <Text style={styles.sectionTitle}>Your children</Text>
                   {savedChildren.map((child) => (
                     <TouchableOpacity
                       key={child.id}
@@ -200,102 +320,135 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
                   ))}
                 </View>
               )}
-
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Custom characters</Text>
-
-                {selectedCharacters
-                  .filter((char) => !char.isChild)
-                  .map((character, index) => (
-                    <View key={index} style={styles.characterItem}>
-                      <View style={styles.characterInfo}>
-                        <Text style={styles.characterName}>
-                          {character.name}
-                        </Text>
-                        {character.description && (
-                          <Text style={styles.characterDescription}>
-                            {character.description}
-                          </Text>
-                        )}
-                      </View>
-                      <TouchableOpacity
-                        onPress={() =>
-                          handleRemoveCharacter(
-                            selectedCharacters.findIndex((c) => c === character)
-                          )
-                        }
-                      >
-                        <Ionicons
-                          name="close-circle"
-                          size={24}
-                          color={Colors.error}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-
-                {!showAddForm ? (
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Custom characters</Text>
                   <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => setShowAddForm(true)}
+                    onPress={handleAddNewCharacter}
+                    style={styles.addSavedCharacterButton}
                   >
                     <Ionicons
                       name="add-circle-outline"
-                      size={24}
+                      size={20}
                       color={Colors.primary}
                     />
-                    <Text style={styles.addButtonText}>
-                      Add custom character
-                    </Text>
                   </TouchableOpacity>
-                ) : (
-                  <View style={styles.addForm}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Character name"
-                      placeholderTextColor={Colors.textMuted}
-                      value={newCharacterName}
-                      onChangeText={setNewCharacterName}
-                    />
-                    <TextInput
-                      style={[styles.input, styles.descriptionInput]}
-                      placeholder="Description (optional)"
-                      placeholderTextColor={Colors.textMuted}
-                      value={newCharacterDescription}
-                      onChangeText={setNewCharacterDescription}
-                      multiline
-                      numberOfLines={3}
-                    />
-                    <View style={styles.formButtons}>
-                      <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => {
-                          setShowAddForm(false);
-                          setNewCharacterName("");
-                          setNewCharacterDescription("");
-                        }}
-                      >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.saveButton,
-                          !newCharacterName.trim() && styles.saveButtonDisabled,
-                        ]}
-                        onPress={handleAddCustomCharacter}
-                        disabled={!newCharacterName.trim()}
-                      >
-                        <Text style={styles.saveButtonText}>Add</Text>
-                      </TouchableOpacity>
+                </View>
+                {oneOffCharacters.map((char, index) => {
+                  const isSelected = isCharacterSelected(char);
+                  return (
+                    <TouchableOpacity
+                      key={`one-off-${index}`}
+                      style={[
+                        styles.childOption,
+                        isSelected && styles.childOptionSelected,
+                      ]}
+                      onPress={() => handleToggleOneOffCharacter(char)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.childInfo}>
+                        <Text style={styles.childName}>{char.name}</Text>
+                        {char.description && (
+                          <Text
+                            style={styles.characterDescription}
+                            numberOfLines={1}
+                          >
+                            {char.description}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.characterActions}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleEditOneOffCharacter(char, index);
+                          }}
+                          style={styles.editIconButton}
+                        >
+                          <Ionicons
+                            name="pencil"
+                            size={16}
+                            color={Colors.textMuted}
+                          />
+                        </TouchableOpacity>
+                        <Ionicons
+                          name={
+                            isSelected
+                              ? "checkmark-circle"
+                              : "add-circle-outline"
+                          }
+                          size={24}
+                          color={isSelected ? Colors.primary : Colors.textMuted}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+                {savedCharacters.map((savedChar) => (
+                  <TouchableOpacity
+                    key={savedChar.id}
+                    style={[
+                      styles.childOption,
+                      isSavedCharacterSelected(savedChar) &&
+                        styles.childOptionSelected,
+                    ]}
+                    onPress={() => handleToggleSavedCharacter(savedChar)}
+                  >
+                    <View style={styles.childInfo}>
+                      <Text style={styles.childName}>{savedChar.name}</Text>
+                      {savedChar.description && (
+                        <Text
+                          style={styles.characterDescription}
+                          numberOfLines={1}
+                        >
+                          {savedChar.description}
+                        </Text>
+                      )}
                     </View>
-                  </View>
-                )}
+                    <View style={styles.characterActions}>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleEditSavedCharacter(savedChar.id);
+                        }}
+                        style={styles.editIconButton}
+                      >
+                        <Ionicons
+                          name="pencil"
+                          size={16}
+                          color={Colors.textMuted}
+                        />
+                      </TouchableOpacity>
+                      <Ionicons
+                        name={
+                          isSavedCharacterSelected(savedChar)
+                            ? "checkmark-circle"
+                            : "add-circle-outline"
+                        }
+                        size={24}
+                        color={
+                          isSavedCharacterSelected(savedChar)
+                            ? Colors.primary
+                            : Colors.textMuted
+                        }
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+                {savedCharacters.length === 0 &&
+                  oneOffCharacters.length === 0 && (
+                    <View style={styles.emptyStateContainer}>
+                      <Text style={styles.emptyStateText}>
+                        No custom characters yet. Create one to reuse across
+                        stories!
+                      </Text>
+                    </View>
+                  )}
               </View>
             </>
           )}
         </View>
       </ScrollView>
-
       <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
     </WizardContainer>
   );
@@ -342,28 +495,9 @@ const styles = StyleSheet.create({
   },
   childInfo: {
     flex: 1,
+    marginRight: Spacing.sm,
   },
   childName: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.text,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  characterItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.backgroundLight,
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  characterInfo: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  characterName: {
     fontSize: Typography.fontSize.medium,
     color: Colors.text,
     fontWeight: Typography.fontWeight.medium,
@@ -373,69 +507,36 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 4,
   },
-  addButton: {
+  characterActions: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  addSavedCharacterButton: {
+    padding: Spacing.xs,
+  },
+  editIconButton: {
+    padding: Spacing.xs,
+  },
+  emptyStateContainer: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     backgroundColor: Colors.backgroundLight,
     borderRadius: BorderRadius.medium,
-    padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.borderLight,
     borderStyle: "dashed",
   },
-  addButtonText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.primary,
-    marginLeft: Spacing.sm,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  addForm: {
-    backgroundColor: Colors.backgroundLight,
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  input: {
-    backgroundColor: Colors.background,
-    borderRadius: Spacing.sm,
-    padding: Spacing.md,
-    fontSize: Typography.fontSize.medium,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  descriptionInput: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  formButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: Spacing.md,
-  },
-  cancelButton: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm + 2,
-  },
-  cancelButtonText: {
-    fontSize: Typography.fontSize.medium,
+  emptyStateText: {
+    fontSize: Typography.fontSize.small,
     color: Colors.textMuted,
-  },
-  saveButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Spacing.sm,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.textMuted,
-  },
-  saveButtonText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textDark,
-    fontWeight: Typography.fontWeight.semibold,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
