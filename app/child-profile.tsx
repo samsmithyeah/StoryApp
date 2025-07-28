@@ -79,9 +79,7 @@ export default function ChildProfileScreen() {
           <TouchableOpacity style={styles.headerButton} onPress={handleCancel}>
             <Text style={styles.headerButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {""}
-          </Text>
+          <Text style={styles.headerTitle}>{""}</Text>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => {

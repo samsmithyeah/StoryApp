@@ -2,6 +2,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from "react";
 import {
@@ -73,7 +74,7 @@ export const ChildProfileForm = forwardRef<
   const isEditing = !!child;
 
   // Track initial values for detecting changes
-  const [initialValues] = useState({
+  const initialValues = useRef({
     childName: child?.childName || "",
     dateOfBirth: child?.dateOfBirth,
     childPreferences: child?.childPreferences || "",
@@ -86,14 +87,14 @@ export const ChildProfileForm = forwardRef<
 
   const hasUnsavedChanges = () => {
     return (
-      childName.trim() !== initialValues.childName ||
-      dateOfBirth !== initialValues.dateOfBirth ||
-      childPreferences.trim() !== initialValues.childPreferences ||
-      hairColor.trim() !== initialValues.hairColor ||
-      eyeColor.trim() !== initialValues.eyeColor ||
-      skinColor.trim() !== initialValues.skinColor ||
-      hairStyle.trim() !== initialValues.hairStyle ||
-      appearanceDetails.trim() !== initialValues.appearanceDetails
+      childName.trim() !== initialValues.current.childName ||
+      dateOfBirth !== initialValues.current.dateOfBirth ||
+      childPreferences.trim() !== initialValues.current.childPreferences ||
+      hairColor.trim() !== initialValues.current.hairColor ||
+      eyeColor.trim() !== initialValues.current.eyeColor ||
+      skinColor.trim() !== initialValues.current.skinColor ||
+      hairStyle.trim() !== initialValues.current.hairStyle ||
+      appearanceDetails.trim() !== initialValues.current.appearanceDetails
     );
   };
 
@@ -112,6 +113,30 @@ export const ChildProfileForm = forwardRef<
       setSkinColor(child.skinColor || "");
       setHairStyle(child.hairStyle || "");
       setAppearanceDetails(child.appearanceDetails || "");
+
+      // Update initial values when child changes
+      initialValues.current = {
+        childName: child.childName,
+        dateOfBirth: child.dateOfBirth,
+        childPreferences: child.childPreferences || "",
+        hairColor: child.hairColor || "",
+        eyeColor: child.eyeColor || "",
+        skinColor: child.skinColor || "",
+        hairStyle: child.hairStyle || "",
+        appearanceDetails: child.appearanceDetails || "",
+      };
+    } else {
+      // Reset for new child
+      initialValues.current = {
+        childName: "",
+        dateOfBirth: undefined,
+        childPreferences: "",
+        hairColor: "",
+        eyeColor: "",
+        skinColor: "",
+        hairStyle: "",
+        appearanceDetails: "",
+      };
     }
   }, [child]);
 
