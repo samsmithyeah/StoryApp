@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import {
   Alert,
   Dimensions,
@@ -30,17 +35,21 @@ interface ChildProfileFormProps {
   title?: string;
 }
 
-export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
-  child,
-  onSave,
-  onCancel,
-  loading = false,
-  submitButtonText = "Save child",
-  showCancelButton = false,
-  cancelButtonText = "Cancel",
-  cancelAsLink = false,
-  title,
-}) => {
+export const ChildProfileForm = forwardRef<
+  { handleSave: () => void; hasUnsavedChanges: () => boolean },
+  ChildProfileFormProps
+>((props, ref) => {
+  const {
+    child,
+    onSave,
+    onCancel,
+    loading = false,
+    submitButtonText = "Save child",
+    showCancelButton = false,
+    cancelButtonText = "Cancel",
+    cancelAsLink = false,
+    title,
+  } = props;
   const [childName, setChildName] = useState(child?.childName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
     child?.dateOfBirth
@@ -62,6 +71,36 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
   }>({});
 
   const isEditing = !!child;
+
+  // Track initial values for detecting changes
+  const [initialValues] = useState({
+    childName: child?.childName || "",
+    dateOfBirth: child?.dateOfBirth,
+    childPreferences: child?.childPreferences || "",
+    hairColor: child?.hairColor || "",
+    eyeColor: child?.eyeColor || "",
+    skinColor: child?.skinColor || "",
+    hairStyle: child?.hairStyle || "",
+    appearanceDetails: child?.appearanceDetails || "",
+  });
+
+  const hasUnsavedChanges = () => {
+    return (
+      childName.trim() !== initialValues.childName ||
+      dateOfBirth !== initialValues.dateOfBirth ||
+      childPreferences.trim() !== initialValues.childPreferences ||
+      hairColor.trim() !== initialValues.hairColor ||
+      eyeColor.trim() !== initialValues.eyeColor ||
+      skinColor.trim() !== initialValues.skinColor ||
+      hairStyle.trim() !== initialValues.hairStyle ||
+      appearanceDetails.trim() !== initialValues.appearanceDetails
+    );
+  };
+
+  useImperativeHandle(ref, () => ({
+    handleSave,
+    hasUnsavedChanges,
+  }));
 
   useEffect(() => {
     if (child) {
@@ -164,7 +203,7 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
       >
         <View style={styles.header}>
           <Text style={styles.title}>
-            {title || (isEditing ? "Edit profile" : "Add new child")}
+            {title || (isEditing ? "Edit profile" : "Add a new child")}
           </Text>
           <Text style={styles.subtitle}>
             {isEditing
@@ -325,19 +364,19 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
           </View>
         </View>
 
-        <View style={styles.actions}>
-          <Button
-            title={
-              submitButtonText || (isEditing ? "Update profile" : "Add child")
-            }
-            onPress={handleSave}
-            loading={loading}
-            variant="primary"
-            style={styles.fullWidthButton}
-          />
+        {showCancelButton && (
+          <View style={styles.actions}>
+            <Button
+              title={
+                submitButtonText || (isEditing ? "Update profile" : "Add child")
+              }
+              onPress={handleSave}
+              loading={loading}
+              variant="primary"
+              style={styles.fullWidthButton}
+            />
 
-          {showCancelButton &&
-            (cancelAsLink ? (
+            {cancelAsLink ? (
               <Text style={styles.cancelLink} onPress={onCancel}>
                 {cancelButtonText}
               </Text>
@@ -348,12 +387,13 @@ export const ChildProfileForm: React.FC<ChildProfileFormProps> = ({
                 variant="outline"
                 style={styles.cancelButton}
               />
-            ))}
-        </View>
+            )}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -365,8 +405,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.screenPadding,
-    paddingBottom: 80,
   },
   header: {
     marginBottom: Spacing.xxxl,
@@ -458,3 +496,5 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
+
+ChildProfileForm.displayName = "ChildProfileForm";

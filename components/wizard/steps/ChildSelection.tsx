@@ -144,7 +144,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             {/* Add Child Link */}
             <TouchableOpacity
               style={styles.addChildLink}
-              onPress={() => router.push("/(tabs)/settings")}
+              onPress={() => router.push("/child-profile")}
             >
               <Text style={styles.addChildText}>+ Add another child</Text>
             </TouchableOpacity>

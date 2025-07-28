@@ -1,27 +1,27 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
+  ImageBackground,
+  Modal,
   SafeAreaView,
   ScrollView,
-  Modal,
-  ImageBackground,
-  Dimensions,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { IconSymbol } from "../ui/IconSymbol";
-import { Button } from "../ui/Button";
-import { ChildProfileForm } from "../settings/ChildProfileForm";
+import {
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
+} from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
 import { Child } from "../../types/child.types";
-import {
-  Colors,
-  Typography,
-  Spacing,
-  BorderRadius,
-  Shadows,
-} from "../../constants/Theme";
+import { ChildProfileForm } from "../settings/ChildProfileForm";
+import { Button } from "../ui/Button";
+import { IconSymbol } from "../ui/IconSymbol";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -155,7 +155,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
                   showCancelButton={true}
                   cancelButtonText="Skip for now"
                   cancelAsLink={true}
-                  title="Add new child"
+                  title="Add a new child"
                 />
               </ScrollView>
             </View>

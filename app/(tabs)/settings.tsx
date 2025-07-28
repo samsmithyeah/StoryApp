@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -14,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
-import { ChildProfileForm } from "../../components/settings/ChildProfileForm";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import {
@@ -32,49 +32,32 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const {
     children,
-    loading,
+    loading: _loading,
     error,
-    addChild,
-    updateChild,
+    addChild: _addChild,
+    updateChild: _updateChild,
     deleteChild,
     clearError,
   } = useChildren();
   const { preferences, updatePreferences } = useUserPreferences();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
 
   const handleAddChild = () => {
-    setEditingChild(null);
-    setShowForm(true);
+    router.push("/child-profile");
   };
 
   const handleEditChild = (child: Child) => {
-    setEditingChild(child);
-    setShowForm(true);
+    router.push(`/child-profile?childId=${child.id}`);
   };
 
-  const handleSaveChild = async (childData: Omit<Child, "id">) => {
-    try {
-      if (editingChild) {
-        await updateChild(editingChild.id, childData);
-      } else {
-        await addChild(childData);
-      }
-      setShowForm(false);
-      setEditingChild(null);
-    } catch (error) {
-      // Error handled in hook
-      console.error("Save child error:", error);
-    }
-  };
 
   const handleDeleteChild = async (childId: string) => {
     try {
@@ -84,10 +67,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingChild(null);
-  };
 
   const handleSignOut = () => {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
@@ -103,46 +82,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  if (showForm) {
-    return (
-      <ImageBackground
-        source={require("../../assets/images/background-landscape.png")}
-        resizeMode="cover"
-        style={styles.container}
-      >
-        <LinearGradient
-          colors={[
-            Colors.backgroundGradientStart,
-            Colors.backgroundGradientEnd,
-          ]}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.formHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleCancelForm}
-            >
-              <IconSymbol
-                name="chevron.left"
-                size={24}
-                color={Colors.primary}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Settings</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          <ChildProfileForm
-            child={editingChild || undefined}
-            onSave={handleSaveChild}
-            onCancel={handleCancelForm}
-            loading={loading}
-          />
-        </SafeAreaView>
-      </ImageBackground>
-    );
-  }
 
   return (
     <ImageBackground
