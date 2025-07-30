@@ -4,7 +4,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   ImageBackground,
   Platform,
@@ -30,6 +29,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
+import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { TheEndScreen } from "./TheEndScreen";
 
 const CREAM_COLOR = "#F5E6C8";
@@ -54,6 +54,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
+  const [imageErrors, setImageErrors] = useState<boolean[]>([]);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -78,7 +79,19 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
   useEffect(() => {
     if (Array.isArray(story.storyContent)) {
-      setImageLoading(Array(story.storyContent.length).fill(true));
+      // Initialize based on each page's current state
+      const initialLoading = story.storyContent.map((page) => {
+        // Show loading only if no imageUrl and generation is still active
+        return !page.imageUrl && (story.imageGenerationStatus === "generating" || story.imageGenerationStatus === "pending");
+      });
+      
+      const initialErrors = story.storyContent.map((page) => {
+        // Show error if no imageUrl and generation is not active (completed, failed, or not_requested)
+        return !page.imageUrl && story.imageGenerationStatus !== "generating" && story.imageGenerationStatus !== "pending";
+      });
+      
+      setImageLoading(initialLoading);
+      setImageErrors(initialErrors);
     }
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -109,6 +122,19 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       next[idx] = false;
       return next;
     });
+
+  const handleImageError = (idx: number) => {
+    setImageLoading((prev) => {
+      const next = [...prev];
+      next[idx] = false;
+      return next;
+    });
+    setImageErrors((prev) => {
+      const next = [...prev];
+      next[idx] = true;
+      return next;
+    });
+  };
 
   const goToPage = useCallback(
     (idx: number) => {
@@ -142,27 +168,44 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             <View style={[styles.storyCard, { height: availableHeight }]}>
               {hasImages && (
                 <View style={[styles.imageContainer, styles.imageFlex]}>
-                  {imageLoading[index] && (
-                    <ActivityIndicator
-                      size="large"
-                      color={Colors.primary}
-                      style={styles.imageLoader}
-                    />
+                  {imageLoading[index] && !imageErrors[index] && (
+                    <View style={styles.imageLoader}>
+                      <LoadingSpinner size="medium" showGlow={false} />
+                    </View>
                   )}
-                  {imageUrl ? (
+                  {imageErrors[index] ? (
+                    <View style={styles.errorImage}>
+                      <IconSymbol
+                        name="exclamationmark.triangle"
+                        size={48}
+                        color={Colors.error}
+                      />
+                      <Text style={styles.errorText}>
+                        {story.imageGenerationStatus === "failed" 
+                          ? "Image generation failed"
+                          : "Image failed to load"}
+                      </Text>
+                    </View>
+                  ) : imageUrl ? (
                     <Image
                       source={{ uri: imageUrl }}
                       style={styles.pageImage}
                       contentFit="cover"
                       onLoad={() => handleImageLoad(index)}
+                      onError={() => handleImageError(index)}
                     />
-                  ) : (
-                    <View style={styles.placeholderImage}>
+                  ) : !imageLoading[index] ? (
+                    <View style={styles.errorImage}>
                       <IconSymbol
-                        name="photo"
+                        name="photo.badge.exclamationmark"
                         size={48}
                         color={Colors.textMuted}
                       />
+                      <Text style={styles.errorText}>No image available</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                      <LoadingSpinner size="medium" showGlow={false} />
                     </View>
                   )}
                 </View>
@@ -433,12 +476,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    transform: [{ translateX: -20 }, { translateY: -20 }],
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    width: 100,
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
   },
   placeholderImage: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorImage: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.lg,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
   },
 
   textPanel: {
@@ -511,9 +565,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxxl,
   },
   errorText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.small,
+    color: Colors.error,
     textAlign: "center",
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
   },
 });

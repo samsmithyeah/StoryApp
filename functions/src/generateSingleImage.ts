@@ -22,6 +22,9 @@ interface ImageGenerationPayload {
     names: string;
     descriptions: string;
   };
+  artStyle?: string;
+  artStyleBackup1?: string;
+  artStyleBackup2?: string;
 }
 
 export const generateSingleImage = onMessagePublished(
@@ -41,6 +44,9 @@ export const generateSingleImage = onMessagePublished(
       imageProvider,
       consistencyInput,
       characters,
+      artStyle,
+      artStyleBackup1,
+      artStyleBackup2,
     } = payload;
 
     console.log(
@@ -50,7 +56,9 @@ export const generateSingleImage = onMessagePublished(
     const storyRef = db.collection("stories").doc(storyId);
 
     try {
-      const subsequentPrompt = `Create a children's book illustration based on the cover image's art style.
+      // Helper function to create prompt with specific art style
+      const createPrompt = (styleDescription?: string) => {
+        return `Create a children's book illustration based on the cover image's art style.
 
 SCENE DESCRIPTION:
 ${imagePrompt}
@@ -58,18 +66,25 @@ ${imagePrompt}
 CHARACTER REFERENCE (from cover image):
 ${characters.descriptions}
 
+ART STYLE:
+${styleDescription ? `Create the illustration in the "${styleDescription}" art style to match the story's chosen aesthetic.` : "Follow the art style from the cover image."}
+
 REQUIREMENTS:
 • Match the exact art style and character designs from the cover image
+• ${styleDescription ? `Ensure the illustration matches the "${styleDescription}" art style` : "Maintain consistent art style from cover"}
 • Only include characters explicitly mentioned in the scene description above
 • Maintain consistent character appearances throughout
 • Square format (1:1 aspect ratio)
 • Child-friendly illustration style`;
+      };
+
+      const subsequentPrompt = createPrompt(artStyle);
 
       console.log(
         `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
       );
 
-      let finalImageUrl: string;
+      let finalImageUrl: string = "";
       if (imageProvider === "flux") {
         const fluxClient = getFluxClient();
         finalImageUrl = await retryWithBackoff(() =>
@@ -97,23 +112,73 @@ REQUIREMENTS:
           type: "image/png",
         });
 
-        const response = await retryWithBackoff(() =>
-          openai.images.edit({
-            model: "gpt-image-1",
-            image: imageFile,
-            prompt: subsequentPrompt,
-            quality: "medium",
-            size: "1024x1024",
-            n: 1,
-          })
-        );
+        // Prepare art style descriptions in fallback order
+        const artStyleOptions: (string | undefined)[] = [
+          artStyle,
+          artStyleBackup1,
+          artStyleBackup2,
+        ];
+        let currentStyleIndex = 0;
+        let imageGenerated = false;
 
-        const imageData = response.data?.[0];
-        if (!imageData?.b64_json) {
-          throw new Error("No base64 image data returned from OpenAI");
+        // Try each art style description until one succeeds
+        while (!imageGenerated && currentStyleIndex < artStyleOptions.length) {
+          const currentStyle = artStyleOptions[currentStyleIndex];
+          const currentPrompt = createPrompt(currentStyle);
+
+          try {
+            console.log(
+              `[Worker] Attempting generation with art style ${currentStyleIndex + 1} for page ${pageIndex + 1}`
+            );
+
+            const response = await retryWithBackoff(() =>
+              openai.images.edit({
+                model: "gpt-image-1",
+                image: imageFile,
+                prompt: currentPrompt,
+                quality: "medium",
+                size: "1024x1024",
+                n: 1,
+              })
+            );
+
+            const imageData = response.data?.[0];
+            if (!imageData?.b64_json) {
+              throw new Error("No base64 image data returned from OpenAI");
+            }
+
+            finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+            imageGenerated = true;
+
+            if (currentStyleIndex > 0) {
+              console.log(
+                `[Worker] Successfully generated image for page ${pageIndex + 1} using backup art style ${currentStyleIndex + 1}`
+              );
+            }
+          } catch (error: any) {
+            // Check if it's a safety system rejection and we have more styles to try
+            if (
+              error.status === 400 &&
+              error.message?.includes("safety system") &&
+              currentStyleIndex < artStyleOptions.length - 1
+            ) {
+              console.log(
+                `[Worker] Safety system rejected style "${currentStyle || "default"}" for page ${pageIndex + 1}. Trying backup ${currentStyleIndex + 2}...`
+              );
+              currentStyleIndex++;
+              continue;
+            } else {
+              // If it's not a safety error or we're out of backups, re-throw
+              throw error;
+            }
+          }
         }
 
-        finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        if (!imageGenerated) {
+          throw new Error(
+            `Failed to generate image for page ${pageIndex + 1} with all available art style descriptions`
+          );
+        }
       } else {
         // Gemini
         const geminiClient = getGeminiClient();
@@ -126,6 +191,13 @@ REQUIREMENTS:
           geminiClient.editImage(subsequentPrompt, base64Data)
         );
       }
+
+      if (!finalImageUrl) {
+        throw new Error(
+          `Failed to generate image URL for page ${pageIndex + 1}`
+        );
+      }
+
       console.log(`[Worker] Page ${pageIndex + 1}: Generated new image.`);
 
       const storagePath = await uploadImageToStorage(

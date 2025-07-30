@@ -14,8 +14,10 @@ export interface StoryGenerationRequest {
   shouldRhyme?: boolean;
   illustrationStyle: string;
   illustrationAiDescription?: string;
+  illustrationAiDescriptionBackup1?: string;
+  illustrationAiDescriptionBackup2?: string;
   enableIllustrations: boolean;
-  pageImageModel?: "flux" | "gemini" | "gpt-image-1"; // Optional, defaults to gemini
+  pageImageModel?: "flux" | "gemini" | "gpt-image-1"; // Optional, defaults to gpt-image-1
   textModel?: "gpt-4o" | "gemini-2.5-pro";
   coverImageModel?:
     | "gemini-2.0-flash-preview-image-generation"

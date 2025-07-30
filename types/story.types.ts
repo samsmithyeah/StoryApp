@@ -21,6 +21,8 @@ export interface StoryConfiguration {
   shouldRhyme?: boolean;
   illustrationStyle: string;
   illustrationAiDescription?: string;
+  illustrationAiDescriptionBackup1?: string;
+  illustrationAiDescriptionBackup2?: string;
   enableIllustrations?: boolean;
   pageImageModel?: "flux" | "gemini" | "gpt-image-1";
   textModel?: "gpt-4o" | "gemini-2.5-pro";
