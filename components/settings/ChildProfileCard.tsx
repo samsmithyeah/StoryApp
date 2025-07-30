@@ -42,10 +42,9 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
     const today = new Date();
     const age = today.getFullYear() - dateOfBirth.getFullYear();
     const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-    const dayDiff = today.getDate() - dateOfBirth.getDate();
 
-    // Check if birthday hasn't occurred this year
-    return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+    // For month/year dates, we only check if the birth month has passed this year
+    return monthDiff < 0 ? age - 1 : age;
   };
 
   const getAgeText = (dateOfBirth?: Date) => {

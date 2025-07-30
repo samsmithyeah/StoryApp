@@ -89,12 +89,9 @@ export const generateStory = onCall(
           const birthDate = new Date(child.dateOfBirth.seconds * 1000);
           const age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
-          const dayDiff = today.getDate() - birthDate.getDate();
 
-          // Adjust age if birthday hasn't occurred this year
-          return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-            ? age - 1
-            : age;
+          // For month/year dates, we only check if the birth month has passed this year
+          return monthDiff < 0 ? age - 1 : age;
         });
 
       // Create age range string
@@ -153,13 +150,9 @@ export const generateStory = onCall(
                 );
                 const age = today.getFullYear() - birthDate.getFullYear();
                 const monthDiff = today.getMonth() - birthDate.getMonth();
-                const dayDiff = today.getDate() - birthDate.getDate();
 
-                // Adjust age if birthday hasn't occurred this year
-                const adjustedAge =
-                  monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                    ? age - 1
-                    : age;
+                // For month/year dates, we only check if the birth month has passed this year
+                const adjustedAge = monthDiff < 0 ? age - 1 : age;
 
                 characterDetails.push(`${adjustedAge} years old`);
               }
@@ -206,12 +199,9 @@ export const generateStory = onCall(
               const birthDate = new Date(childData.dateOfBirth.seconds * 1000);
               const age = today.getFullYear() - birthDate.getFullYear();
               const monthDiff = today.getMonth() - birthDate.getMonth();
-              const dayDiff = today.getDate() - birthDate.getDate();
 
-              const adjustedAge =
-                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                  ? age - 1
-                  : age;
+              // For month/year dates, we only check if the birth month has passed this year
+              const adjustedAge = monthDiff < 0 ? age - 1 : age;
 
               return `${char.name} (${adjustedAge} years old)`;
             }

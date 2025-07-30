@@ -18,7 +18,7 @@ import {
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Child } from "../../types/child.types";
 import { Button } from "../ui/Button";
-import { DatePicker } from "../ui/DatePicker";
+import { MonthYearPicker } from "../ui/MonthYearPicker";
 import { Input } from "../ui/Input";
 
 const { width } = Dimensions.get("window");
@@ -152,11 +152,9 @@ export const ChildProfileForm = forwardRef<
       const today = new Date();
       const age = today.getFullYear() - dateOfBirth.getFullYear();
       const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-      const dayDiff = today.getDate() - dateOfBirth.getDate();
 
-      // Check if birthday hasn't occurred this year
-      const actualAge =
-        monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+      // For month/year dates, we only check if the birth month has passed this year
+      const actualAge = monthDiff < 0 ? age - 1 : age;
 
       if (actualAge < 0 || actualAge > 18) {
         newErrors.dateOfBirth = "Child must be between 0 and 18 years old";
@@ -251,9 +249,9 @@ export const ChildProfileForm = forwardRef<
           </View>
 
           <View style={styles.fieldContainer}>
-            <DatePicker
-              label="Date of birth"
-              placeholder="Select your child's date of birth"
+            <MonthYearPicker
+              label="Birth month & year"
+              placeholder="Select your child's birth month and year"
               value={dateOfBirth}
               onChange={handleDateOfBirthChange}
               leftIcon="calendar"

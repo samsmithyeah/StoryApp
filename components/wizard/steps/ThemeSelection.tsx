@@ -154,13 +154,9 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
               const calculatedAge =
                 today.getFullYear() - birthDate.getFullYear();
               const monthDiff = today.getMonth() - birthDate.getMonth();
-              const dayDiff = today.getDate() - birthDate.getDate();
 
-              // Adjust age if birthday hasn't occurred this year
-              age =
-                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                  ? calculatedAge - 1
-                  : calculatedAge;
+              // For month/year dates, we only check if the birth month has passed this year
+              age = monthDiff < 0 ? calculatedAge - 1 : calculatedAge;
             }
 
             return {
