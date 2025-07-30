@@ -30,32 +30,36 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
     id: "loose-ink-wash",
     name: "Splashy Ink & Paint",
     description: "Scratchy pen lines with energetic watercolor splashes",
-    aiDescription:
-      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
+    // aiDescription:
+    //   "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
+    aiDescription: "Quentin Blake.",
   },
   // Axel Scheffler
   {
     id: "bold-outline-flat-color",
     name: "Big Bold Lines",
     description: "Thick black lines, bright flats, friendly character shapes",
-    aiDescription:
-      "Confident, uniform black outlines around chunky, friendly characters; bright flat fills, minimal shading. Clean European storybook vibe from the late ’90s/early 2000s where a certain woodland monster might lurk.",
+    // aiDescription:
+    //   "Confident, uniform black outlines around chunky, friendly characters; bright flat fills, minimal shading. Clean European storybook vibe from the late ’90s/early 2000s where a certain woodland monster might lurk.",
+    aiDescription: "Axel Scheffler.",
   },
   // Anthony Browne
   {
     id: "surreal-painterly-realism",
     name: "Dreamy Realism",
     description: "Detailed realism with odd, dreamlike twists",
-    aiDescription:
-      "Smooth, carefully modeled realism with soft gradients and theatrical lighting, yet peppered with subtle surreal clues—hidden faces, bananas, warped scale. Feels like psychologically rich 1980s UK picture books.",
+    // aiDescription:
+    //   "Smooth, carefully modeled realism with soft gradients and theatrical lighting, yet peppered with subtle surreal clues—hidden faces, bananas, warped scale. Feels like psychologically rich 1980s UK picture books.",
+    aiDescription: "Anthony Browne.",
   },
   // Maurice Sendak
   {
     id: "classic-crosshatch-storybook",
     name: "Vintage Storybook",
     description: "Fine pen shading, muted palettes, vintage picture-book feel",
-    aiDescription:
-      "Fine pen-and-ink crosshatching, stippling, and muted watercolor washes. Cozy-but-wild mid-century American picture-book mood, where a rumpus could break out any minute.",
+    // aiDescription:
+    //   "Fine pen-and-ink crosshatching, stippling, and muted watercolor washes. Cozy-but-wild mid-century American picture-book mood, where a rumpus could break out any minute.",
+    aiDescription: "Maurice Sendak.",
   },
   // Beatrix Potter
   {
@@ -63,24 +67,27 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
     name: "Gentle Watercolours",
     description:
       "Soft washes, naturalistic animals and plants, gentle nostalgia",
-    aiDescription:
-      "Pastel watercolour washes and precise naturalist drawing of small countryside creatures and flora. Early 1900s English cottage-garden gentleness, porcelain-teacup delicate.",
+    // aiDescription:
+    //   "Pastel watercolour washes and precise naturalist drawing of small countryside creatures and flora. Early 1900s English cottage-garden gentleness, porcelain-teacup delicate.",
+    aiDescription: "Beatrix Potter.",
   },
   // Dr. Seuss
   {
     id: "wonky-rhythmic-whimsy",
     name: "Wiggly Whimsy",
     description: "Curvy, off-kilter shapes and playful chaos",
-    aiDescription:
-      "Elastic, curvilinear architecture, striped patterns. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
+    // aiDescription:
+    //   "Elastic, curvilinear architecture, striped patterns. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
+    aiDescription: "Dr. Seuss.",
   },
   // Oliver Jeffers
   {
     id: "naive-textured-brushwork",
     name: "Scribbly Paint & Pencil",
     description: "Childlike marks, visible brush texture, handwritten notes",
-    aiDescription:
-      "Intentionally wobbly linework with visible brush and pencil texture, hand-lettered notes, and roomy negative space. Contemporary Irish/American picture-book feel—simple shapes but big heart.",
+    // aiDescription:
+    //   "Intentionally wobbly linework with visible brush and pencil texture, hand-lettered notes, and roomy negative space. Contemporary Irish/American picture-book feel—simple shapes but big heart.",
+    aiDescription: "Oliver Jeffers.",
   },
   // Jon Klassen
   {
@@ -88,16 +95,18 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
     name: "Quiet & Simple",
     description:
       "Muted earth tones, simple shapes, tiny eyes & big negative space",
-    aiDescription:
-      "Flat, graphic shapes in hushed earth tones, subtle paper textures, and lots of negative space. Characters with dot eyes and bone-dry humor—modern North American deadpan minimalism.",
+    // aiDescription:
+    //   "Flat, graphic shapes in hushed earth tones, subtle paper textures, and lots of negative space. Characters with dot eyes and bone-dry humor—modern North American deadpan minimalism.",
+    aiDescription: "Jon Klassen.",
   },
   // E. H. Shepard
   {
     id: "fine-ink-soft-wash",
     name: "Fine Ink & Tint",
     description: "Precise pen contours, light watercolour tints, gentle charm",
-    aiDescription:
-      "Elegant, controlled pen contours with light transparent washes, capturing gentle motion. Early 20th-century English nursery classic energy—tea-stained nostalgia and soft woodland rambles.",
+    // aiDescription:
+    //   "Elegant, controlled pen contours with light transparent washes, capturing gentle motion. Early 20th-century English nursery classic energy—tea-stained nostalgia and soft woodland rambles.",
+    aiDescription: "E. H. Shepard.",
   },
   {
     id: "custom",

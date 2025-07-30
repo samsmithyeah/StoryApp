@@ -156,7 +156,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
         (char) =>
           !char.isChild &&
           char.name === savedChar.name &&
-          char.description === savedChar.description
+          char.description === savedChar.description &&
+          char.appearance === savedChar.appearance
       );
       if (isSelected) {
         return prev.filter(
@@ -164,7 +165,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
             !(
               !char.isChild &&
               char.name === savedChar.name &&
-              char.description === savedChar.description
+              char.description === savedChar.description &&
+              char.appearance === savedChar.appearance
             )
         );
       } else {
@@ -173,6 +175,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
           {
             name: savedChar.name,
             description: savedChar.description,
+            appearance: savedChar.appearance,
             isChild: false,
           },
         ];
@@ -229,7 +232,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
         !char.isChild &&
         !char.isOneOff &&
         char.name === savedChar.name &&
-        char.description === savedChar.description
+        char.description === savedChar.description &&
+        char.appearance === savedChar.appearance
     );
   };
 

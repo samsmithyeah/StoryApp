@@ -167,7 +167,11 @@ export const generateStory = onCall(
               return `${char.name}${details}`;
             }
           }
-          return `${char.name}${char.description ? ` (${char.description})` : ""}`;
+          // Combine description and appearance for custom characters
+          const fullDescription = [char.description, char.appearance]
+            .filter(Boolean)
+            .join("; ");
+          return `${char.name}${fullDescription ? ` (${fullDescription})` : ""}`;
         })
       );
 
@@ -314,7 +318,7 @@ Return the story in this JSON format:
           data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
         const illustrationStyleDescription =
           data.illustrationAiDescription || data.illustrationStyle;
-        coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
+        coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}. Create a well-composed children's book cover illustration in 1:1 aspect ratio format. Add the book title "${storyContent.title}" to the image. Do not add the name of the author or any other text to the image.`;
 
         if (
           selectedCoverImageModel ===

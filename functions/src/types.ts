@@ -1,6 +1,7 @@
 export interface StoryCharacter {
   name: string;
   description?: string;
+  appearance?: string;
   isChild?: boolean;
   childId?: string;
 }
