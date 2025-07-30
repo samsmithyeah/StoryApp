@@ -39,17 +39,19 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.backButton} />
+          <View style={styles.placeholder} />
         )}
 
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{title}</Text>
         </View>
 
-        {onCancel && (
+        {onCancel ? (
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
             <Text style={styles.cancelText}>✕</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholder} />
         )}
       </View>
 
@@ -78,6 +80,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    minWidth: 40,
   },
   backText: {
     color: Colors.primary,
@@ -86,11 +89,16 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     padding: 8,
+    minWidth: 40,
   },
   cancelText: {
     color: Colors.primary,
     fontSize: isTablet ? 32 : 24,
     fontWeight: "400",
+  },
+  placeholder: {
+    padding: 8,
+    minWidth: 40,
   },
   headerContent: {
     flex: 1,

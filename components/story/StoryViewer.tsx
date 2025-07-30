@@ -81,8 +81,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     if (Array.isArray(story.storyContent)) {
       // Initialize based on each page's current state
       const initialLoading = story.storyContent.map((page) => {
-        // Show loading only if no imageUrl and generation is still active
-        return !page.imageUrl && (story.imageGenerationStatus === "generating" || story.imageGenerationStatus === "pending");
+        // Show loading if there's an imageUrl (needs to load) or if generation is active
+        return !!page.imageUrl || (!page.imageUrl && (story.imageGenerationStatus === "generating" || story.imageGenerationStatus === "pending"));
       });
       
       const initialErrors = story.storyContent.map((page) => {
