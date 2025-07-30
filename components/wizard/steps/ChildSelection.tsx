@@ -49,7 +49,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
     <View style={styles.container}>
       <ImageBackground
         source={require("@/assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={isTablet ? "cover" : "none"}
         style={StyleSheet.absoluteFillObject}
       >
         <LinearGradient

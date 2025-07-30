@@ -28,8 +28,9 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
-import { IconSymbol } from "../ui/IconSymbol";
 import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { CloseButton } from "../ui/CloseButton";
+import { IconSymbol } from "../ui/IconSymbol";
 import { TheEndScreen } from "./TheEndScreen";
 
 const CREAM_COLOR = "#F5E6C8";
@@ -82,14 +83,23 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       // Initialize based on each page's current state
       const initialLoading = story.storyContent.map((page) => {
         // Show loading if there's an imageUrl (needs to load) or if generation is active
-        return !!page.imageUrl || (!page.imageUrl && (story.imageGenerationStatus === "generating" || story.imageGenerationStatus === "pending"));
+        return (
+          !!page.imageUrl ||
+          (!page.imageUrl &&
+            (story.imageGenerationStatus === "generating" ||
+              story.imageGenerationStatus === "pending"))
+        );
       });
-      
+
       const initialErrors = story.storyContent.map((page) => {
         // Show error if no imageUrl and generation is not active (completed, failed, or not_requested)
-        return !page.imageUrl && story.imageGenerationStatus !== "generating" && story.imageGenerationStatus !== "pending";
+        return (
+          !page.imageUrl &&
+          story.imageGenerationStatus !== "generating" &&
+          story.imageGenerationStatus !== "pending"
+        );
       });
-      
+
       setImageLoading(initialLoading);
       setImageErrors(initialErrors);
     }
@@ -181,7 +191,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                         color={Colors.error}
                       />
                       <Text style={styles.errorText}>
-                        {story.imageGenerationStatus === "failed" 
+                        {story.imageGenerationStatus === "failed"
                           ? "Image generation failed"
                           : "Image failed to load"}
                       </Text>
@@ -256,7 +266,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     return (
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={isTablet ? "cover" : "none"}
         style={styles.container}
       >
         <LinearGradient
@@ -268,14 +278,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         />
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={onClose || (() => router.replace("/(tabs)"))}
-              style={styles.closeButton}
-            >
-              <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.placeholder} />
             <Text style={styles.title}>{story.title}</Text>
-            <View style={{ width: 40 }} />
+            <CloseButton
+              onPress={onClose || (() => router.replace("/(tabs)"))}
+            />
           </View>
           <View style={styles.errorContainer}>
             <IconSymbol
@@ -296,7 +303,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
       <LinearGradient
@@ -306,14 +313,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* HEADER */}
         <View style={[styles.header, { height: headerHeight }]}>
-          <View style={styles.closeButtonContainer}>
-            <TouchableOpacity
-              onPress={onClose || (() => router.replace("/(tabs)"))}
-              style={styles.closeButton}
-            >
-              <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.placeholder} />
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -328,7 +328,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
           >
             {story.title}
           </Text>
-          <View style={{ width: 40 }} />
+          <CloseButton onPress={onClose || (() => router.replace("/(tabs)"))} />
         </View>
 
         {/* CONTENT CONTAINER */}
@@ -424,13 +424,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
-  closeButtonContainer: { width: 40, alignItems: "flex-start" },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: -8,
+  placeholder: {
+    padding: 8,
+    minWidth: 40,
   },
   title: {
     fontFamily: Typography.fontFamily.primary,

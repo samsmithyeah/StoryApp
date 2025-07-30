@@ -11,12 +11,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { Button } from "../ui/Button";
+import { CloseButton } from "../ui/CloseButton";
 
 interface StoryTitleScreenProps {
   story: Story;
@@ -72,7 +72,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
       <LinearGradient
@@ -81,6 +81,12 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
       />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* Header with close button */}
+        <View style={styles.header}>
+          <View style={styles.placeholder} />
+          <View style={styles.headerContent} />
+          <CloseButton onPress={onGoBack} />
+        </View>
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
@@ -124,10 +130,6 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
                   variant="wizard"
                   size="large"
                 />
-
-                <TouchableOpacity onPress={onGoBack}>
-                  <Text style={styles.backText}>Back to library</Text>
-                </TouchableOpacity>
               </View>
 
               {/* LANDSCAPE: image right, bigger on phones, pages below */}
@@ -196,6 +198,22 @@ const createStyles = ({
     safeArea: {
       flex: 1,
     },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 24,
+      paddingTop: isTablet ? 20 : 0,
+    },
+    placeholder: {
+      padding: 8,
+      minWidth: 40,
+    },
+    headerContent: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     scrollContent: {
       flexGrow: 1,
       justifyContent: "center",
@@ -213,6 +231,7 @@ const createStyles = ({
       alignItems: "center",
       justifyContent: isLandscape ? "space-evenly" : "center",
       width: "100%",
+      marginBottom: Spacing.massive,
     },
     textBlock: {
       flex: isLandscape ? 1 : undefined,
@@ -269,14 +288,6 @@ const createStyles = ({
       marginTop: Spacing.lg,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
-    },
-    backText: {
-      fontSize: Typography.fontSize.medium,
-      color: Colors.text,
-      opacity: 0.8,
-      textAlign: "center",
-      marginTop: Spacing.xl,
-      textDecorationLine: "underline",
     },
   });
 };
