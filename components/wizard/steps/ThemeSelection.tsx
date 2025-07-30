@@ -94,7 +94,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   const { children } = useChildren();
   const [aiThemes, setAiThemes] = useState<ThemeSuggestion[]>([]);
   const [loadingAiThemes, setLoadingAiThemes] = useState(false);
-  const [aiThemesError, setAiThemesError] = useState<string | null>(null);
+  const [_aiThemesError, setAiThemesError] = useState<string | null>(null);
 
   // Helper to check if custom theme is selected
   const isCustomThemeSelected =

@@ -78,7 +78,7 @@ class ImageCacheService {
           // If file doesn't exist, that's fine - it's already gone
         } catch (error) {
           // Only log if it's not a "file doesn't exist" error
-          if (!error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+          if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
             console.warn(`Failed to delete expired cache file ${entry.filePath}:`, error);
           }
           // Continue cleanup even if one file fails
@@ -121,7 +121,7 @@ class ImageCacheService {
         currentSize -= entry.size;
       } catch (error) {
         // Only log if it's not a "file doesn't exist" error
-        if (!error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+        if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
           console.warn(`Failed to delete cache file during cleanup ${entry.filePath}:`, error);
         }
         // Remove from index even if file deletion failed to prevent infinite attempts
@@ -185,7 +185,7 @@ class ImageCacheService {
         await FileSystem.deleteAsync(cacheEntry.filePath);
       } catch (error) {
         // Ignore "file doesn't exist" errors - it's already gone
-        if (!error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+        if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
           console.warn(`Failed to delete expired cache file ${cacheEntry.filePath}:`, error);
         }
       }

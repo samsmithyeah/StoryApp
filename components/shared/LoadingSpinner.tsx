@@ -1,5 +1,5 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Colors, Spacing } from "@/constants/Theme";
+import { Colors } from "@/constants/Theme";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
