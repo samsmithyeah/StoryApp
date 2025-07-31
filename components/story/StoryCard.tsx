@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -112,13 +113,18 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
 };
 
 /* ---------- styles ---------- */
-const glow = {
-  shadowColor: "#D4AF37",
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.55,
-  shadowRadius: 12,
-  elevation: 10,
-};
+const glow = Platform.select({
+  ios: {
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 12,
+  },
+  android: {
+    elevation: 10,
+    shadowColor: "#D4AF37",
+  },
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -129,6 +135,10 @@ const styles = StyleSheet.create({
     marginBottom: GAP,
     backgroundColor: "rgba(255,255,255,0.02)",
     ...glow,
+    // Android requires explicit background for elevation shadows
+    ...(Platform.OS === 'android' && {
+      backgroundColor: "rgba(26,27,58,0.8)",
+    }),
   },
 
   placeholder: {
@@ -157,7 +167,11 @@ const styles = StyleSheet.create({
   /* meta */
   meta: { position: "absolute", left: 18, right: 18, bottom: 20 },
   title: {
-    fontFamily: "PlayfairDisplay-Regular",
+    fontFamily: Platform.select({
+      ios: "PlayfairDisplay-Regular",
+      android: "PlayfairDisplay-Regular",
+      default: "serif" // Fallback for testing
+    }),
     fontSize: TITLE_SIZE,
     lineHeight: TITLE_SIZE + 2,
     color: "#D4AF37",

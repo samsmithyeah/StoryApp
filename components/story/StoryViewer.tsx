@@ -458,6 +458,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.primary,
     overflow: "hidden",
+    backgroundColor: Colors.cardBackground,
     ...Shadows.glow,
   },
 

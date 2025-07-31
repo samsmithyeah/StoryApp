@@ -1,4 +1,6 @@
 // Theme constants for DreamWeaver app
+import { Platform } from "react-native";
+
 export const Colors = {
   // Primary colors
   primary: "#D4AF37", // Golden yellow (DreamWeaver brand)
@@ -38,7 +40,7 @@ export const Typography = {
   // Font families
   fontFamily: {
     primary: "PlayfairDisplay-Regular",
-    secondary: "SpaceMono",
+    secondary: "SpaceMono-Regular",
   },
 
   // Font sizes
@@ -121,40 +123,60 @@ export const BorderRadius = {
 
 export const Shadows = {
   // Golden glow effect
-  glow: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 10,
-    elevation: 8,
-  },
+  glow: Platform.select({
+    ios: {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.55,
+      shadowRadius: 10,
+    },
+    android: {
+      elevation: 8,
+      shadowColor: Colors.primary,
+    },
+  }),
 
   // Stronger glow
-  glowStrong: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 12,
-    elevation: 10,
-  },
+  glowStrong: Platform.select({
+    ios: {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.55,
+      shadowRadius: 12,
+    },
+    android: {
+      elevation: 10,
+      shadowColor: Colors.primary,
+    },
+  }),
 
   // Light glow (for empty state)
-  glowLight: {
-    shadowColor: Colors.primaryLight,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+  glowLight: Platform.select({
+    ios: {
+      shadowColor: Colors.primaryLight,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6,
+      shadowRadius: 20,
+    },
+    android: {
+      elevation: 10,
+      shadowColor: Colors.primaryLight,
+    },
+  }),
 
   // Standard shadow
-  standard: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+  standard: Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    android: {
+      elevation: 3,
+      shadowColor: "#000",
+    },
+  }),
 };
 
 // Common component styles

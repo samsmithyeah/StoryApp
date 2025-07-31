@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  Platform,
 } from "react-native";
 import { IconSymbol } from "./IconSymbol";
 import { Colors, Typography, Spacing, Shadows } from "../../constants/Theme";
@@ -205,9 +206,15 @@ const styles = StyleSheet.create({
   // Disabled states
   disabled: {
     backgroundColor: "#374151",
-    shadowOpacity: 0,
-    elevation: 0,
     borderColor: "#374151",
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      android: {
+        elevation: 0,
+      },
+    }),
   },
   disabledText: {
     color: Colors.textMuted,

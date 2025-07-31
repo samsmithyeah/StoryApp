@@ -42,6 +42,37 @@
       ],
       "expo-apple-authentication",
       [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/PlayfairDisplay-Regular.ttf",
+            "./assets/fonts/SpaceMono-Regular.ttf"
+          ],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "PlayfairDisplay-Regular",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/PlayfairDisplay-Regular.ttf",
+                    "weight": 400
+                  }
+                ]
+              },
+              {
+                "fontFamily": "SpaceMono-Regular", 
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/SpaceMono-Regular.ttf",
+                    "weight": 400
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {
