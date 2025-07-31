@@ -15,6 +15,23 @@ import { uploadImageToStorage } from "./utils/storage";
 const pubsub = new PubSub();
 const topicName = "generate-story-image";
 
+// Helper function to get art style descriptions in order of fallback preference
+function getArtStyleDescriptions(data: StoryGenerationRequest): string[] {
+  const descriptions: string[] = [];
+
+  if (data.illustrationAiDescription) {
+    descriptions.push(data.illustrationAiDescription);
+  }
+  if (data.illustrationAiDescriptionBackup1) {
+    descriptions.push(data.illustrationAiDescriptionBackup1);
+  }
+  if (data.illustrationAiDescriptionBackup2) {
+    descriptions.push(data.illustrationAiDescriptionBackup2);
+  }
+
+  return descriptions;
+}
+
 export const generateStory = onCall(
   {
     secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
@@ -72,12 +89,9 @@ export const generateStory = onCall(
           const birthDate = new Date(child.dateOfBirth.seconds * 1000);
           const age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
-          const dayDiff = today.getDate() - birthDate.getDate();
 
-          // Adjust age if birthday hasn't occurred this year
-          return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-            ? age - 1
-            : age;
+          // For month/year dates, we only check if the birth month has passed this year
+          return monthDiff < 0 ? age - 1 : age;
         });
 
       // Create age range string
@@ -109,7 +123,7 @@ export const generateStory = onCall(
       // Debug logging for page image model
       console.log(`[DEBUG] Received pageImageModel: ${data.pageImageModel}`);
       console.log(
-        `[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gemini"}`
+        `[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gpt-image-1"}`
       );
       const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
@@ -136,13 +150,9 @@ export const generateStory = onCall(
                 );
                 const age = today.getFullYear() - birthDate.getFullYear();
                 const monthDiff = today.getMonth() - birthDate.getMonth();
-                const dayDiff = today.getDate() - birthDate.getDate();
 
-                // Adjust age if birthday hasn't occurred this year
-                const adjustedAge =
-                  monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                    ? age - 1
-                    : age;
+                // For month/year dates, we only check if the birth month has passed this year
+                const adjustedAge = monthDiff < 0 ? age - 1 : age;
 
                 characterDetails.push(`${adjustedAge} years old`);
               }
@@ -167,7 +177,11 @@ export const generateStory = onCall(
               return `${char.name}${details}`;
             }
           }
-          return `${char.name}${char.description ? ` (${char.description})` : ""}`;
+          // Combine description and appearance for custom characters
+          const fullDescription = [char.description, char.appearance]
+            .filter(Boolean)
+            .join("; ");
+          return `${char.name}${fullDescription ? ` (${fullDescription})` : ""}`;
         })
       );
 
@@ -185,12 +199,9 @@ export const generateStory = onCall(
               const birthDate = new Date(childData.dateOfBirth.seconds * 1000);
               const age = today.getFullYear() - birthDate.getFullYear();
               const monthDiff = today.getMonth() - birthDate.getMonth();
-              const dayDiff = today.getDate() - birthDate.getDate();
 
-              const adjustedAge =
-                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                  ? age - 1
-                  : age;
+              // For month/year dates, we only check if the birth month has passed this year
+              const adjustedAge = monthDiff < 0 ? age - 1 : age;
 
               return `${char.name} (${adjustedAge} years old)`;
             }
@@ -212,6 +223,7 @@ ${
 ${data.mood ? `- Mood: ${data.mood}` : ""}
 - Story length: ${pageCount} pages
 ${data.storyAbout ? `- Story concept: ${data.storyAbout}` : ""}
+${data.enableIllustrations ? `- Illustration art style: ${data.illustrationAiDescription || data.illustrationStyle}` : ""}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
@@ -221,11 +233,16 @@ Requirements:
 5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
 6. ${
         data.enableIllustrations
-          ? `For each page, include an image prompt description - a visual description of how you envisage the scene. Include who and what should appear in the image. When describing characters in image prompts, use all character details: ${characterInfo || "create appropriate character descriptions"}. You must also describe, in detail, the visual appearance of any objects, settings, or actions on the page. This is important for visual consistency across the pages story - each image will be generated separately. There is no need to describe the style of the illustrations in the image prompts, as that will be handled by the illustration model.`
+          ? `For each page, include an "imagePrompt" field with a detailed visual description of the scene. The image prompts should:
+   - Describe exactly who appears in the scene and what they are doing
+   - Include all relevant character details: ${characterInfo || "create appropriate character descriptions"}
+   - Describe the setting, objects, and visual elements in detail
+   - Be written specifically for the "${data.illustrationAiDescription || data.illustrationStyle}" art style, although you should not mention the art style directly in the prompt.
+   - Ensure visual consistency. Each image will be generated separately, so it is good to repeat visual details across pages.
+   - Focus on visual elements that work well with the chosen art style`
           : "No image prompts needed."
       }
 7. Make sure the story has a clear beginning, middle, and end.
-8. IMPORTANT: Character ages can be used in both story text and image prompts. Physical appearance details (hair color, eye color, etc.) should generally only be used in image prompts. The story text should focus on actions, dialogue, and plot.
 
 Return the story in this JSON format:
 {
@@ -312,49 +329,86 @@ Return the story in this JSON format:
         );
         const selectedCoverImageModel =
           data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
-        const illustrationStyleDescription =
-          data.illustrationAiDescription || data.illustrationStyle;
-        coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${illustrationStyleDescription}, child-friendly, perfect for a book cover. Create a well-composed children's book cover illustration in 1:1 aspect ratio format.`;
 
-        if (
-          selectedCoverImageModel ===
-          "gemini-2.0-flash-preview-image-generation"
-        ) {
-          const geminiClient = getGeminiClient();
-          coverImageUrlForWorkers = await retryWithBackoff(() =>
-            geminiClient.generateImage(coverPrompt)
-          );
-        } else if (
-          selectedCoverImageModel === "dall-e-3" ||
-          selectedCoverImageModel === "gpt-image-1"
-        ) {
-          const openai = getOpenAIClient();
-          const dalleResponse = await retryWithBackoff(() =>
-            openai.images.generate({
-              model: selectedCoverImageModel,
-              prompt: coverPrompt,
-              size: "1024x1024",
-              quality: "medium",
-              n: 1,
-              // Use base64 for both models for consistency
-              ...(selectedCoverImageModel === "dall-e-3" && {
-                response_format: "b64_json",
-              }),
-              // Use low moderation for gpt-image-1 to reduce false positives
-              ...(selectedCoverImageModel === "gpt-image-1" && {
-                moderation: "low",
-              }),
-            })
-          );
+        const artStyleDescriptions = getArtStyleDescriptions(data);
+        let currentStyleIndex = 0;
+        let coverImageGenerated = false;
 
-          // Both models now return base64 for consistency
-          const imageData = dalleResponse.data?.[0];
-          if (!imageData?.b64_json) {
-            throw new Error("No base64 image data returned from OpenAI");
+        // Try each art style description until one succeeds
+        while (
+          !coverImageGenerated &&
+          currentStyleIndex < artStyleDescriptions.length
+        ) {
+          const currentStyleDescription =
+            artStyleDescriptions[currentStyleIndex];
+          coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in 1:1 aspect ratio format. Add the book title "${storyContent.title}" to the image. Do not add the name of the author or any other text to the image.`;
+
+          try {
+            if (
+              selectedCoverImageModel ===
+              "gemini-2.0-flash-preview-image-generation"
+            ) {
+              const geminiClient = getGeminiClient();
+              coverImageUrlForWorkers = await retryWithBackoff(() =>
+                geminiClient.generateImage(coverPrompt)
+              );
+              coverImageGenerated = true;
+            } else if (
+              selectedCoverImageModel === "dall-e-3" ||
+              selectedCoverImageModel === "gpt-image-1"
+            ) {
+              const openai = getOpenAIClient();
+              const dalleResponse = await retryWithBackoff(() =>
+                openai.images.generate({
+                  model: selectedCoverImageModel,
+                  prompt: coverPrompt,
+                  size: "1024x1024",
+                  quality: "medium",
+                  n: 1,
+                  // Use base64 for both models for consistency
+                  ...(selectedCoverImageModel === "dall-e-3" && {
+                    response_format: "b64_json",
+                  }),
+                  // Use low moderation for gpt-image-1 to reduce false positives
+                  ...(selectedCoverImageModel === "gpt-image-1" && {
+                    moderation: "low",
+                  }),
+                })
+              );
+
+              // Both models now return base64 for consistency
+              const imageData = dalleResponse.data?.[0];
+              if (!imageData?.b64_json) {
+                throw new Error("No base64 image data returned from OpenAI");
+              }
+
+              // Convert base64 to data URL for both models
+              coverImageUrlForWorkers = `data:image/png;base64,${imageData.b64_json}`;
+              coverImageGenerated = true;
+            }
+          } catch (error: any) {
+            // Check if it's a safety system rejection from OpenAI
+            if (
+              error.status === 400 &&
+              error.message?.includes("safety system") &&
+              currentStyleIndex < artStyleDescriptions.length - 1
+            ) {
+              console.log(
+                `[Orchestrator] Safety system rejected cover with style "${currentStyleDescription}". Trying backup ${currentStyleIndex + 1}...`
+              );
+              currentStyleIndex++;
+              continue;
+            } else {
+              // If it's not a safety error or we're out of backups, re-throw
+              throw error;
+            }
           }
+        }
 
-          // Convert base64 to data URL for both models
-          coverImageUrlForWorkers = `data:image/png;base64,${imageData.b64_json}`;
+        if (!coverImageGenerated) {
+          throw new Error(
+            "Failed to generate cover image with all available art style descriptions"
+          );
         }
 
         console.log(
@@ -411,7 +465,7 @@ Return the story in this JSON format:
           coverImagePrompt: data.enableIllustrations ? coverPrompt : null,
           // Page image generation details
           pageImageModel: data.enableIllustrations
-            ? data.pageImageModel || "gemini"
+            ? data.pageImageModel || "gpt-image-1"
             : null,
           pageImagePrompts: data.enableIllustrations
             ? storyContent.pages.map((p: any) => p.imagePrompt)
@@ -448,7 +502,7 @@ Return the story in this JSON format:
               userId,
               pageIndex: index,
               imagePrompt: page.imagePrompt,
-              imageProvider: data.pageImageModel || "gemini",
+              imageProvider: data.pageImageModel || "gpt-image-1",
               consistencyInput: {
                 imageUrl: coverImageUrlForWorkers,
                 text: storyContent.coverImagePrompt,
@@ -457,6 +511,10 @@ Return the story in this JSON format:
                 names: characterNamesString,
                 descriptions: characterInfo,
               },
+              artStyle:
+                data.illustrationAiDescription || data.illustrationStyle,
+              artStyleBackup1: data.illustrationAiDescriptionBackup1,
+              artStyleBackup2: data.illustrationAiDescriptionBackup2,
             };
             return pubsub.topic(topicName).publishMessage({ json: payload });
           }

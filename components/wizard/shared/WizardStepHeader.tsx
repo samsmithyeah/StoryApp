@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { CloseButton } from "../../ui/CloseButton";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -39,17 +40,17 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.backButton} />
+          <View style={styles.placeholder} />
         )}
 
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{title}</Text>
         </View>
 
-        {onCancel && (
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelText}>✕</Text>
-          </TouchableOpacity>
+        {onCancel ? (
+          <CloseButton onPress={onCancel} />
+        ) : (
+          <View style={styles.placeholder} />
         )}
       </View>
 
@@ -74,23 +75,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingTop: isTablet ? 60 : 10,
+    paddingTop: isTablet ? 20 : 0,
   },
   backButton: {
     padding: 8,
+    minWidth: 40,
   },
   backText: {
     color: Colors.primary,
     fontSize: isTablet ? 32 : 24,
     fontWeight: "400",
   },
-  cancelButton: {
+  placeholder: {
     padding: 8,
-  },
-  cancelText: {
-    color: Colors.primary,
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
+    minWidth: 40,
   },
   headerContent: {
     flex: 1,

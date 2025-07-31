@@ -192,6 +192,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return (
           <CharacterSelection
             savedChildren={children}
+            selectedChildren={wizardData.selectedChildren || []}
             characters={wizardData.characters || []}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

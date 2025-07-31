@@ -75,8 +75,13 @@ class ImageCacheService {
           if (fileInfo.exists) {
             await FileSystem.deleteAsync(entry.filePath);
           }
+          // If file doesn't exist, that's fine - it's already gone
         } catch (error) {
-          console.warn("Failed to delete expired cache file:", error);
+          // Only log if it's not a "file doesn't exist" error
+          if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+            console.warn(`Failed to delete expired cache file ${entry.filePath}:`, error);
+          }
+          // Continue cleanup even if one file fails
         }
       }
     }
@@ -115,7 +120,13 @@ class ImageCacheService {
         delete this.cacheIndex[entry.storagePath];
         currentSize -= entry.size;
       } catch (error) {
-        console.warn("Failed to delete cache file during cleanup:", error);
+        // Only log if it's not a "file doesn't exist" error
+        if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+          console.warn(`Failed to delete cache file during cleanup ${entry.filePath}:`, error);
+        }
+        // Remove from index even if file deletion failed to prevent infinite attempts
+        delete this.cacheIndex[entry.storagePath];
+        currentSize -= entry.size;
       }
     }
 
@@ -123,9 +134,21 @@ class ImageCacheService {
   }
 
   private generateCacheFilePath(storagePath: string): string {
-    // Create a safe filename from the storage path
-    const safeFileName = storagePath.replace(/[^a-zA-Z0-9.-]/g, "_");
-    return `${CACHE_DIR}${safeFileName}`;
+    // Create a unique, safe filename using a simple hash approach
+    let hash = 0;
+    for (let i = 0; i < storagePath.length; i++) {
+      const char = storagePath.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Convert to positive number and add timestamp for uniqueness
+    const uniqueId = Math.abs(hash).toString(36);
+    const safeFileName = storagePath
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .substring(0, 50); // Truncate to reasonable length
+    
+    return `${CACHE_DIR}${safeFileName}_${uniqueId}.png`;
   }
 
   async getCachedImageUrl(storagePath: string): Promise<string | null> {
@@ -137,9 +160,17 @@ class ImageCacheService {
     }
 
     // Check if file still exists
-    const fileInfo = await FileSystem.getInfoAsync(cacheEntry.filePath);
-    if (!fileInfo.exists) {
-      // File was deleted, remove from index
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(cacheEntry.filePath);
+      if (!fileInfo.exists) {
+        // File was deleted, remove from index
+        delete this.cacheIndex[storagePath];
+        await this.saveCacheIndex();
+        return null;
+      }
+    } catch (error) {
+      // File access error, assume it doesn't exist
+      console.warn(`Cache file access error for ${cacheEntry.filePath}:`, error);
       delete this.cacheIndex[storagePath];
       await this.saveCacheIndex();
       return null;
@@ -150,7 +181,14 @@ class ImageCacheService {
     const expiryTime = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
     if (now - cacheEntry.timestamp > expiryTime) {
       // File is expired, delete it
-      await FileSystem.deleteAsync(cacheEntry.filePath);
+      try {
+        await FileSystem.deleteAsync(cacheEntry.filePath);
+      } catch (error) {
+        // Ignore "file doesn't exist" errors - it's already gone
+        if (error instanceof Error && !error.message?.includes('does not exist') && !error.message?.includes('could not be deleted')) {
+          console.warn(`Failed to delete expired cache file ${cacheEntry.filePath}:`, error);
+        }
+      }
       delete this.cacheIndex[storagePath];
       await this.saveCacheIndex();
       return null;

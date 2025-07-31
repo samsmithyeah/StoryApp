@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Animated,
   Dimensions,
-  Easing,
   StyleSheet,
   Text,
   View,
@@ -38,9 +37,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   onStartOver,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const rotationAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0.3)).current;
   const insets = useSafeAreaInsets();
 
   // Use safe area bottom instead of tab bar height since we're outside tabs
@@ -57,77 +53,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       clearInterval(messageInterval);
     };
   }, [isGenerating]);
-
-  useEffect(() => {
-    if (!isGenerating) {
-      rotationAnim.setValue(0);
-      pulseAnim.setValue(1);
-      glowAnim.setValue(0.3);
-      return;
-    }
-
-    // Rotation animation
-    const startRotation = () => {
-      rotationAnim.setValue(0);
-      Animated.loop(
-        Animated.timing(rotationAnim, {
-          toValue: 1,
-          duration: 3000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      ).start();
-    };
-
-    // Pulse animation - subtle
-    const startPulse = () => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1500,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1500,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    };
-
-    // Glow animation - subtle
-    const startGlow = () => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, {
-            toValue: 0.6,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: false,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0.4,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: false,
-          }),
-        ])
-      ).start();
-    };
-
-    startRotation();
-    startPulse();
-    startGlow();
-  }, [isGenerating, rotationAnim, pulseAnim, glowAnim]);
-
-  const spin = rotationAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   // Show error state if there's an error
   if (error && !isGenerating) {
@@ -166,31 +91,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       <View style={styles.container}>
         <View style={styles.content}>
           <View style={styles.animationContainer}>
-            <Animated.View
-              style={[
-                styles.magicCircle,
-                {
-                  shadowOpacity: glowAnim,
-                },
-              ]}
-            >
-              <Animated.View
-                style={[
-                  styles.innerCircle,
-                  {
-                    transform: [{ rotate: spin }, { scale: pulseAnim }],
-                  },
-                ]}
-              >
-                <View style={styles.wandContainer}>
-                  <IconSymbol
-                    name="wand.and.stars"
-                    size={isTablet ? 80 : 64}
-                    color={Colors.primary}
-                  />
-                </View>
-              </Animated.View>
-            </Animated.View>
+            <LoadingSpinner size="large" showGlow={true} />
           </View>
 
           <Text style={styles.title}>Creating your story</Text>
@@ -235,33 +136,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: isTablet ? Spacing.massive : Spacing.huge,
   },
   animationContainer: {
-    position: "relative",
     marginBottom: isTablet ? Spacing.massive : Spacing.huge,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  magicCircle: {
-    width: isTablet ? 160 : 120,
-    height: isTablet ? 160 : 120,
-    borderRadius: isTablet ? 80 : 60,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  innerCircle: {
-    width: isTablet ? 160 : 120,
-    height: isTablet ? 160 : 120,
-    borderRadius: isTablet ? 80 : 60,
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    borderWidth: 3,
-    borderColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wandContainer: {
     alignItems: "center",
     justifyContent: "center",
   },

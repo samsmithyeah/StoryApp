@@ -7,7 +7,6 @@ import {
 } from "@/services/firebase/stories";
 import React, { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AISuggestedThemes } from "../shared/AISuggestedThemes";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -95,7 +94,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   const { children } = useChildren();
   const [aiThemes, setAiThemes] = useState<ThemeSuggestion[]>([]);
   const [loadingAiThemes, setLoadingAiThemes] = useState(false);
-  const [aiThemesError, setAiThemesError] = useState<string | null>(null);
+  const [_aiThemesError, setAiThemesError] = useState<string | null>(null);
 
   // Helper to check if custom theme is selected
   const isCustomThemeSelected =
@@ -155,13 +154,9 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
               const calculatedAge =
                 today.getFullYear() - birthDate.getFullYear();
               const monthDiff = today.getMonth() - birthDate.getMonth();
-              const dayDiff = today.getDate() - birthDate.getDate();
 
-              // Adjust age if birthday hasn't occurred this year
-              age =
-                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
-                  ? calculatedAge - 1
-                  : calculatedAge;
+              // For month/year dates, we only check if the birth month has passed this year
+              age = monthDiff < 0 ? calculatedAge - 1 : calculatedAge;
             }
 
             return {
@@ -204,7 +199,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
-          {hasPreferences && (
+          {/* {hasPreferences && (
             <AISuggestedThemes
               selectedChildProfiles={selectedChildProfiles}
               loadingAiThemes={loadingAiThemes}
@@ -213,7 +208,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
               selectedTheme={selectedTheme}
               onThemeSelect={handleThemeSelect}
             />
-          )}
+          )} */}
           <CustomThemeSection
             customTheme={customTheme}
             isCustomThemeSelected={isCustomThemeSelected}

@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -14,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
-import { ChildProfileForm } from "../../components/settings/ChildProfileForm";
+import { SavedCharacterCard } from "../../components/settings/SavedCharacterCard";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import {
@@ -25,55 +26,46 @@ import {
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { useChildren } from "../../hooks/useChildren";
+import { useSavedCharacters } from "../../hooks/useSavedCharacters";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
 import { Child } from "../../types/child.types";
+import { SavedCharacter } from "../../types/savedCharacter.types";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const {
     children,
-    loading,
+    loading: _loading,
     error,
-    addChild,
-    updateChild,
+    addChild: _addChild,
+    updateChild: _updateChild,
     deleteChild,
     clearError,
   } = useChildren();
+  const {
+    savedCharacters,
+    loading: _savedCharsLoading,
+    error: savedCharsError,
+    deleteSavedCharacter,
+    clearError: clearSavedCharsError,
+  } = useSavedCharacters();
   const { preferences, updatePreferences } = useUserPreferences();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
 
   const handleAddChild = () => {
-    setEditingChild(null);
-    setShowForm(true);
+    router.push("/child-profile");
   };
 
   const handleEditChild = (child: Child) => {
-    setEditingChild(child);
-    setShowForm(true);
-  };
-
-  const handleSaveChild = async (childData: Omit<Child, "id">) => {
-    try {
-      if (editingChild) {
-        await updateChild(editingChild.id, childData);
-      } else {
-        await addChild(childData);
-      }
-      setShowForm(false);
-      setEditingChild(null);
-    } catch (error) {
-      // Error handled in hook
-      console.error("Save child error:", error);
-    }
+    router.push(`/child-profile?childId=${child.id}`);
   };
 
   const handleDeleteChild = async (childId: string) => {
@@ -84,9 +76,20 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingChild(null);
+  const handleAddSavedCharacter = () => {
+    router.push("/saved-character-profile");
+  };
+
+  const handleEditSavedCharacter = (character: SavedCharacter) => {
+    router.push(`/saved-character-profile?characterId=${character.id}`);
+  };
+
+  const handleDeleteSavedCharacter = async (characterId: string) => {
+    try {
+      await deleteSavedCharacter(characterId);
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete saved character");
+    }
   };
 
   const handleSignOut = () => {
@@ -102,47 +105,6 @@ export default function SettingsScreen() {
       },
     ]);
   };
-
-  if (showForm) {
-    return (
-      <ImageBackground
-        source={require("../../assets/images/background-landscape.png")}
-        resizeMode="cover"
-        style={styles.container}
-      >
-        <LinearGradient
-          colors={[
-            Colors.backgroundGradientStart,
-            Colors.backgroundGradientEnd,
-          ]}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.formHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleCancelForm}
-            >
-              <IconSymbol
-                name="chevron.left"
-                size={24}
-                color={Colors.primary}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Settings</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          <ChildProfileForm
-            child={editingChild || undefined}
-            onSave={handleSaveChild}
-            onCancel={handleCancelForm}
-            loading={loading}
-          />
-        </SafeAreaView>
-      </ImageBackground>
-    );
-  }
 
   return (
     <ImageBackground
@@ -219,6 +181,63 @@ export default function SettingsScreen() {
                 children.length === 0 ? "Add a child" : "Add another child"
               }
               onPress={handleAddChild}
+              leftIcon="plus"
+              variant="outline"
+              style={styles.addButton}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Saved characters</Text>
+            </View>
+            <Text style={styles.sectionDescription}>
+              Create reusable characters for your stories
+            </Text>
+
+            {savedCharsError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{savedCharsError}</Text>
+                <TouchableOpacity onPress={clearSavedCharsError}>
+                  <IconSymbol name="xmark.circle" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {savedCharacters.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  name="person.2.circle"
+                  size={64}
+                  color="#D1D5DB"
+                />
+                <Text style={styles.emptyStateTitle}>
+                  No saved characters yet
+                </Text>
+                <Text style={styles.emptyStateText}>
+                  Create characters that can be reused across multiple stories
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.childrenList}>
+                {savedCharacters.map((character) => (
+                  <SavedCharacterCard
+                    key={character.id}
+                    character={character}
+                    onEdit={handleEditSavedCharacter}
+                    onDelete={handleDeleteSavedCharacter}
+                  />
+                ))}
+              </View>
+            )}
+
+            <Button
+              title={
+                savedCharacters.length === 0
+                  ? "Create a character"
+                  : "Create another character"
+              }
+              onPress={handleAddSavedCharacter}
               leftIcon="plus"
               variant="outline"
               style={styles.addButton}

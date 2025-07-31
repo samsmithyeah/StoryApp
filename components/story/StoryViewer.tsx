@@ -4,7 +4,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   ImageBackground,
   Platform,
@@ -29,7 +28,10 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
+import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { CloseButton } from "../ui/CloseButton";
 import { IconSymbol } from "../ui/IconSymbol";
+import { TheEndScreen } from "./TheEndScreen";
 
 const CREAM_COLOR = "#F5E6C8";
 
@@ -53,6 +55,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
+  const [imageErrors, setImageErrors] = useState<boolean[]>([]);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -73,9 +76,32 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   const textPanelMaxPct = isTablet ? (isLandscape ? 0.38 : 0.44) : 0.48;
   const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
 
+  const totalPages = story.storyContent ? story.storyContent.length + 1 : 0; // +1 for the end screen
+
   useEffect(() => {
     if (Array.isArray(story.storyContent)) {
-      setImageLoading(Array(story.storyContent.length).fill(true));
+      // Initialize based on each page's current state
+      const initialLoading = story.storyContent.map((page) => {
+        // Show loading if there's an imageUrl (needs to load) or if generation is active
+        return (
+          !!page.imageUrl ||
+          (!page.imageUrl &&
+            (story.imageGenerationStatus === "generating" ||
+              story.imageGenerationStatus === "pending"))
+        );
+      });
+
+      const initialErrors = story.storyContent.map((page) => {
+        // Show error if no imageUrl and generation is not active (completed, failed, or not_requested)
+        return (
+          !page.imageUrl &&
+          story.imageGenerationStatus !== "generating" &&
+          story.imageGenerationStatus !== "pending"
+        );
+      });
+
+      setImageLoading(initialLoading);
+      setImageErrors(initialErrors);
     }
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -107,10 +133,23 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       return next;
     });
 
+  const handleImageError = (idx: number) => {
+    setImageLoading((prev) => {
+      const next = [...prev];
+      next[idx] = false;
+      return next;
+    });
+    setImageErrors((prev) => {
+      const next = [...prev];
+      next[idx] = true;
+      return next;
+    });
+  };
+
   const goToPage = useCallback(
     (idx: number) => {
       if (!story.storyContent) return;
-      if (idx < 0 || idx >= story.storyContent.length) return;
+      if (idx < 0 || idx >= totalPages) return;
 
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
@@ -120,7 +159,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         });
       }
     },
-    [story.storyContent, pageWidth]
+    [story.storyContent, pageWidth, totalPages]
   );
 
   const handleHorizontalScroll = (e: any) => {
@@ -139,27 +178,44 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             <View style={[styles.storyCard, { height: availableHeight }]}>
               {hasImages && (
                 <View style={[styles.imageContainer, styles.imageFlex]}>
-                  {imageLoading[index] && (
-                    <ActivityIndicator
-                      size="large"
-                      color={Colors.primary}
-                      style={styles.imageLoader}
-                    />
+                  {imageLoading[index] && !imageErrors[index] && (
+                    <View style={styles.imageLoader}>
+                      <LoadingSpinner size="medium" showGlow={false} />
+                    </View>
                   )}
-                  {imageUrl ? (
+                  {imageErrors[index] ? (
+                    <View style={styles.errorImage}>
+                      <IconSymbol
+                        name="exclamationmark.triangle"
+                        size={48}
+                        color={Colors.error}
+                      />
+                      <Text style={styles.errorText}>
+                        {story.imageGenerationStatus === "failed"
+                          ? "Image generation failed"
+                          : "Image failed to load"}
+                      </Text>
+                    </View>
+                  ) : imageUrl ? (
                     <Image
                       source={{ uri: imageUrl }}
                       style={styles.pageImage}
                       contentFit="cover"
                       onLoad={() => handleImageLoad(index)}
+                      onError={() => handleImageError(index)}
                     />
-                  ) : (
-                    <View style={styles.placeholderImage}>
+                  ) : !imageLoading[index] ? (
+                    <View style={styles.errorImage}>
                       <IconSymbol
-                        name="photo"
+                        name="photo.badge.exclamationmark"
                         size={48}
                         color={Colors.textMuted}
                       />
+                      <Text style={styles.errorText}>No image available</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                      <LoadingSpinner size="medium" showGlow={false} />
                     </View>
                   )}
                 </View>
@@ -210,7 +266,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     return (
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={isTablet ? "cover" : "none"}
         style={styles.container}
       >
         <LinearGradient
@@ -222,14 +278,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         />
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={onClose || (() => router.replace("/(tabs)"))}
-              style={styles.closeButton}
-            >
-              <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.placeholder} />
             <Text style={styles.title}>{story.title}</Text>
-            <View style={{ width: 40 }} />
+            <CloseButton
+              onPress={onClose || (() => router.replace("/(tabs)"))}
+            />
           </View>
           <View style={styles.errorContainer}>
             <IconSymbol
@@ -245,12 +298,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
   }
 
   const isFirst = currentPage === 0;
-  const isLast = currentPage === story.storyContent.length - 1;
+  const isLast = currentPage === totalPages - 1;
 
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
       <LinearGradient
@@ -260,14 +313,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* HEADER */}
         <View style={[styles.header, { height: headerHeight }]}>
-          <View style={styles.closeButtonContainer}>
-            <TouchableOpacity
-              onPress={onClose || (() => router.replace("/(tabs)"))}
-              style={styles.closeButton}
-            >
-              <IconSymbol name="xmark" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.placeholder} />
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -282,7 +328,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
           >
             {story.title}
           </Text>
-          <View style={{ width: 40 }} />
+          <CloseButton onPress={onClose || (() => router.replace("/(tabs)"))} />
         </View>
 
         {/* CONTENT CONTAINER */}
@@ -309,6 +355,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
               decelerationRate="fast"
             >
               {story.storyContent.map((p, i) => renderPage(p, i))}
+              {/* The End Screen */}
+              <View
+                key="end-screen"
+                style={[styles.pageContainer, { width: pageWidth }]}
+              >
+                <TheEndScreen
+                  onNewStory={() => router.replace("/(tabs)/create")}
+                  onBackToLibrary={() => router.replace("/(tabs)")}
+                />
+              </View>
             </ScrollView>
           </Animated.View>
 
@@ -368,13 +424,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
-  closeButtonContainer: { width: 40, alignItems: "flex-start" },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: -8,
+  placeholder: {
+    padding: 8,
+    minWidth: 40,
   },
   title: {
     fontFamily: Typography.fontFamily.primary,
@@ -420,12 +472,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    transform: [{ translateX: -20 }, { translateY: -20 }],
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    width: 100,
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
   },
   placeholderImage: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorImage: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.lg,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
   },
 
   textPanel: {
@@ -498,9 +561,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxxl,
   },
   errorText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.small,
+    color: Colors.error,
     textAlign: "center",
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
   },
 });

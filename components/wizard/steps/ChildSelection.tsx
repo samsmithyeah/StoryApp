@@ -33,15 +33,6 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
-
-  const calculateAge = (dateOfBirth: Date) => {
-    const today = new Date();
-    const age = today.getFullYear() - dateOfBirth.getFullYear();
-    const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-    const dayDiff = today.getDate() - dateOfBirth.getDate();
-    return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
-  };
-
   const handleChildSelect = (child: Child) => {
     if (selectedChildren.includes(child.id)) {
       onUpdate({
@@ -58,7 +49,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
     <View style={styles.container}>
       <ImageBackground
         source={require("@/assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={isTablet ? "cover" : "none"}
         style={StyleSheet.absoluteFillObject}
       >
         <LinearGradient
@@ -66,8 +57,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           style={StyleSheet.absoluteFill}
         />
         <WizardStepHeader
-          title="Who's the story for?"
-          subtitle="Select one or more children"
+          title="Audience selection"
+          subtitle="Who's the story for? This will help us tailor the content to their age and interests."
           stepNumber={1}
           totalSteps={7}
           onBack={() => {}}
@@ -84,10 +75,6 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             <View style={styles.childrenGrid}>
               {children.map((child) => {
                 const isSelected = selectedChildren.includes(child.id);
-                const age = child.dateOfBirth
-                  ? calculateAge(child.dateOfBirth)
-                  : null;
-
                 return (
                   <TouchableOpacity
                     key={child.id}
@@ -132,10 +119,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                         styles.childAge,
                         isSelected && styles.selectedText,
                       ]}
-                    >
-                      {age ? `Age ${age}` : "Age not set"} •{" "}
-                      {child.childPreferences || "No interests set"}
-                    </Text>
+                    ></Text>
                   </TouchableOpacity>
                 );
               })}
@@ -144,7 +128,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             {/* Add Child Link */}
             <TouchableOpacity
               style={styles.addChildLink}
-              onPress={() => router.push("/(tabs)/settings")}
+              onPress={() => router.push("/child-profile")}
             >
               <Text style={styles.addChildText}>+ Add another child</Text>
             </TouchableOpacity>

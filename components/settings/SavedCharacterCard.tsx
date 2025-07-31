@@ -6,24 +6,24 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
-import { Child } from "../../types/child.types";
+import { SavedCharacter } from "../../types/savedCharacter.types";
 import { IconSymbol } from "../ui/IconSymbol";
 
-interface ChildProfileCardProps {
-  child: Child;
-  onEdit: (child: Child) => void;
-  onDelete: (childId: string) => void;
+interface SavedCharacterCardProps {
+  character: SavedCharacter;
+  onEdit: (character: SavedCharacter) => void;
+  onDelete: (characterId: string) => void;
 }
 
-export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
-  child,
+export const SavedCharacterCard: React.FC<SavedCharacterCardProps> = ({
+  character,
   onEdit,
   onDelete,
 }) => {
   const handleDelete = () => {
     Alert.alert(
-      "Delete profile",
-      `Are you sure you want to delete ${child.childName}'s profile? This action cannot be undone.`,
+      "Delete character",
+      `Are you sure you want to delete ${character.name}? This action cannot be undone.`,
       [
         {
           text: "Cancel",
@@ -32,45 +32,9 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDelete(child.id),
+          onPress: () => onDelete(character.id),
         },
       ]
-    );
-  };
-
-  const calculateAge = (dateOfBirth: Date) => {
-    const today = new Date();
-    const age = today.getFullYear() - dateOfBirth.getFullYear();
-    const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-
-    // For month/year dates, we only check if the birth month has passed this year
-    return monthDiff < 0 ? age - 1 : age;
-  };
-
-  const getAgeText = (dateOfBirth?: Date) => {
-    if (!dateOfBirth) return "";
-    const age = calculateAge(dateOfBirth);
-    if (age === 1) return "1 year old";
-    return `${age} years old`;
-  };
-
-  const getAppearanceDetails = () => {
-    const details: string[] = [];
-    if (child.hairColor) details.push(`${child.hairColor} hair`);
-    if (child.eyeColor) details.push(`${child.eyeColor} eyes`);
-    if (child.skinColor) details.push(`${child.skinColor} skin`);
-    if (child.hairStyle) details.push(`${child.hairStyle} style`);
-    if (child.appearanceDetails) details.push(child.appearanceDetails);
-    return details.join(", ");
-  };
-
-  const hasAppearanceDetails = () => {
-    return !!(
-      child.hairColor ||
-      child.eyeColor ||
-      child.skinColor ||
-      child.hairStyle ||
-      child.appearanceDetails
     );
   };
 
@@ -87,14 +51,14 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {getInitials(child.childName)}
-            </Text>
+            <Text style={styles.avatarText}>{getInitials(character.name)}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.name}>{child.childName}</Text>
-            {child.dateOfBirth && (
-              <Text style={styles.age}>{getAgeText(child.dateOfBirth)}</Text>
+            <Text style={styles.name}>{character.name}</Text>
+            {character.description && (
+              <Text style={styles.description} numberOfLines={1}>
+                {character.description}
+              </Text>
             )}
           </View>
         </View>
@@ -102,7 +66,7 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onEdit(child)}
+            onPress={() => onEdit(character)}
           >
             <IconSymbol name="pencil" size={18} color={Colors.primary} />
           </TouchableOpacity>
@@ -116,17 +80,10 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
         </View>
       </View>
 
-      {child.childPreferences && (
-        <View style={styles.preferences}>
-          <Text style={styles.preferencesLabel}>Likes:</Text>
-          <Text style={styles.preferencesText}>{child.childPreferences}</Text>
-        </View>
-      )}
-
-      {hasAppearanceDetails() && (
-        <View style={styles.appearance}>
-          <Text style={styles.appearanceLabel}>Appearance:</Text>
-          <Text style={styles.appearanceText}>{getAppearanceDetails()}</Text>
+      {character.appearance && (
+        <View style={styles.detail}>
+          <Text style={styles.detailLabel}>Appearance:</Text>
+          <Text style={styles.detailText}>{character.appearance}</Text>
         </View>
       )}
     </View>
@@ -154,7 +111,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
@@ -173,7 +130,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  age: {
+  description: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
   },
@@ -195,7 +152,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderColor: "rgba(239, 68, 68, 0.3)",
   },
-  preferences: {
+  detail: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: Spacing.sm,
     padding: Spacing.md,
@@ -203,7 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
   },
-  preferencesLabel: {
+  detailLabel: {
     fontSize: Typography.fontSize.tiny,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
@@ -211,28 +168,7 @@ const styles = StyleSheet.create({
     letterSpacing: Typography.letterSpacing.wide,
     marginBottom: Spacing.xs,
   },
-  preferencesText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  appearance: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: Spacing.sm,
-    padding: Spacing.md,
-    marginTop: Spacing.sm,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-  },
-  appearanceLabel: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: Typography.letterSpacing.wide,
-    marginBottom: Spacing.xs,
-  },
-  appearanceText: {
+  detailText: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
     lineHeight: 20,
