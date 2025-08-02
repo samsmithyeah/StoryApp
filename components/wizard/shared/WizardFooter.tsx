@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Spacing } from "../../../constants/Theme";
+import { Spacing } from "@/constants/Theme";
 import { Button } from "../../ui/Button";
 
 interface WizardFooterProps {
@@ -14,8 +14,10 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   nextDisabled = false,
   nextText = "Next",
 }) => {
+  //const insets = useSafeAreaInsets();
+
   return (
-    <View style={[styles.footer]}>
+    <View style={styles.footer}>
       <Button
         title={nextText}
         onPress={onNext}
@@ -31,6 +33,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+    marginTop: Spacing.lg,
   },
 });

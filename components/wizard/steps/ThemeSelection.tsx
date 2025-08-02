@@ -1,11 +1,7 @@
+// import { useChildren } from "@/hooks/useChildren";
+// import { ThemeSuggestion } from "@/services/firebase/stories";
 import { Colors } from "@/constants/Theme";
-import { useChildren } from "@/hooks/useChildren";
-import {
-  ChildInfo,
-  generateThemeSuggestions,
-  ThemeSuggestion,
-} from "@/services/firebase/stories";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
@@ -76,7 +72,7 @@ const THEMES: Theme[] = [
 
 interface ThemeSelectionProps {
   selectedTheme?: string;
-  selectedChildren: string[];
+  selectedChildren: string[]; // Keep for future AI themes
   onSelect: (theme: string) => void;
   onNext: () => void;
   onBack: () => void;
@@ -85,16 +81,14 @@ interface ThemeSelectionProps {
 
 export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   selectedTheme,
-  selectedChildren,
+  selectedChildren: _selectedChildren, // Keep for future AI themes
   onSelect,
   onNext,
   onBack,
   onCancel,
 }) => {
-  const { children } = useChildren();
-  const [aiThemes, setAiThemes] = useState<ThemeSuggestion[]>([]);
-  const [loadingAiThemes, setLoadingAiThemes] = useState(false);
-  const [_aiThemesError, setAiThemesError] = useState<string | null>(null);
+  // AI themes functionality temporarily disabled
+  const aiThemes: any[] = [];
 
   // Helper to check if custom theme is selected
   const isCustomThemeSelected =
@@ -114,72 +108,70 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 
   const handleCustomThemeSelect = () => {
     // When the "Custom Theme" card is tapped, activate it.
-    // Set the theme to the current input text, or "custom" if it's empty.
-    onSelect(customTheme.trim() || "custom");
+    onSelect(customTheme.trim() || " ");
   };
 
   const handleCustomThemeChange = (text: string) => {
     // First, update the local state that drives the TextInput's value.
     setCustomTheme(text);
 
-    // **THE FIX:** Check if the custom theme option is currently active.
+    // Check if the custom theme option is currently active.
     // If it is, immediately update the parent wizard's state with the new text.
     if (isCustomThemeSelected) {
-      // Use the trimmed text, or fall back to "custom" to keep the field active.
-      onSelect(text.trim() || "custom");
+      onSelect(text.trim() || " ");
     }
   };
 
-  const selectedChildProfiles = children.filter((child) =>
-    selectedChildren.includes(child.id)
-  );
-  const hasPreferences = selectedChildProfiles.some((child) =>
-    child.childPreferences?.trim()
-  );
+  // const selectedChildProfiles = children.filter((child) =>
+  //   selectedChildren.includes(child.id)
+  // );
+  // const hasPreferences = selectedChildProfiles.some((child) =>
+  //   child.childPreferences?.trim()
+  // );
 
-  useEffect(() => {
-    const generateAiThemes = async () => {
-      if (!hasPreferences || aiThemes.length > 0 || loadingAiThemes) return;
-      setLoadingAiThemes(true);
-      setAiThemesError(null);
-      try {
-        const childrenInfo: ChildInfo[] = selectedChildProfiles
-          .filter((child) => child.childPreferences?.trim())
-          .map((child) => {
-            let age = 5; // Default age if dateOfBirth is not provided
+  // useEffect(() => {
+  //   const generateAiThemes = async () => {
+  //     if (!hasPreferences || aiThemes.length > 0 || loadingAiThemes) return;
+  //     setLoadingAiThemes(true);
+  //     setAiThemesError(null);
+  //     try {
+  //       const childrenInfo: ChildInfo[] = selectedChildProfiles
+  //         .filter((child) => child.childPreferences?.trim())
+  //         .map((child) => {
+  //           let age = 5; // Default age if dateOfBirth is not provided
 
-            if (child.dateOfBirth) {
-              const today = new Date();
-              const birthDate = new Date(child.dateOfBirth);
-              const calculatedAge =
-                today.getFullYear() - birthDate.getFullYear();
-              const monthDiff = today.getMonth() - birthDate.getMonth();
+  //           if (child.dateOfBirth) {
+  //             const today = new Date();
+  //             const birthDate = new Date(child.dateOfBirth);
+  //             const calculatedAge =
+  //               today.getFullYear() - birthDate.getFullYear();
+  //             const monthDiff = today.getMonth() - birthDate.getMonth();
 
-              // For month/year dates, we only check if the birth month has passed this year
-              age = monthDiff < 0 ? calculatedAge - 1 : calculatedAge;
-            }
+  //             // For month/year dates, we only check if the birth month has passed this year
+  //             age = monthDiff < 0 ? calculatedAge - 1 : calculatedAge;
+  //           }
 
-            return {
-              preferences: child.childPreferences!.trim(),
-              age: age,
-            };
-          });
+  //           return {
+  //             preferences: child.childPreferences!.trim(),
+  //             age: age,
+  //           };
+  //         });
 
-        if (childrenInfo.length > 0) {
-          const suggestions = await generateThemeSuggestions(childrenInfo);
-          setAiThemes(suggestions);
-        }
-      } catch (error) {
-        console.error("Error generating AI themes:", error);
-        setAiThemesError(
-          "Failed to generate personalized themes. Please try again."
-        );
-      } finally {
-        setLoadingAiThemes(false);
-      }
-    };
-    generateAiThemes();
-  }, [hasPreferences, selectedChildProfiles, aiThemes.length, loadingAiThemes]);
+  //       if (childrenInfo.length > 0) {
+  //         const suggestions = await generateThemeSuggestions(childrenInfo);
+  //         setAiThemes(suggestions);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error generating AI themes:", error);
+  //       setAiThemesError(
+  //         "Failed to generate personalized themes. Please try again."
+  //       );
+  //     } finally {
+  //       setLoadingAiThemes(false);
+  //     }
+  //   };
+  //   generateAiThemes();
+  // }, [hasPreferences, selectedChildProfiles, aiThemes.length, loadingAiThemes]);
 
   const isNextDisabled =
     !selectedTheme || (isCustomThemeSelected && !customTheme.trim());
@@ -241,6 +233,9 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
@@ -248,9 +243,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 0,
   },
-  themesSection: {
-    marginBottom: 32,
-  },
+  themesSection: {},
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "600",

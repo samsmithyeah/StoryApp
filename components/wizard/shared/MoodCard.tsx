@@ -12,31 +12,31 @@ import { Shadows } from "@/constants/Theme";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-interface Theme {
+interface Mood {
   id: string;
-  name: string;
+  title: string;
   icon: string;
   description: string;
 }
 
-interface ThemeCardProps {
-  theme: Theme;
+interface MoodCardProps {
+  mood: Mood;
   isSelected: boolean;
-  onSelect: (themeId: string) => void;
+  onSelect: (moodId: string) => void;
 }
 
-export const ThemeCard: React.FC<ThemeCardProps> = ({
-  theme,
+export const MoodCard: React.FC<MoodCardProps> = ({
+  mood,
   isSelected,
   onSelect,
 }) => {
   return (
     <TouchableOpacity
       style={[
-        isTablet ? styles.themeListCardTablet : styles.themeListCard,
+        isTablet ? styles.moodListCardTablet : styles.moodListCard,
         isSelected && styles.selectedListCard,
       ]}
-      onPress={() => onSelect(theme.id)}
+      onPress={() => onSelect(mood.id)}
     >
       <View
         style={[
@@ -46,19 +46,19 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
             : styles.unselectedIconContainer,
         ]}
       >
-        <IconSymbol name={theme.icon as any} size={24} color="#1a1b3a" />
+        <IconSymbol name={mood.icon as any} size={24} color="#1a1b3a" />
       </View>
-      <View style={styles.themeInfo}>
-        <Text style={[styles.themeName, isSelected && styles.selectedText]}>
-          {theme.name}
+      <View style={styles.moodInfo}>
+        <Text style={[styles.moodName, isSelected && styles.selectedText]}>
+          {mood.title}
         </Text>
         <Text
           style={[
-            styles.themeDescription,
+            styles.moodDescription,
             isSelected && styles.selectedDescription,
           ]}
         >
-          {theme.description}
+          {mood.description}
         </Text>
       </View>
       {isSelected && (
@@ -71,7 +71,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  themeListCard: {
+  moodListCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
   },
-  themeListCardTablet: {
+  moodListCardTablet: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -111,16 +111,16 @@ const styles = StyleSheet.create({
   unselectedIconContainer: {
     opacity: 0.6,
   },
-  themeInfo: {
+  moodInfo: {
     flex: 1,
   },
-  themeName: {
+  moodName: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 4,
   },
-  themeDescription: {
+  moodDescription: {
     fontSize: isTablet ? 14 : 12,
     color: "#9CA3AF",
     lineHeight: 16,

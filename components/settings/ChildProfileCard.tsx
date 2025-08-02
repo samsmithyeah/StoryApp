@@ -1,8 +1,16 @@
 import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   Colors,
   CommonStyles,
+  Shadows,
   Spacing,
   Typography,
 } from "../../constants/Theme";
@@ -50,6 +58,7 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
   const getAgeText = (dateOfBirth?: Date) => {
     if (!dateOfBirth) return "";
     const age = calculateAge(dateOfBirth);
+    if (isNaN(age) || age < 0) return "";
     if (age === 1) return "1 year old";
     return `${age} years old`;
   };
@@ -93,7 +102,7 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
           </View>
           <View style={styles.info}>
             <Text style={styles.name}>{child.childName}</Text>
-            {child.dateOfBirth && (
+            {getAgeText(child.dateOfBirth) && (
               <Text style={styles.age}>{getAgeText(child.dateOfBirth)}</Text>
             )}
           </View>
@@ -135,7 +144,12 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    ...CommonStyles.card,
+    borderWidth: 2,
+    borderColor: Colors.cardBorder,
+    borderRadius: 18,
+    backgroundColor: Colors.cardBackground,
+    overflow: "hidden",
+    ...Shadows.glow,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },
@@ -158,6 +172,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
+    ...Platform.select({
+      android: {
+        ...Shadows.glow,
+      },
+      ios: {},
+    }),
   },
   avatarText: {
     fontSize: Typography.fontSize.large,
@@ -204,12 +224,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.2)",
   },
   preferencesLabel: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: Typography.letterSpacing.wide,
-    marginBottom: Spacing.xs,
+    ...CommonStyles.primarySectionLabel,
   },
   preferencesText: {
     fontSize: Typography.fontSize.small,
@@ -225,12 +240,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.2)",
   },
   appearanceLabel: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: Typography.letterSpacing.wide,
-    marginBottom: Spacing.xs,
+    ...CommonStyles.primarySectionLabel,
   },
   appearanceText: {
     fontSize: Typography.fontSize.small,

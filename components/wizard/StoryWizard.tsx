@@ -1,10 +1,10 @@
+import { useChildren } from "@/hooks/useChildren";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   generateStory,
   StoryGenerationRequest,
 } from "@/services/firebase/stories";
 import { StoryConfiguration } from "@/types/story.types";
-import { useChildren } from "@/hooks/useChildren";
-import { useUserPreferences } from "@/hooks/useUserPreferences";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -13,14 +13,14 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { CharacterSelection } from "./steps/CharacterSelection";
 import { ChildSelection } from "./steps/ChildSelection";
 import { GenerationStep } from "./steps/GenerationStep";
-import { ThemeSelection } from "./steps/ThemeSelection";
-import { StoryAbout } from "./steps/StoryAbout";
-import { CharacterSelection } from "./steps/CharacterSelection";
-import { MoodSelection } from "./steps/MoodSelection";
-import { StoryDetails } from "./steps/StoryDetails";
 import { IllustrationSelection } from "./steps/IllustrationSelection";
+import { MoodSelection } from "./steps/MoodSelection";
+import { StoryAbout } from "./steps/StoryAbout";
+import { StoryDetails } from "./steps/StoryDetails";
+import { ThemeSelection } from "./steps/ThemeSelection";
 
 const WIZARD_STEPS = [
   "child",
@@ -242,7 +242,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.content}>{renderStep()}</View>
       </KeyboardAvoidingView>

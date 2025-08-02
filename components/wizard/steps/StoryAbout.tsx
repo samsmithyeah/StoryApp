@@ -1,14 +1,6 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import React, { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
@@ -58,70 +50,58 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
 
   return (
     <WizardContainer>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <WizardStepHeader
-            title="What's the story about?"
-            subtitle="You can be as vague or specific as you like"
-            stepNumber={5}
-            totalSteps={7}
-            onBack={onBack}
-            onCancel={onCancel}
-          />
+        <WizardStepHeader
+          title="What's the story about?"
+          subtitle="You can be as vague or specific as you like"
+          stepNumber={5}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
 
-          <View style={styles.content}>
-            <View style={styles.optionsContainer}>
-              {options.map((option) => (
-                <OptionCard
-                  key={option.id}
-                  option={option}
-                  isSelected={mode === option.id}
-                  onSelect={(optionId) =>
-                    setMode(optionId as "surprise" | "custom")
-                  }
-                  style={styles.optionCardSpacing}
-                />
-              ))}
-            </View>
-
-            {mode === "custom" && (
-              <View style={styles.customInputContainer}>
-                <TextInput
-                  style={styles.customInput}
-                  placeholder="Describe what you'd like the story to be about..."
-                  placeholderTextColor={Colors.textSecondary}
-                  value={text}
-                  onChangeText={setText}
-                  multiline
-                  numberOfLines={6}
-                  textAlignVertical="top"
-                  returnKeyType="done"
-                />
-                <Text style={styles.helperText}>
-                  Examples: "A dragon who learns to share", "Something about
-                  space", "A princess who loves science"
-                </Text>
-              </View>
-            )}
+        <View style={styles.content}>
+          <View style={styles.optionsContainer}>
+            {options.map((option) => (
+              <OptionCard
+                key={option.id}
+                option={option}
+                isSelected={mode === option.id}
+                onSelect={(optionId) =>
+                  setMode(optionId as "surprise" | "custom")
+                }
+                style={styles.optionCardSpacing}
+              />
+            ))}
           </View>
-        </ScrollView>
 
-        <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
-      </KeyboardAvoidingView>
+          {mode === "custom" && (
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customInput}
+                placeholder="Describe what you'd like the story to be about..."
+                placeholderTextColor={Colors.textSecondary}
+                value={text}
+                onChangeText={setText}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                returnKeyType="done"
+              />
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
     </WizardContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
   },
@@ -130,9 +110,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: 100,
   },
-  optionsContainer: {
-    marginBottom: Spacing.screenPadding,
-  },
+  optionsContainer: { marginBottom: -8 },
   optionCardSpacing: {
     marginBottom: Spacing.md,
   },

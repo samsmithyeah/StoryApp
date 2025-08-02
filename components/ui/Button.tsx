@@ -1,15 +1,16 @@
 import React from "react";
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ViewStyle,
+  Platform,
+  StyleSheet,
+  Text,
   TextStyle,
+  TouchableOpacity,
   View,
+  ViewStyle,
 } from "react-native";
+import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { IconSymbol } from "./IconSymbol";
-import { Colors, Typography, Spacing, Shadows } from "../../constants/Theme";
 
 interface ButtonProps {
   title: string;
@@ -205,9 +206,15 @@ const styles = StyleSheet.create({
   // Disabled states
   disabled: {
     backgroundColor: "#374151",
-    shadowOpacity: 0,
-    elevation: 0,
     borderColor: "#374151",
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      android: {
+        boxShadow: "none",
+      },
+    }),
   },
   disabledText: {
     color: Colors.textMuted,

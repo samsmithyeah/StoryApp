@@ -1,13 +1,7 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Colors } from "@/constants/Theme";
+import { Colors, createShadow } from "@/constants/Theme";
 import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Dimensions,
-  Easing,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 
 interface LoadingSpinnerProps {
   size?: "small" | "medium" | "large";
@@ -86,7 +80,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     // Glow animation - subtle
     const startGlow = () => {
       if (!showGlow) return;
-      
+
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, {
@@ -130,8 +124,12 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             width: circleSize,
             height: circleSize,
             borderRadius: circleSize / 2,
-            shadowOpacity: showGlow ? glowAnim : 0,
-            shadowColor: color,
+            ...createShadow.custom(
+              color,
+              showGlow ? 10 : 0,
+              20,
+              showGlow ? glowAnim : 0
+            ),
           },
         ]}
       >
@@ -148,11 +146,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           ]}
         >
           <View style={styles.iconContainer}>
-            <IconSymbol
-              name="wand.and.stars"
-              size={iconSize}
-              color={color}
-            />
+            <IconSymbol name="wand.and.stars" size={iconSize} color={color} />
           </View>
         </Animated.View>
       </Animated.View>
@@ -168,9 +162,6 @@ const styles = StyleSheet.create({
   magicCircle: {
     alignItems: "center",
     justifyContent: "center",
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 20,
-    elevation: 10,
   },
   innerCircle: {
     backgroundColor: "rgba(212, 175, 55, 0.15)",

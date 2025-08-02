@@ -1,4 +1,5 @@
 // components/story/StoryCard.tsx
+import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
@@ -6,13 +7,14 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Colors, Shadows } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
-import { useStorageUrl } from "@/hooks/useStorageUrl";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
@@ -112,13 +114,6 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
 };
 
 /* ---------- styles ---------- */
-const glow = {
-  shadowColor: "#D4AF37",
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.55,
-  shadowRadius: 12,
-  elevation: 10,
-};
 
 const styles = StyleSheet.create({
   card: {
@@ -127,8 +122,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     marginBottom: GAP,
-    backgroundColor: "rgba(255,255,255,0.02)",
-    ...glow,
+    backgroundColor: Colors.cardBackground,
+    ...Shadows.glowStrong,
   },
 
   placeholder: {
@@ -157,7 +152,11 @@ const styles = StyleSheet.create({
   /* meta */
   meta: { position: "absolute", left: 18, right: 18, bottom: 20 },
   title: {
-    fontFamily: "PlayfairDisplay-Regular",
+    fontFamily: Platform.select({
+      ios: "PlayfairDisplay-Regular",
+      android: "PlayfairDisplay-Regular",
+      default: "serif", // Fallback for testing
+    }),
     fontSize: TITLE_SIZE,
     lineHeight: TITLE_SIZE + 2,
     color: "#D4AF37",

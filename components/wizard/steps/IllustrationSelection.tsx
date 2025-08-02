@@ -30,7 +30,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Quentin Blake
   {
     id: "loose-ink-wash",
-    name: "Splashy Ink & Paint",
+    name: "Splashy ink & paint",
     description: "Scratchy pen lines with energetic watercolor splashes",
     // aiDescription:
     //   "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
@@ -42,7 +42,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Axel Scheffler
   {
     id: "bold-outline-flat-color",
-    name: "Big Bold Lines",
+    name: "Big bold lines",
     description: "Thick black lines, bright flats, friendly character shapes",
     // aiDescription:
     //   "Confident, uniform black outlines around chunky, friendly characters; bright flat fills, minimal shading. Clean European storybook vibe from the late '90s/early 2000s where a certain woodland monster might lurk.",
@@ -54,7 +54,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Anthony Browne
   {
     id: "surreal-painterly-realism",
-    name: "Dreamy Realism",
+    name: "Dreamy realism",
     description: "Detailed realism with odd, dreamlike twists",
     // aiDescription:
     //   "Smooth, carefully modeled realism with soft gradients and theatrical lighting, yet peppered with subtle surreal clues—hidden faces, bananas, warped scale. Feels like psychologically rich 1980s UK picture books.",
@@ -66,7 +66,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Maurice Sendak
   {
     id: "classic-crosshatch-storybook",
-    name: "Vintage Storybook",
+    name: "Vintage storybook",
     description: "Fine pen shading, muted palettes, vintage picture-book feel",
     // aiDescription:
     //   "Fine pen-and-ink crosshatching, stippling, and muted watercolor washes. Cozy-but-wild mid-century American picture-book mood, where a rumpus could break out any minute.",
@@ -78,7 +78,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Beatrix Potter
   {
     id: "delicate-botanical-watercolour",
-    name: "Gentle Watercolours",
+    name: "Gentle watercolours",
     description:
       "Soft washes, naturalistic animals and plants, gentle nostalgia",
     // aiDescription:
@@ -91,7 +91,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Dr. Seuss
   {
     id: "wonky-rhythmic-whimsy",
-    name: "Wiggly Whimsy",
+    name: "Wiggly whimsy",
     description: "Curvy, off-kilter shapes and playful chaos",
     // aiDescription:
     //   "Elastic, curvilinear architecture, striped patterns. Limited punchy palettes and nonsense machines—pure mid-century American wonkiness and absurdity.",
@@ -103,7 +103,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Oliver Jeffers
   {
     id: "naive-textured-brushwork",
-    name: "Scribbly Paint & Pencil",
+    name: "Scribbly paint & pencil",
     description: "Childlike marks, visible brush texture, handwritten notes",
     // aiDescription:
     //   "Intentionally wobbly linework with visible brush and pencil texture, hand-lettered notes, and roomy negative space. Contemporary Irish/American picture-book feel—simple shapes but big heart.",
@@ -116,7 +116,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // Jon Klassen
   {
     id: "deadpan-minimal-graphic",
-    name: "Quiet & Simple",
+    name: "Quiet & simple",
     description:
       "Muted earth tones, simple shapes, tiny eyes & big negative space",
     // aiDescription:
@@ -129,7 +129,7 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
   // E. H. Shepard
   {
     id: "fine-ink-soft-wash",
-    name: "Fine Ink & Tint",
+    name: "Fine ink & tint",
     description: "Precise pen contours, light watercolour tints, gentle charm",
     // aiDescription:
     //   "Elegant, controlled pen contours with light transparent washes, capturing gentle motion. Early 20th-century English nursery classic energy—tea-stained nostalgia and soft woodland rambles.",
@@ -187,7 +187,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
       onUpdate({
-        illustrationStyle: customStyle.trim() || "custom",
+        illustrationStyle: customStyle.trim() || " ",
         illustrationAiDescription: customStyle.trim(),
       });
     } else {
@@ -216,7 +216,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     if (isCustomStyleSelected) {
       // Update the selection with the typed text
       onUpdate({
-        illustrationStyle: text.trim() || "custom",
+        illustrationStyle: text.trim() || " ",
         illustrationAiDescription: text.trim(),
       });
     }
@@ -301,9 +301,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                             isSelected && styles.selectedDescription,
                           ]}
                         >
-                          {style.id === "custom" && customStyle
-                            ? customStyle
-                            : style.description}
+                          {style.description}
                         </Text>
                       </View>
                       {isSelected && (
@@ -460,5 +458,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     minHeight: 80,
+    textAlignVertical: "top",
   },
 });

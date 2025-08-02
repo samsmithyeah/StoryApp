@@ -1,20 +1,21 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Modal,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { IconSymbol } from "./IconSymbol";
 import {
-  Colors,
-  Typography,
-  Spacing,
   BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
 } from "../../constants/Theme";
+import { IconSymbol } from "./IconSymbol";
 
 interface DatePickerProps {
   label?: string;
@@ -307,14 +308,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Shadows.glow,
   },
   modalHeader: {
     flexDirection: "row",

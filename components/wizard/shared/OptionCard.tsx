@@ -1,5 +1,5 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Colors } from "@/constants/Theme";
+import { Colors, Shadows } from "@/constants/Theme";
 import React from "react";
 import {
   TouchableOpacity,
@@ -98,11 +98,7 @@ const styles = StyleSheet.create({
   },
   selectedIconContainer: {
     backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Shadows.glow,
   },
   unselectedIconContainer: {
     opacity: 0.6,

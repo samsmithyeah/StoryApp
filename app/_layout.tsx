@@ -6,6 +6,7 @@ import {
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
@@ -17,13 +18,18 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { loading } = useAuth();
 
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
-  });
+  // For Android, rely on config plugin; for iOS, use useFonts
+  const [loaded] = useFonts(
+    Platform.OS === "ios"
+      ? {
+          "SpaceMono-Regular": require("../assets/fonts/SpaceMono-Regular.ttf"),
+          "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
+        }
+      : {}
+  );
 
-  if (!loaded || loading) {
-    // Show loading screen instead of null
+  if ((Platform.OS === "ios" && !loaded) || loading) {
+    // Show loading screen for iOS font loading or auth loading
     return <LoadingScreen message="Starting DreamWeaver..." />;
   }
 

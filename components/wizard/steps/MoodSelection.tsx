@@ -1,14 +1,8 @@
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { Colors } from "@/constants/Theme";
 import React, { useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { OptionCard } from "../shared/OptionCard";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { CustomMoodSection } from "../shared/CustomMoodSection";
+import { MoodCard } from "../shared/MoodCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
@@ -95,36 +89,37 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   onBack,
   onCancel,
 }) => {
-  const [customMood, setCustomMood] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
-
   const isCustomMoodSelected =
     selectedMood === "custom" ||
     (!!selectedMood && !MOOD_OPTIONS.find((m) => m.id === selectedMood));
 
+  const [customMood, setCustomMood] = useState(
+    isCustomMoodSelected ? selectedMood : ""
+  );
+
   const handleMoodSelect = (moodId: string) => {
-    if (moodId === "custom") {
-      setShowCustomInput(true);
-      onSelect("custom");
-    } else {
-      setShowCustomInput(false);
-      setCustomMood("");
-      onSelect(moodId);
-    }
+    onSelect(moodId);
+    setCustomMood(""); // Clear custom text when selecting a predefined mood
+  };
+
+  const handleCustomMoodSelect = () => {
+    // When the "Custom Mood" card is tapped, activate it.
+    // Set the mood to the current input text, or "custom" if it's empty.
+    onSelect(customMood.trim() || "custom");
   };
 
   const handleCustomMoodChange = (text: string) => {
+    // First, update the local state that drives the TextInput's value.
     setCustomMood(text);
-    if (text.trim()) {
-      onSelect(text.trim());
-    } else {
-      onSelect("custom");
+
+    // Check if the custom mood option is currently active.
+    // If it is, immediately update the parent wizard's state with the new text.
+    if (isCustomMoodSelected) {
+      onSelect(text.trim() || " ");
     }
   };
-
   const isNextDisabled =
-    !selectedMood ||
-    (isCustomMoodSelected && !customMood.trim() && selectedMood === "custom");
+    !selectedMood || (isCustomMoodSelected && !customMood.trim());
 
   return (
     <WizardContainer>
@@ -141,54 +136,28 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
-          <View
-            style={isTablet ? styles.moodsSectionTablet : styles.moodsSection}
-          >
-            {MOOD_OPTIONS.map((mood) => (
-              <View
-                key={mood.id}
-                style={isTablet ? styles.optionCardWrapper : {}}
-              >
-                <OptionCard
-                  option={mood}
-                  isSelected={mood.id === selectedMood}
-                  onSelect={handleMoodSelect}
-                  style={styles.optionCardSpacing}
-                />
-              </View>
-            ))}
-
-            {/* Custom mood option */}
-            <View style={isTablet ? styles.optionCardWrapper : {}}>
-              <OptionCard
-                option={{
-                  id: "custom",
-                  title: "Custom",
-                  description: "Choose your own mood",
-                  icon: "pencil",
-                }}
-                isSelected={isCustomMoodSelected}
-                onSelect={handleMoodSelect}
-                style={styles.optionCardSpacing}
-              />
+          <CustomMoodSection
+            customMood={customMood}
+            isCustomMoodSelected={isCustomMoodSelected}
+            onCustomMoodSelect={handleCustomMoodSelect}
+            onCustomMoodChange={handleCustomMoodChange}
+          />
+          <View style={styles.moodsSection}>
+            <Text style={styles.sectionTitle}>Other popular moods</Text>
+            <View style={isTablet ? styles.moodsListTablet : styles.moodsList}>
+              {MOOD_OPTIONS.map((mood) => {
+                const isSelected = mood.id === selectedMood;
+                return (
+                  <MoodCard
+                    key={mood.id}
+                    mood={mood}
+                    isSelected={isSelected}
+                    onSelect={handleMoodSelect}
+                  />
+                );
+              })}
             </View>
           </View>
-
-          {showCustomInput && (
-            <View style={styles.customMoodContainer}>
-              <TextInput
-                style={styles.customMoodInput}
-                placeholder="Enter a custom mood..."
-                placeholderTextColor={Colors.textSecondary}
-                value={customMood}
-                onChangeText={handleCustomMoodChange}
-                returnKeyType="done"
-              />
-              <Text style={styles.helperText}>
-                Examples: "adventurous", "mysterious", "dreamy"
-              </Text>
-            </View>
-          )}
         </View>
       </ScrollView>
       <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
@@ -204,39 +173,21 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 0,
   },
-  moodsSection: {
-    marginBottom: 32,
+  moodsSection: {},
+  sectionTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: "600",
+    color: Colors.primary,
+    marginBottom: 12,
+    textAlign: "left",
   },
-  moodsSectionTablet: {
+  moodsList: {
+    gap: 12,
+  },
+  moodsListTablet: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 32,
+    gap: 12,
     marginHorizontal: -6,
-  },
-  optionCardWrapper: {
-    width: "50%",
-    paddingHorizontal: 6,
-  },
-  optionCardSpacing: {
-    marginBottom: Spacing.md,
-  },
-  customMoodContainer: {
-    marginTop: Spacing.lg,
-    marginBottom: 32,
-  },
-  customMoodInput: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: BorderRadius.medium,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    fontSize: Typography.fontSize.medium,
-    color: Colors.text,
-  },
-  helperText: {
-    marginTop: Spacing.sm,
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
   },
 });

@@ -1,8 +1,16 @@
 import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   Colors,
   CommonStyles,
+  Shadows,
   Spacing,
   Typography,
 } from "../../constants/Theme";
@@ -92,7 +100,12 @@ export const SavedCharacterCard: React.FC<SavedCharacterCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    ...CommonStyles.card,
+    borderWidth: 2,
+    borderColor: Colors.cardBorder,
+    borderRadius: 18,
+    backgroundColor: Colors.cardBackground,
+    overflow: "hidden",
+    ...Shadows.glow,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },
@@ -115,6 +128,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
+    ...Platform.select({
+      android: {
+        ...Shadows.glow,
+      },
+      ios: {},
+    }),
   },
   avatarText: {
     fontSize: Typography.fontSize.large,
@@ -161,12 +180,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.2)",
   },
   detailLabel: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: Typography.letterSpacing.wide,
-    marginBottom: Spacing.xs,
+    ...CommonStyles.primarySectionLabel,
   },
   detailText: {
     fontSize: Typography.fontSize.small,

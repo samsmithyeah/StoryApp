@@ -4,7 +4,9 @@ import React, { useRef } from "react";
 import {
   Alert,
   ImageBackground,
+  Platform,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,6 +24,7 @@ export default function ChildProfileScreen() {
   const formRef = useRef<{
     handleSave: () => void;
     hasUnsavedChanges: () => boolean;
+    getChildName: () => string;
   }>(null);
 
   const child = childId ? children?.find((c) => c.id === childId) : undefined;
@@ -101,7 +104,6 @@ export default function ChildProfileScreen() {
           child={child}
           onSave={handleSave}
           onCancel={handleCancel}
-          showCancelButton={false}
           loading={loading}
         />
       </SafeAreaView>
@@ -121,6 +123,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.md,
+    paddingTop: Platform.select({
+      android: (StatusBar.currentHeight || 0) + Spacing.md,
+      ios: Spacing.md,
+    }),
   },
   headerButton: {
     padding: Spacing.sm,

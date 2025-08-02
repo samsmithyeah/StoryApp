@@ -68,7 +68,7 @@ export default function LoginScreen() {
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
       <LinearGradient
@@ -201,7 +201,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: isTablet ? 500 : 400,
     alignSelf: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    backgroundColor: Platform.select({
+      ios: "rgba(255, 255, 255, 0.03)",
+      android: "rgba(26, 27, 58, 0.8)", // More opaque background for Android elevation
+    }),
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",

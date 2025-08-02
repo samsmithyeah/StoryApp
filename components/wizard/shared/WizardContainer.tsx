@@ -1,6 +1,6 @@
-import React from "react";
-import { View, ImageBackground, StyleSheet, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
 
 const { width } = Dimensions.get("window");
 const _isTablet = width >= 768;
@@ -16,7 +16,7 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
     <View style={styles.container}>
       <ImageBackground
         source={require("@/assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={_isTablet ? "cover" : "none"}
         style={StyleSheet.absoluteFillObject}
       >
         <LinearGradient

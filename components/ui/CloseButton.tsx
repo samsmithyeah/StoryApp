@@ -1,6 +1,12 @@
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  Dimensions,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { Colors } from "../../constants/Theme";
+import { IconSymbol } from "./IconSymbol";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -13,19 +19,23 @@ interface CloseButtonProps {
 export const CloseButton: React.FC<CloseButtonProps> = ({ onPress, style }) => {
   return (
     <TouchableOpacity style={[styles.cancelButton, style]} onPress={onPress}>
-      <Text style={styles.cancelText}>✕</Text>
+      <IconSymbol
+        name="xmark"
+        size={Platform.select({
+          ios: isTablet ? 24 : 20,
+          android: 24,
+        })}
+        color={Colors.primary}
+      />
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   cancelButton: {
-    padding: 8,
-    minWidth: 40,
-  },
-  cancelText: {
-    color: Colors.primary,
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
+    minWidth: 24, // Just the icon size
+    minHeight: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

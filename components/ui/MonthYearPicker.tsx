@@ -14,8 +14,9 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
-import { IconSymbol } from "./IconSymbol";
 import { Button } from "./Button";
+import { CloseButton } from "./CloseButton";
+import { IconSymbol } from "./IconSymbol";
 
 interface MonthYearPickerProps {
   label?: string;
@@ -147,12 +148,7 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select month & year</Text>
-              <TouchableOpacity
-                onPress={handleCancel}
-                style={styles.closeButton}
-              >
-                <IconSymbol name="xmark" size={20} color={Colors.textMuted} />
-              </TouchableOpacity>
+              <CloseButton onPress={handleCancel} />
             </View>
 
             <View style={styles.pickerContainer}>
@@ -318,14 +314,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
     fontFamily: Typography.fontFamily.primary,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.large,
-    backgroundColor: Colors.cardBackground,
-    alignItems: "center",
-    justifyContent: "center",
   },
   pickerContainer: {
     flexDirection: "row",

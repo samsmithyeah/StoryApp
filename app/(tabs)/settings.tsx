@@ -6,14 +6,18 @@ import {
   Alert,
   Dimensions,
   ImageBackground,
+  Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding";
 import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
 import { SavedCharacterCard } from "../../components/settings/SavedCharacterCard";
 import { Button } from "../../components/ui/Button";
@@ -37,6 +41,7 @@ const isTablet = width >= 768;
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const {
     children,
     loading: _loading,
@@ -56,6 +61,7 @@ export default function SettingsScreen() {
   const { preferences, updatePreferences } = useUserPreferences();
 
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showWelcomeWizard, setShowWelcomeWizard] = useState(false);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
@@ -106,6 +112,14 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleShowWelcomeWizard = () => {
+    setShowWelcomeWizard(true);
+  };
+
+  const handleWelcomeWizardComplete = () => {
+    setShowWelcomeWizard(false);
+  };
+
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
@@ -121,8 +135,20 @@ export default function SettingsScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          style={[styles.scrollView, { marginTop: -insets.top }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop:
+                insets.top +
+                Spacing.screenPadding +
+                (Platform.select({
+                  android: StatusBar.currentHeight || 0,
+                  ios: 0,
+                }) || 0),
+            },
+          ]}
+          contentInsetAdjustmentBehavior="never"
         >
           <View style={styles.header}>
             <Text style={styles.title}>Settings</Text>
@@ -206,11 +232,7 @@ export default function SettingsScreen() {
 
             {savedCharacters.length === 0 ? (
               <View style={styles.emptyState}>
-                <IconSymbol
-                  name="person.2.circle"
-                  size={64}
-                  color="#D1D5DB"
-                />
+                <IconSymbol name="person.2.circle" size={64} color="#D1D5DB" />
                 <Text style={styles.emptyStateTitle}>
                   No saved characters yet
                 </Text>
@@ -605,6 +627,15 @@ export default function SettingsScreen() {
               </View>
             </View>
 
+            {isAdmin && (
+              <Button
+                title="Show welcome wizard"
+                onPress={handleShowWelcomeWizard}
+                variant="outline"
+                style={styles.debugButton}
+              />
+            )}
+
             <Button
               title="Sign out"
               onPress={handleSignOut}
@@ -614,6 +645,11 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <WelcomeOnboarding
+        visible={showWelcomeWizard}
+        onComplete={handleWelcomeWizardComplete}
+      />
     </ImageBackground>
   );
 }
@@ -797,6 +833,11 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
+  },
+  debugButton: {
+    marginBottom: Spacing.lg,
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
   },
   signOutButton: {
     borderColor: Colors.error,

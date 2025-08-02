@@ -481,11 +481,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: Colors.error,
-    shadowColor: Colors.error,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    ...Shadows.error,
   },
   errorTitle: {
     fontSize: Typography.fontSize.h3,
