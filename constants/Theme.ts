@@ -138,20 +138,7 @@ export const Shadows = {
     },
   }),
 
-  // Golden glow effect (outer glow for buttons)
-  glowOuter: Platform.select({
-    ios: {
-      shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.7,
-      shadowRadius: 12,
-    },
-    android: {
-      boxShadow: "0 0 12px 0 rgba(212, 175, 55, 0.7)",
-    },
-  }),
-
-  // Stronger glow (inner glow for cards)
+  // Stronger glow (outer glow for buttons)
   glowStrong: Platform.select({
     ios: {
       shadowColor: Colors.primary,
@@ -160,59 +147,7 @@ export const Shadows = {
       shadowRadius: 15,
     },
     android: {
-      boxShadow: "inset 0 0 15px 2px rgba(212, 175, 55, 0.7)",
-    },
-  }),
-
-  // Stronger glow (outer glow for buttons)
-  glowStrongOuter: Platform.select({
-    ios: {
-      shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.7,
-      shadowRadius: 15,
-    },
-    android: {
       boxShadow: "0 0 15px 2px rgba(212, 175, 55, 0.7)",
-    },
-  }),
-
-  // Light glow (for empty state)
-  glowLight: Platform.select({
-    ios: {
-      shadowColor: Colors.primaryLight,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.6,
-      shadowRadius: 20,
-    },
-    android: {
-      boxShadow: "inset 0 0 20px 0 rgba(252, 211, 77, 0.6)",
-    },
-  }),
-
-  // Standard shadow
-  standard: Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    },
-    android: {
-      boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.1)",
-    },
-  }),
-
-  // Modal glow (lighter for overlays)
-  modalGlow: Platform.select({
-    ios: {
-      shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-    },
-    android: {
-      boxShadow: "inset 0 0 12px 0 rgba(212, 175, 55, 0.3)",
     },
   }),
 
@@ -315,7 +250,7 @@ export const CommonStyles = {
     paddingHorizontal: Spacing.buttonPadding.horizontal,
     paddingVertical: Spacing.buttonPadding.vertical,
     borderRadius: BorderRadius.round,
-    ...Shadows.glowOuter,
+    ...Shadows.glow,
   },
 
   primaryButtonSmall: {

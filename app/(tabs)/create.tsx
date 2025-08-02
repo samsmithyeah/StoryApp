@@ -3,12 +3,15 @@ import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
   Alert,
+  Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { Button } from "../../components/ui/Button";
 import {
@@ -21,6 +24,7 @@ import { useChildren } from "../../hooks/useChildren";
 
 export default function CreateScreen() {
   const { children } = useChildren();
+  const insets = useSafeAreaInsets();
 
   const handleCreateStory = () => {
     if (children.length === 0) {
@@ -46,8 +50,20 @@ export default function CreateScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          style={[styles.scrollView, { marginTop: -insets.top }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop:
+                insets.top +
+                60 +
+                (Platform.select({
+                  android: RNStatusBar.currentHeight || 0,
+                  ios: 0,
+                }) || 0),
+            },
+          ]}
+          contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
@@ -114,7 +130,6 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: "center",
-    paddingTop: 60,
     maxWidth: 400,
     width: "100%",
   },

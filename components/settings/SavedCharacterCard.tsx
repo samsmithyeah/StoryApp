@@ -1,5 +1,12 @@
 import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import { IconSymbol } from "../ui/IconSymbol";
@@ -115,6 +122,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
+    ...Platform.select({
+      android: {
+        ...Shadows.glow,
+      },
+      ios: {},
+    }),
   },
   avatarText: {
     fontSize: Typography.fontSize.large,

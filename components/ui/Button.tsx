@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: Colors.primary,
     borderWidth: 0,
-    ...Shadows.glowOuter,
+    ...Shadows.glow,
   },
   secondary: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   wizard: {
     backgroundColor: Colors.primary,
     borderRadius: 25,
-    ...Shadows.glowOuter,
+    ...Shadows.glow,
     borderWidth: 0,
   },
   danger: {

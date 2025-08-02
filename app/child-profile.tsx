@@ -24,6 +24,7 @@ export default function ChildProfileScreen() {
   const formRef = useRef<{
     handleSave: () => void;
     hasUnsavedChanges: () => boolean;
+    getChildName: () => string;
   }>(null);
 
   const child = childId ? children?.find((c) => c.id === childId) : undefined;
@@ -103,7 +104,6 @@ export default function ChildProfileScreen() {
           child={child}
           onSave={handleSave}
           onCancel={handleCancel}
-          showCancelButton={false}
           loading={loading}
         />
       </SafeAreaView>

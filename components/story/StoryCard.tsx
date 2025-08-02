@@ -1,4 +1,5 @@
 // components/story/StoryCard.tsx
+import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
@@ -12,9 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Shadows } from "../../constants/Theme";
+import { Colors, Shadows } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
-import { useStorageUrl } from "@/hooks/useStorageUrl";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
@@ -122,12 +122,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     marginBottom: GAP,
-    backgroundColor: "rgba(255,255,255,0.02)",
+    backgroundColor: Colors.cardBackground,
     ...Shadows.glowStrong,
-    // Android requires explicit background for elevation shadows
-    ...(Platform.OS === "android" && {
-      backgroundColor: "rgba(26,27,58,0.8)",
-    }),
   },
 
   placeholder: {

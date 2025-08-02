@@ -4,15 +4,19 @@ import {
   Dimensions,
   ImageBackground,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BorderRadius,
   Colors,
+  CommonStyles,
   Shadows,
   Spacing,
   Typography,
@@ -36,8 +40,36 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   onComplete,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [showChildForm, setShowChildForm] = useState(false);
-  const { children, addChild } = useChildren();
+  const { addChild } = useChildren();
+  const insets = useSafeAreaInsets();
+  const childFormRef = React.useRef<{
+    handleSave: () => void;
+    hasUnsavedChanges: () => boolean;
+    getChildName: () => string;
+  }>(null);
+  const [childFormValid, setChildFormValid] = React.useState(false);
+
+  // Reset to step 0 when component becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      setCurrentStep(0);
+      setChildFormValid(false);
+    }
+  }, [visible]);
+
+  // Check child form validity periodically when on step 1
+  React.useEffect(() => {
+    if (currentStep === 1) {
+      const interval = setInterval(() => {
+        const childName = childFormRef.current?.getChildName() || "";
+        setChildFormValid(childName.length > 0);
+      }, 100);
+
+      return () => clearInterval(interval);
+    } else {
+      setChildFormValid(false);
+    }
+  }, [currentStep]);
 
   const steps = [
     {
@@ -45,21 +77,13 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
       subtitle: "Let's create magical bedtime stories together",
       icon: "wand.and.stars",
       description:
-        "DreamWeaver creates personalized bedtime stories just for your little ones. Each story is unique and tailored to their interests and age.",
+        "To use this app you need to create some profiles for your children. This enables you to create personalised stories for them. Add as much or as little information about each child as you like - the more you add, the more personalised the stories will be.",
     },
     {
-      title: "Add your child's profile",
-      subtitle: "Help us create the perfect stories",
+      title: "Add your child",
+      subtitle: "Tell us about your little one",
       icon: "person.crop.circle.badge.plus",
-      description:
-        "Tell us about your child so we can create stories that are just right for them - with their favorite things and perfect for their age.",
-    },
-    {
-      title: "Tell us about your child",
-      subtitle: "Complete the profile",
-      icon: "pencil.and.outline",
-      description:
-        "Fill in your child's details to create personalized stories.",
+      isFormStep: true,
     },
     {
       title: "Ready to begin!",
@@ -71,13 +95,6 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   ];
 
   const handleNext = () => {
-    if (currentStep === 1) {
-      // Show child profile form and move to step 2
-      setShowChildForm(true);
-      setCurrentStep(2);
-      return;
-    }
-
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -88,8 +105,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   const handleChildFormComplete = async (childData: Omit<Child, "id">) => {
     try {
       await addChild(childData);
-      setShowChildForm(false);
-      setCurrentStep(3); // Go to final step
+      setCurrentStep(2); // Go to final step
     } catch (error) {
       console.error("Error adding child during onboarding:", error);
       // Don't proceed to next step if there's an error
@@ -98,22 +114,26 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   };
 
   const handleSkipChildProfile = () => {
-    setShowChildForm(false);
-    setCurrentStep(3); // Skip to final step
+    onComplete(); // Close the wizard
+  };
+
+  const handleStepClick = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
   };
 
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
-  const hasChildren = children.length > 0;
+  // const hasChildren = children.length > 0;
 
   // Calculate the actual step for progress indicator
-  const progressStep = showChildForm ? 2 : currentStep;
+  const progressStep = currentStep;
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
+      statusBarTranslucent={true}
     >
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
@@ -133,77 +153,118 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
           <View style={styles.progressHeader}>
             <View style={styles.stepIndicator}>
               {steps.map((_, index) => (
-                <View
+                <TouchableOpacity
                   key={index}
+                  onPress={() => handleStepClick(index)}
                   style={[
                     styles.stepDot,
                     index === progressStep && styles.stepDotActive,
                     index < progressStep && styles.stepDotCompleted,
                   ]}
+                  activeOpacity={0.7}
                 />
               ))}
             </View>
           </View>
 
-          {showChildForm ? (
+          {currentStep === 1 ? (
             <View style={styles.childFormContainer}>
-              <ScrollView style={styles.childFormScroll}>
+              <ScrollView
+                style={styles.childFormScroll}
+                contentContainerStyle={{ paddingBottom: 120 }}
+              >
                 <ChildProfileForm
+                  ref={childFormRef}
                   onSave={handleChildFormComplete}
                   onCancel={handleSkipChildProfile}
-                  submitButtonText="Continue"
-                  showCancelButton={true}
-                  cancelButtonText="Skip for now"
-                  cancelAsLink={true}
                   title="Add a new child"
                 />
               </ScrollView>
+
+              <View
+                style={[
+                  styles.footer,
+                  {
+                    paddingBottom: Platform.select({
+                      ios: Math.max(insets.bottom + Spacing.xl, Spacing.xxxl),
+                      android: insets.bottom + Spacing.xl,
+                    }),
+                  },
+                ]}
+              >
+                <Button
+                  title="Continue"
+                  onPress={() => {
+                    // Trigger form submission via ref
+                    childFormRef.current?.handleSave();
+                  }}
+                  size="large"
+                  variant="wizard"
+                  style={styles.nextButton}
+                  rightIcon="chevron.right"
+                  disabled={!childFormValid}
+                />
+
+                <Text style={styles.skipLink} onPress={handleSkipChildProfile}>
+                  Skip for now
+                </Text>
+              </View>
             </View>
           ) : (
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.content}>
-                <View style={styles.iconContainer}>
-                  <View style={styles.iconGlow}>
-                    <IconSymbol
-                      name={currentStepData.icon as any}
-                      size={isTablet ? 100 : 80}
-                      color={Colors.primary}
-                    />
+            <>
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.content}>
+                  <View style={styles.iconContainer}>
+                    <View style={styles.iconPlain}>
+                      <IconSymbol
+                        name={currentStepData.icon as any}
+                        size={isTablet ? 100 : 80}
+                        color={Colors.primary}
+                      />
+                    </View>
                   </View>
+
+                  <Text style={styles.title}>{currentStepData.title}</Text>
+                  <Text style={styles.subtitle}>
+                    {currentStepData.subtitle}
+                  </Text>
+                  <Text style={styles.description}>
+                    {currentStepData.description}
+                  </Text>
                 </View>
+              </ScrollView>
 
-                <Text style={styles.title}>{currentStepData.title}</Text>
-                <Text style={styles.subtitle}>{currentStepData.subtitle}</Text>
-                <Text style={styles.description}>
-                  {currentStepData.description}
-                </Text>
-
-                {currentStep === 1 && hasChildren && (
-                  <View style={styles.existingChildrenNote}>
-                    <IconSymbol
-                      name="checkmark.circle.fill"
-                      size={20}
-                      color={Colors.success}
-                    />
-                    <Text style={styles.existingChildrenText}>
-                      Great! You already have {children.length} child profile
-                      {children.length !== 1 ? "s" : ""} set up.
-                    </Text>
-                  </View>
+              <View
+                style={[
+                  styles.footer,
+                  {
+                    paddingBottom: Platform.select({
+                      ios: Math.max(insets.bottom + Spacing.xl, Spacing.xxxl),
+                      android: insets.bottom + Spacing.xl,
+                    }),
+                  },
+                ]}
+              >
+                {isLastStep && (
+                  <Button
+                    title="Add another child"
+                    onPress={() => {
+                      setCurrentStep(1); // Go back to step 1
+                    }}
+                    variant="outline"
+                    leftIcon="plus"
+                    style={styles.secondaryButton}
+                  />
                 )}
-              </View>
 
-              <View style={styles.footer}>
                 <Button
                   title={
-                    currentStep === 1
-                      ? hasChildren
-                        ? "Continue"
-                        : "Add child profile"
-                      : isLastStep
+                    currentStep === 0
+                      ? "Next"
+                      : currentStep === 2
                         ? "Start creating stories!"
                         : "Next"
                   }
@@ -214,35 +275,13 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
                   style={styles.nextButton}
                 />
 
-                {isLastStep && (
-                  <Button
-                    title="Add another child"
-                    onPress={() => {
-                      setShowChildForm(true);
-                      setCurrentStep(2); // Go to form step
-                    }}
-                    variant="secondary"
-                    leftIcon="plus"
-                    style={styles.secondaryButton}
-                  />
-                )}
-
                 {currentStep === 0 && (
                   <Text style={styles.skipLink} onPress={() => onComplete()}>
                     Skip for now
                   </Text>
                 )}
-
-                {currentStep === 1 && !hasChildren && (
-                  <Text
-                    style={styles.skipLink}
-                    onPress={() => setCurrentStep(3)}
-                  >
-                    Skip for now
-                  </Text>
-                )}
               </View>
-            </ScrollView>
+            </>
           )}
         </SafeAreaView>
       </ImageBackground>
@@ -260,31 +299,31 @@ const styles = StyleSheet.create({
   },
   progressHeader: {
     alignItems: "center",
-    paddingTop: isTablet ? Spacing.xl : Spacing.lg,
+    paddingTop: isTablet ? Spacing.xxl : Spacing.xl,
     paddingBottom: isTablet ? Spacing.xl : Spacing.lg,
-    paddingHorizontal: isTablet ? Spacing.huge : Spacing.xxxl,
+    paddingHorizontal: Spacing.screenPadding,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "space-between",
+    paddingBottom: 120, // Space for fixed footer
   },
   content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: isTablet ? Spacing.huge : Spacing.xxxl,
+    paddingHorizontal: Spacing.screenPadding,
   },
   stepIndicator: {
     flexDirection: "row",
     gap: Spacing.md,
   },
   stepDot: {
-    width: isTablet ? 14 : 12,
-    height: isTablet ? 14 : 12,
-    borderRadius: isTablet ? 7 : 6,
-    backgroundColor: "rgba(212, 175, 55, 0.2)",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.3)",
+    width: isTablet ? 16 : 14,
+    height: isTablet ? 16 : 14,
+    borderRadius: isTablet ? 8 : 7,
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    borderWidth: 2,
+    borderColor: "rgba(212, 175, 55, 0.4)",
   },
   stepDotActive: {
     backgroundColor: Colors.primary,
@@ -299,34 +338,39 @@ const styles = StyleSheet.create({
     marginBottom: isTablet ? Spacing.huge : Spacing.xxxl,
   },
   iconGlow: {
-    padding: Spacing.lg,
-    ...Shadows.glowLight,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.round,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    borderWidth: 2,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    ...Shadows.glow,
+  },
+  iconPlain: {
+    padding: Spacing.xl,
+    ...(Platform.OS === "ios" ? Shadows.glow : {}),
   },
   title: {
-    fontSize: isTablet ? Typography.fontSize.h1Small : Typography.fontSize.h2,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary,
+    ...CommonStyles.brandTitle,
+    fontSize: isTablet
+      ? Typography.fontSize.h1Tablet
+      : Typography.fontSize.h1Phone,
     textAlign: "center",
     marginBottom: Spacing.sm,
-    fontFamily: Typography.fontFamily.primary,
-    textShadowColor: "rgba(0,0,0,0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: isTablet ? Typography.fontSize.h4 : Typography.fontSize.large,
-    color: Colors.text,
-    textAlign: "center",
-    marginBottom: Spacing.xxl,
-    opacity: 0.9,
-    fontFamily: Typography.fontFamily.primary,
-  },
-  description: {
-    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
+    marginBottom: Spacing.xxl,
     lineHeight: isTablet ? 28 : 24,
+  },
+  description: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: isTablet ? 28 : 22,
     maxWidth: isTablet ? 480 : 320,
+    opacity: 0.9,
   },
   existingChildrenNote: {
     flexDirection: "row",
@@ -346,21 +390,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
-    paddingHorizontal: isTablet ? Spacing.huge : Spacing.xxxl,
-    paddingBottom: isTablet ? Spacing.huge : Spacing.xxxl,
-    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.xl,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(212, 175, 55, 0.15)", // Faint golden line
   },
   nextButton: {
-    marginBottom: Spacing.lg,
+    marginBottom: 0,
   },
   secondaryButton: {
-    marginBottom: 0,
+    marginBottom: Spacing.lg,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderStyle: "dashed",
   },
   skipLink: {
     fontSize: Typography.fontSize.small,
     color: Colors.primary,
     textAlign: "center",
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     textDecorationLine: "underline",
     opacity: 0.8,
   },

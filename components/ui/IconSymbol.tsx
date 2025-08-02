@@ -23,6 +23,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   "chevron.down": "keyboard-arrow-down",
   "chevron.left.forwardslash.chevron.right": "code",
+  "arrow.right": "arrow-forward",
 
   // Actions
   xmark: "close",

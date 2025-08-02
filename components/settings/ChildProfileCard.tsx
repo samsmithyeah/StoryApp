@@ -1,5 +1,12 @@
 import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { Child } from "../../types/child.types";
 import { IconSymbol } from "../ui/IconSymbol";
@@ -45,6 +52,7 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
   const getAgeText = (dateOfBirth?: Date) => {
     if (!dateOfBirth) return "";
     const age = calculateAge(dateOfBirth);
+    if (isNaN(age) || age < 0) return "";
     if (age === 1) return "1 year old";
     return `${age} years old`;
   };
@@ -88,7 +96,7 @@ export const ChildProfileCard: React.FC<ChildProfileCardProps> = ({
           </View>
           <View style={styles.info}>
             <Text style={styles.name}>{child.childName}</Text>
-            {child.dateOfBirth && (
+            {getAgeText(child.dateOfBirth) && (
               <Text style={styles.age}>{getAgeText(child.dateOfBirth)}</Text>
             )}
           </View>
@@ -158,6 +166,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
+    ...Platform.select({
+      android: {
+        ...Shadows.glow,
+      },
+      ios: {},
+    }),
   },
   avatarText: {
     fontSize: Typography.fontSize.large,

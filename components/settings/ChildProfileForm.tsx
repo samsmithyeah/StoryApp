@@ -17,9 +17,8 @@ import {
 } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Child } from "../../types/child.types";
-import { Button } from "../ui/Button";
-import { MonthYearPicker } from "../ui/MonthYearPicker";
 import { Input } from "../ui/Input";
+import { MonthYearPicker } from "../ui/MonthYearPicker";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -29,28 +28,18 @@ interface ChildProfileFormProps {
   onSave: (child: Omit<Child, "id">) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
-  submitButtonText?: string;
-  showCancelButton?: boolean;
-  cancelButtonText?: string;
-  cancelAsLink?: boolean;
   title?: string;
 }
 
 export const ChildProfileForm = forwardRef<
-  { handleSave: () => void; hasUnsavedChanges: () => boolean },
+  {
+    handleSave: () => void;
+    hasUnsavedChanges: () => boolean;
+    getChildName: () => string;
+  },
   ChildProfileFormProps
 >((props, ref) => {
-  const {
-    child,
-    onSave,
-    onCancel,
-    loading = false,
-    submitButtonText = "Save child",
-    showCancelButton = false,
-    cancelButtonText = "Cancel",
-    cancelAsLink = false,
-    title,
-  } = props;
+  const { child, onSave, title } = props;
   const [childName, setChildName] = useState(child?.childName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
     child?.dateOfBirth
@@ -101,6 +90,7 @@ export const ChildProfileForm = forwardRef<
   useImperativeHandle(ref, () => ({
     handleSave,
     hasUnsavedChanges,
+    getChildName: () => childName.trim(),
   }));
 
   useEffect(() => {
@@ -386,33 +376,6 @@ export const ChildProfileForm = forwardRef<
             />
           </View>
         </View>
-
-        {showCancelButton && (
-          <View style={styles.actions}>
-            <Button
-              title={
-                submitButtonText || (isEditing ? "Update profile" : "Add child")
-              }
-              onPress={handleSave}
-              loading={loading}
-              variant="primary"
-              style={styles.fullWidthButton}
-            />
-
-            {cancelAsLink ? (
-              <Text style={styles.cancelLink} onPress={onCancel}>
-                {cancelButtonText}
-              </Text>
-            ) : (
-              <Button
-                title={cancelButtonText}
-                onPress={onCancel}
-                variant="outline"
-                style={styles.cancelButton}
-              />
-            )}
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -496,27 +459,6 @@ const styles = StyleSheet.create({
   textAreaInput: {
     minHeight: 80,
     textAlignVertical: "top",
-  },
-  actions: {
-    flexDirection: "column",
-    gap: Spacing.md,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  saveButton: {
-    flex: 2,
-  },
-  fullWidthButton: {
-    flex: 1,
-  },
-  cancelLink: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.primary,
-    textAlign: "center",
-    marginTop: Spacing.md,
-    textDecorationLine: "underline",
-    opacity: 0.8,
   },
 });
 

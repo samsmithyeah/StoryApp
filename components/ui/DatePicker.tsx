@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
-    ...Shadows.glowOuter,
+    ...Shadows.glow,
   },
   modalHeader: {
     flexDirection: "row",

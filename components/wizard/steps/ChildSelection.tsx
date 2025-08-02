@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   selectedAvatar: {
     backgroundColor: Colors.primary,
-    ...Shadows.glowStrongOuter,
+    ...Shadows.glowStrong,
   },
   checkmark: {
     position: "absolute",
