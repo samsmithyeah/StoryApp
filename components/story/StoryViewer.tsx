@@ -278,11 +278,12 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
         />
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.header}>
-            <View style={styles.placeholder} />
-            <Text style={styles.title}>{story.title}</Text>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>{story.title}</Text>
+            </View>
             <CloseButton
               onPress={onClose || (() => router.replace("/(tabs)"))}
-              style={{ padding: 8, marginRight: -8 }}
+              style={styles.closeButton}
             />
           </View>
           <View style={styles.errorContainer}>
@@ -313,25 +314,24 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
       />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* HEADER */}
-        <View style={[styles.header, { height: headerHeight }]}>
-          <View style={styles.placeholder} />
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={[
-              styles.title,
-              {
-                fontSize: isTablet
-                  ? Typography.fontSize.h2
-                  : Typography.fontSize.h4,
-              },
-            ]}
-          >
-            {story.title}
-          </Text>
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: isTablet
+                    ? Typography.fontSize.h2
+                    : Typography.fontSize.h4,
+                },
+              ]}
+            >
+              {story.title}
+            </Text>
+          </View>
           <CloseButton
             onPress={onClose || (() => router.replace("/(tabs)"))}
-            style={{ padding: 8, marginRight: -8 }}
+            style={styles.closeButton}
           />
         </View>
 
@@ -423,23 +423,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
+    position: "relative",
+    minHeight: 56,
   },
-  placeholder: {
-    width: 40, // Same width as CloseButton to balance layout
+  titleContainer: {
+    flex: 1,
+    paddingHorizontal: 56,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontFamily: Typography.fontFamily.primary,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
-    flex: 1,
     textAlign: "center",
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  closeButton: {
+    position: "absolute",
+    right: Spacing.screenPadding,
+    top: Spacing.md,
+    padding: 8,
+    marginRight: -8,
   },
 
   scrollView: { flex: 1 },

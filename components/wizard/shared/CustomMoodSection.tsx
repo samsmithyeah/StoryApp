@@ -63,7 +63,7 @@ export const CustomMoodSection: React.FC<CustomMoodSectionProps> = ({
               isCustomMoodSelected && styles.selectedDescription,
             ]}
           >
-            {customMood || "Choose your own mood"}
+            Choose your own mood
           </Text>
         </View>
         {isCustomMoodSelected && (

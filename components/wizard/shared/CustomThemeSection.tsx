@@ -63,7 +63,7 @@ export const CustomThemeSection: React.FC<CustomThemeSectionProps> = ({
               isCustomThemeSelected && styles.selectedDescription,
             ]}
           >
-            {customTheme || "Create your own unique story theme"}
+            Create your own unique story theme
           </Text>
         </View>
         {isCustomThemeSelected && (

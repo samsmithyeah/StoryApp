@@ -187,7 +187,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
       onUpdate({
-        illustrationStyle: customStyle.trim() || "custom",
+        illustrationStyle: customStyle.trim() || " ",
         illustrationAiDescription: customStyle.trim(),
       });
     } else {
@@ -216,7 +216,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     if (isCustomStyleSelected) {
       // Update the selection with the typed text
       onUpdate({
-        illustrationStyle: text.trim() || "custom",
+        illustrationStyle: text.trim() || " ",
         illustrationAiDescription: text.trim(),
       });
     }
@@ -301,9 +301,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                             isSelected && styles.selectedDescription,
                           ]}
                         >
-                          {style.id === "custom" && customStyle
-                            ? customStyle
-                            : style.description}
+                          {style.description}
                         </Text>
                       </View>
                       {isSelected && (
@@ -460,5 +458,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     minHeight: 80,
+    textAlignVertical: "top",
   },
 });
