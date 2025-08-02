@@ -5,7 +5,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -103,10 +102,6 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                   textAlignVertical="top"
                   returnKeyType="done"
                 />
-                <Text style={styles.helperText}>
-                  Examples: "A dragon who learns to share", "Something about
-                  space", "A princess who loves science"
-                </Text>
               </View>
             )}
           </View>

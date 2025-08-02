@@ -6,8 +6,10 @@ import {
   Alert,
   Dimensions,
   ImageBackground,
+  Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -206,11 +208,7 @@ export default function SettingsScreen() {
 
             {savedCharacters.length === 0 ? (
               <View style={styles.emptyState}>
-                <IconSymbol
-                  name="person.2.circle"
-                  size={64}
-                  color="#D1D5DB"
-                />
+                <IconSymbol name="person.2.circle" size={64} color="#D1D5DB" />
                 <Text style={styles.emptyStateTitle}>
                   No saved characters yet
                 </Text>
@@ -683,6 +681,10 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: Spacing.xxxl,
     alignItems: "center",
+    paddingTop: Platform.select({
+      android: (StatusBar.currentHeight || 0) + 16,
+      ios: 0,
+    }),
   },
   title: {
     ...CommonStyles.brandTitle,

@@ -1,8 +1,4 @@
-import {
-  doc,
-  getDoc,
-  updateDoc,
-} from "@react-native-firebase/firestore";
+import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { authService, db } from "./config";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 
@@ -28,7 +24,10 @@ export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
         ? character.updatedAt.toDate()
         : new Date(character.updatedAt),
     }))
-    .sort((a: SavedCharacter, b: SavedCharacter) => b.createdAt.getTime() - a.createdAt.getTime());
+    .sort(
+      (a: SavedCharacter, b: SavedCharacter) =>
+        b.createdAt.getTime() - a.createdAt.getTime()
+    );
 };
 
 // Add a new saved character
@@ -71,10 +70,11 @@ export const updateSavedCharacter = async (
   const userData = userDoc.data();
   const currentCharacters = userData?.savedCharacters || [];
 
-  const updatedCharacters = currentCharacters.map((character: SavedCharacter) =>
-    character.id === characterId 
-      ? { ...character, ...updates, updatedAt: new Date() } 
-      : character
+  const updatedCharacters = currentCharacters.map(
+    (character: SavedCharacter) =>
+      character.id === characterId
+        ? { ...character, ...updates, updatedAt: new Date() }
+        : character
   );
 
   await updateDoc(userDocRef, {

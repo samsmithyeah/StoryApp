@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
 } from "react-native";
+import { Shadows } from "@/constants/Theme";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -105,11 +106,7 @@ const styles = StyleSheet.create({
   },
   selectedIconContainer: {
     backgroundColor: "#D4AF37",
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Shadows.glow,
   },
   unselectedIconContainer: {
     opacity: 0.6,

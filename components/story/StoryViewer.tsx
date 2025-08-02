@@ -282,6 +282,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
             <Text style={styles.title}>{story.title}</Text>
             <CloseButton
               onPress={onClose || (() => router.replace("/(tabs)"))}
+              style={{ padding: 8, marginRight: -8 }}
             />
           </View>
           <View style={styles.errorContainer}>
@@ -328,7 +329,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
           >
             {story.title}
           </Text>
-          <CloseButton onPress={onClose || (() => router.replace("/(tabs)"))} />
+          <CloseButton
+            onPress={onClose || (() => router.replace("/(tabs)"))}
+            style={{ padding: 8, marginRight: -8 }}
+          />
         </View>
 
         {/* CONTENT CONTAINER */}
@@ -425,8 +429,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderLight,
   },
   placeholder: {
-    padding: 8,
-    minWidth: 40,
+    width: 40, // Same width as CloseButton to balance layout
   },
   title: {
     fontFamily: Typography.fontFamily.primary,

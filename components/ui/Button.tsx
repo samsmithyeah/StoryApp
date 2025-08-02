@@ -1,16 +1,16 @@
 import React from "react";
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ViewStyle,
-  TextStyle,
-  View,
   Platform,
+  StyleSheet,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
+import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { IconSymbol } from "./IconSymbol";
-import { Colors, Typography, Spacing, Shadows } from "../../constants/Theme";
 
 interface ButtonProps {
   title: string;
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: Colors.primary,
     borderWidth: 0,
-    ...Shadows.glow,
+    ...Shadows.glowOuter,
   },
   secondary: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   wizard: {
     backgroundColor: Colors.primary,
     borderRadius: 25,
-    ...Shadows.glow,
+    ...Shadows.glowOuter,
     borderWidth: 0,
   },
   danger: {
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0,
       },
       android: {
-        elevation: 0,
+        boxShadow: "none",
       },
     }),
   },

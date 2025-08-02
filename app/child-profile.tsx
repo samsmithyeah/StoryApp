@@ -4,7 +4,9 @@ import React, { useRef } from "react";
 import {
   Alert,
   ImageBackground,
+  Platform,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -121,6 +123,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.md,
+    paddingTop: Platform.select({
+      android: (StatusBar.currentHeight || 0) + Spacing.md,
+      ios: Spacing.md,
+    }),
   },
   headerButton: {
     padding: Spacing.sm,

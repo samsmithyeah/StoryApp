@@ -25,7 +25,10 @@ export const Colors = {
   borderLight: "#2a2b4a", // Lighter border
 
   // Card colors
-  cardBackground: "rgba(255,255,255,0.02)", // Subtle card background
+  cardBackground: Platform.select({
+    ios: "rgba(255, 255, 255, 0.02)",
+    android: "rgba(255, 255, 255, 0.06)",
+  }),
   cardBorder: "#D4AF37", // Golden card border
   placeholderBackground: "rgba(26,27,58,0.5)", // Placeholder background
 
@@ -122,31 +125,55 @@ export const BorderRadius = {
 };
 
 export const Shadows = {
-  // Golden glow effect
+  // Golden glow effect (inner glow for cards)
   glow: Platform.select({
     ios: {
       shadowColor: Colors.primary,
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.55,
-      shadowRadius: 10,
+      shadowOpacity: 0.7,
+      shadowRadius: 12,
     },
     android: {
-      elevation: 8,
-      shadowColor: Colors.primary,
+      boxShadow: "0 0 12px 0 rgba(212, 175, 55, 0.7)",
     },
   }),
 
-  // Stronger glow
+  // Golden glow effect (outer glow for buttons)
+  glowOuter: Platform.select({
+    ios: {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 12,
+    },
+    android: {
+      boxShadow: "0 0 12px 0 rgba(212, 175, 55, 0.7)",
+    },
+  }),
+
+  // Stronger glow (inner glow for cards)
   glowStrong: Platform.select({
     ios: {
       shadowColor: Colors.primary,
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.55,
-      shadowRadius: 12,
+      shadowOpacity: 0.7,
+      shadowRadius: 15,
     },
     android: {
-      elevation: 10,
+      boxShadow: "inset 0 0 15px 2px rgba(212, 175, 55, 0.7)",
+    },
+  }),
+
+  // Stronger glow (outer glow for buttons)
+  glowStrongOuter: Platform.select({
+    ios: {
       shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 15,
+    },
+    android: {
+      boxShadow: "0 0 15px 2px rgba(212, 175, 55, 0.7)",
     },
   }),
 
@@ -159,8 +186,7 @@ export const Shadows = {
       shadowRadius: 20,
     },
     android: {
-      elevation: 10,
-      shadowColor: Colors.primaryLight,
+      boxShadow: "inset 0 0 20px 0 rgba(252, 211, 77, 0.6)",
     },
   }),
 
@@ -173,10 +199,112 @@ export const Shadows = {
       shadowRadius: 4,
     },
     android: {
-      elevation: 3,
-      shadowColor: "#000",
+      boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.1)",
     },
   }),
+
+  // Modal glow (lighter for overlays)
+  modalGlow: Platform.select({
+    ios: {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+    },
+    android: {
+      boxShadow: "inset 0 0 12px 0 rgba(212, 175, 55, 0.3)",
+    },
+  }),
+
+  // Error glow
+  error: Platform.select({
+    ios: {
+      shadowColor: Colors.error,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+    },
+    android: {
+      boxShadow: "inset 0 0 10px 0 rgba(239, 68, 68, 0.3)",
+    },
+  }),
+};
+
+// Shadow utility functions for dynamic values
+export const createShadow = {
+  glow: (color: string, opacity?: number | any) => {
+    const opacityValue = opacity ?? 0.55;
+    // Convert hex color to rgba for boxShadow
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    return Platform.select({
+      ios: {
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: opacityValue,
+        shadowRadius: 10,
+      },
+      android: {
+        boxShadow: `inset 0 0 10px 0 ${hexToRgba(color, opacityValue)}`,
+      },
+    });
+  },
+
+  glowStrong: (color: string, opacity?: number | any) => {
+    const opacityValue = opacity ?? 0.55;
+    // Convert hex color to rgba for boxShadow
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    return Platform.select({
+      ios: {
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: opacityValue,
+        shadowRadius: 12,
+      },
+      android: {
+        boxShadow: `inset 0 0 12px 2px ${hexToRgba(color, opacityValue)}`,
+      },
+    });
+  },
+
+  custom: (
+    color: string,
+    _elevation: number,
+    shadowRadius: number,
+    opacity?: number | any
+  ) => {
+    const opacityValue = opacity ?? 0.3;
+    // Convert hex color to rgba for boxShadow
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    return Platform.select({
+      ios: {
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: opacityValue,
+        shadowRadius,
+      },
+      android: {
+        boxShadow: `inset 0 0 ${shadowRadius}px 0 ${hexToRgba(color, opacityValue)}`,
+      },
+    });
+  },
 };
 
 // Common component styles
@@ -187,7 +315,7 @@ export const CommonStyles = {
     paddingHorizontal: Spacing.buttonPadding.horizontal,
     paddingVertical: Spacing.buttonPadding.vertical,
     borderRadius: BorderRadius.round,
-    ...Shadows.glow,
+    ...Shadows.glowOuter,
   },
 
   primaryButtonSmall: {

@@ -26,11 +26,11 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StoryCard } from "../../components/story/StoryCard";
+import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
@@ -158,13 +158,17 @@ export default function LibraryScreen() {
             },
           ]}
         >
-          <TouchableOpacity
-            style={styles.cta}
-            activeOpacity={0.85}
+          <Button
+            title="Create story"
             onPress={() => router.push("/create")}
-          >
-            <Text style={styles.ctaTxt}>Create story</Text>
-          </TouchableOpacity>
+            variant="primary"
+            size="medium"
+            style={{
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 26,
+            }}
+          />
         </Animated.View>
 
         <Animated.ScrollView
@@ -292,13 +296,17 @@ function EmptyState() {
       />
       <Text style={styles.emptyBrand}>DreamWeaver</Text>
       <Text style={styles.emptyText}>No stories yet</Text>
-      <TouchableOpacity
-        style={styles.emptyBtn}
+      <Button
+        title="Create story"
         onPress={() => router.push("/create")}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.emptyBtnTxt}>Create story</Text>
-      </TouchableOpacity>
+        variant="primary"
+        size="large"
+        style={{
+          paddingHorizontal: 36,
+          paddingVertical: 14,
+          borderRadius: 999,
+        }}
+      />
     </View>
   );
 }
@@ -327,14 +335,6 @@ const LEAF_COORDS = [
 /* --------------------------------------------------------------------- */
 /* styles                                                                */
 /* --------------------------------------------------------------------- */
-
-const glow = {
-  shadowColor: "#D4AF37",
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.55,
-  shadowRadius: 10,
-  elevation: 8,
-};
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: "#0f1129" },
@@ -372,14 +372,6 @@ const styles = StyleSheet.create({
     right: 24,
     zIndex: 20,
   },
-  cta: {
-    backgroundColor: "#D4AF37",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 26,
-    ...glow,
-  },
-  ctaTxt: { color: "#1a1b3a", fontSize: 16, fontWeight: "600" },
 
   /* library grid ------------------------------------------------------ */
   sectionLabel: {
@@ -417,18 +409,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   emptyText: { fontSize: 20, color: "#fff", marginBottom: 32 },
-  emptyBtn: {
-    backgroundColor: "#FBBF24",
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    borderRadius: 999,
-    shadowColor: "#FCD34D",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  emptyBtnTxt: { fontSize: 18, color: "#1a1b3a", fontWeight: "600" },
   emptyButterfly: {
     position: "absolute",
     top: 30,

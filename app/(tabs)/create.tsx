@@ -7,10 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
+import { Button } from "../../components/ui/Button";
 import {
   Colors,
   CommonStyles,
@@ -56,13 +56,18 @@ export default function CreateScreen() {
               Create a personalised bedtime story for your child
             </Text>
 
-            <TouchableOpacity
-              style={styles.wizardButton}
+            <Button
+              title="Start"
               onPress={handleCreateStory}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.wizardButtonText}>Start</Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="large"
+              style={{
+                paddingHorizontal: 48,
+                paddingVertical: 16,
+                borderRadius: 25,
+                marginBottom: 48,
+              }}
+            />
 
             <View style={styles.features}>
               <View style={styles.featureItem}>
@@ -126,18 +131,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: Spacing.huge,
     lineHeight: 26,
-  },
-
-  // Wizard button
-  wizardButton: {
-    ...CommonStyles.primaryButton,
-    paddingHorizontal: Spacing.huge,
-    paddingVertical: Spacing.lg,
-    marginBottom: Spacing.huge,
-  },
-  wizardButtonText: {
-    ...CommonStyles.buttonText,
-    fontSize: Typography.fontSize.large,
   },
 
   // Features section

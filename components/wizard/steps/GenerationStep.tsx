@@ -4,12 +4,7 @@ import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import React, { useEffect, useState } from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface GenerationStepProps {

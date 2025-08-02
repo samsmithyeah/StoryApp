@@ -65,7 +65,8 @@ export const SavedCharacterForm = forwardRef<
   const [name, setName] = useState(character?.name || "");
   const [description, setDescription] = useState(character?.description || "");
   const [appearance, setAppearance] = useState(character?.appearance || "");
-  const [shouldSaveForReuse, setShouldSaveForReuse] = useState(defaultSaveToggle);
+  const [shouldSaveForReuse, setShouldSaveForReuse] =
+    useState(defaultSaveToggle);
   const [errors, setErrors] = useState<{
     name?: string;
   }>({});
@@ -128,7 +129,10 @@ export const SavedCharacterForm = forwardRef<
   const handleSave = async () => {
     if (!validateForm()) return;
 
-    const characterData: Omit<SavedCharacter, "id" | "createdAt" | "updatedAt"> = {
+    const characterData: Omit<
+      SavedCharacter,
+      "id" | "createdAt" | "updatedAt"
+    > = {
       name: name.trim(),
       ...(description.trim() && { description: description.trim() }),
       ...(appearance.trim() && { appearance: appearance.trim() }),
@@ -225,8 +229,13 @@ export const SavedCharacterForm = forwardRef<
                 <Switch
                   value={shouldSaveForReuse}
                   onValueChange={setShouldSaveForReuse}
-                  trackColor={{ false: Colors.borderLight, true: Colors.primaryLight }}
-                  thumbColor={shouldSaveForReuse ? Colors.primary : Colors.textMuted}
+                  trackColor={{
+                    false: Colors.borderLight,
+                    true: Colors.primaryLight,
+                  }}
+                  thumbColor={
+                    shouldSaveForReuse ? Colors.primary : Colors.textMuted
+                  }
                 />
               </View>
             </View>
@@ -237,7 +246,8 @@ export const SavedCharacterForm = forwardRef<
           <View style={styles.actions}>
             <Button
               title={
-                submitButtonText || (isEditing ? "Update character" : "Add character")
+                submitButtonText ||
+                (isEditing ? "Update character" : "Add character")
               }
               onPress={handleSave}
               loading={loading}

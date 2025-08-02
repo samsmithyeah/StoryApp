@@ -2,12 +2,15 @@ import { Colors, Typography } from "@/constants/Theme";
 import React from "react";
 import {
   Dimensions,
+  Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { CloseButton } from "../../ui/CloseButton";
+import { IconSymbol } from "../../ui/IconSymbol";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -37,7 +40,14 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
       <View style={styles.header}>
         {showBackButton ? (
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backText}>←</Text>
+            <IconSymbol
+              name="chevron.left"
+              size={Platform.select({
+                ios: isTablet ? 24 : 20,
+                android: isTablet ? 32 : 28,
+              })}
+              color={Colors.primary}
+            />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholder} />
@@ -48,7 +58,7 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
         </View>
 
         {onCancel ? (
-          <CloseButton onPress={onCancel} />
+          <CloseButton onPress={onCancel} style={{ padding: 8 }} />
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -75,16 +85,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingTop: isTablet ? 20 : 0,
+    paddingTop: Platform.select({
+      android: (StatusBar.currentHeight || 0) + 16,
+      ios: isTablet ? 20 : 16,
+    }),
   },
   backButton: {
+    marginLeft: -8,
     padding: 8,
     minWidth: 40,
-  },
-  backText: {
-    color: Colors.primary,
-    fontSize: isTablet ? 32 : 24,
-    fontWeight: "400",
+    justifyContent: "center",
+    alignItems: "center",
   },
   placeholder: {
     padding: 8,

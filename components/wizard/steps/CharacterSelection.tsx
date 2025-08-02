@@ -109,7 +109,9 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
       if (removeIndex !== undefined) {
         // Remove a temp character (when it's converted to saved)
         const charToRemove = oneOffCharacters[removeIndex];
-        setOneOffCharacters((prev) => prev.filter((_, index) => index !== removeIndex));
+        setOneOffCharacters((prev) =>
+          prev.filter((_, index) => index !== removeIndex)
+        );
         setSelectedCharacters((prev) => prev.filter((c) => c !== charToRemove));
       } else if (indexToUpdate !== undefined) {
         // This is an EDIT of an existing one-off character

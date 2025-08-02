@@ -60,7 +60,7 @@
                 ]
               },
               {
-                "fontFamily": "SpaceMono-Regular", 
+                "fontFamily": "SpaceMono-Regular",
                 "fontDefinitions": [
                   {
                     "path": "./assets/fonts/SpaceMono-Regular.ttf",

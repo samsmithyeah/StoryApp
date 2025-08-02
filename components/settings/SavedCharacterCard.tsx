@@ -1,11 +1,6 @@
 import React from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import {
-  Colors,
-  CommonStyles,
-  Spacing,
-  Typography,
-} from "../../constants/Theme";
+import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import { IconSymbol } from "../ui/IconSymbol";
 
@@ -92,7 +87,12 @@ export const SavedCharacterCard: React.FC<SavedCharacterCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    ...CommonStyles.card,
+    borderWidth: 2,
+    borderColor: Colors.cardBorder,
+    borderRadius: 18,
+    backgroundColor: Colors.cardBackground,
+    overflow: "hidden",
+    ...Shadows.glow,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },

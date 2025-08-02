@@ -9,6 +9,7 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -85,7 +86,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
         <View style={styles.header}>
           <View style={styles.placeholder} />
           <View style={styles.headerContent} />
-          <CloseButton onPress={onGoBack} />
+          <CloseButton onPress={onGoBack} style={{ padding: 8 }} />
         </View>
         <ScrollView
           bounces={false}
@@ -203,7 +204,10 @@ const createStyles = ({
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: 24,
-      paddingTop: isTablet ? 20 : 0,
+      paddingTop: Platform.select({
+        android: StatusBar.currentHeight || 0,
+        ios: isTablet ? 20 : 0,
+      }),
     },
     placeholder: {
       padding: 8,
