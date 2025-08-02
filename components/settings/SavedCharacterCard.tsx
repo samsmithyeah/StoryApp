@@ -7,7 +7,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
+import {
+  Colors,
+  CommonStyles,
+  Shadows,
+  Spacing,
+  Typography,
+} from "../../constants/Theme";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import { IconSymbol } from "../ui/IconSymbol";
 
@@ -174,12 +180,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.2)",
   },
   detailLabel: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: Typography.letterSpacing.wide,
-    marginBottom: Spacing.xs,
+    ...CommonStyles.primarySectionLabel,
   },
   detailText: {
     fontSize: Typography.fontSize.small,

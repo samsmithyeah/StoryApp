@@ -1,7 +1,6 @@
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Spacing } from "../../../constants/Theme";
+import { StyleSheet, View } from "react-native";
+import { Spacing } from "@/constants/Theme";
 import { Button } from "../../ui/Button";
 
 interface WizardFooterProps {
@@ -15,20 +14,10 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   nextDisabled = false,
   nextText = "Next",
 }) => {
-  const insets = useSafeAreaInsets();
+  //const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={[
-        styles.footer,
-        {
-          paddingBottom: Platform.select({
-            ios: Math.max(insets.bottom, Spacing.lg),
-            android: Math.max(insets.bottom + Spacing.xxxl, Spacing.xxxl),
-          }),
-        },
-      ]}
-    >
+    <View style={styles.footer}>
       <Button
         title={nextText}
         onPress={onNext}
@@ -44,5 +33,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+    marginTop: Spacing.lg,
   },
 });

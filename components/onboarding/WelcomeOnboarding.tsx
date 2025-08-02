@@ -137,7 +137,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
     >
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
-        resizeMode="cover"
+        resizeMode={isTablet ? "cover" : "none"}
         style={styles.container}
       >
         <LinearGradient

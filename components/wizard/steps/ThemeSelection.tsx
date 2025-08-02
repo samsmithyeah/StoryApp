@@ -1,6 +1,6 @@
-import { Colors } from "@/constants/Theme";
 // import { useChildren } from "@/hooks/useChildren";
 // import { ThemeSuggestion } from "@/services/firebase/stories";
+import { Colors } from "@/constants/Theme";
 import React, { useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
@@ -108,19 +108,17 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 
   const handleCustomThemeSelect = () => {
     // When the "Custom Theme" card is tapped, activate it.
-    // Set the theme to the current input text, or "custom" if it's empty.
-    onSelect(customTheme.trim() || "custom");
+    onSelect(customTheme.trim() || " ");
   };
 
   const handleCustomThemeChange = (text: string) => {
     // First, update the local state that drives the TextInput's value.
     setCustomTheme(text);
 
-    // **THE FIX:** Check if the custom theme option is currently active.
+    // Check if the custom theme option is currently active.
     // If it is, immediately update the parent wizard's state with the new text.
     if (isCustomThemeSelected) {
-      // Use the trimmed text, or fall back to "custom" to keep the field active.
-      onSelect(text.trim() || "custom");
+      onSelect(text.trim() || " ");
     }
   };
 
@@ -235,6 +233,9 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
@@ -242,9 +243,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 0,
   },
-  themesSection: {
-    marginBottom: 32,
-  },
+  themesSection: {},
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "600",

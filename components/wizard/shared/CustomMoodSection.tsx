@@ -13,78 +13,81 @@ import {
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-interface CustomThemeSectionProps {
-  customTheme: string;
-  isCustomThemeSelected: boolean;
-  onCustomThemeSelect: () => void;
-  onCustomThemeChange: (text: string) => void;
+interface CustomMoodSectionProps {
+  customMood: string;
+  isCustomMoodSelected: boolean;
+  onCustomMoodSelect: () => void;
+  onCustomMoodChange: (text: string) => void;
 }
 
-export const CustomThemeSection: React.FC<CustomThemeSectionProps> = ({
-  customTheme,
-  isCustomThemeSelected,
-  onCustomThemeSelect,
-  onCustomThemeChange,
+export const CustomMoodSection: React.FC<CustomMoodSectionProps> = ({
+  customMood,
+  isCustomMoodSelected,
+  onCustomMoodSelect,
+  onCustomMoodChange,
 }) => {
   return (
     <View style={styles.customSection}>
-      <Text style={styles.sectionTitle}>Custom theme</Text>
+      <Text style={styles.sectionTitle}>Custom mood</Text>
 
-      {/* Custom theme option - always visible */}
+      {/* Custom mood option - always visible */}
       <TouchableOpacity
         style={[
-          styles.themeListCard,
-          isCustomThemeSelected && styles.selectedListCard,
+          styles.moodListCard,
+          isCustomMoodSelected && styles.selectedListCard,
         ]}
-        onPress={onCustomThemeSelect}
+        onPress={onCustomMoodSelect}
       >
         <View
           style={[
             styles.iconContainer,
-            isCustomThemeSelected
+            isCustomMoodSelected
               ? styles.selectedIconContainer
               : styles.unselectedIconContainer,
           ]}
         >
-          <IconSymbol name="paintbrush.fill" size={24} color="#1a1b3a" />
+          <IconSymbol name="pencil" size={24} color="#1a1b3a" />
         </View>
-        <View style={styles.themeInfo}>
+        <View style={styles.moodInfo}>
           <Text
             style={[
-              styles.themeName,
-              isCustomThemeSelected && styles.selectedText,
+              styles.moodName,
+              isCustomMoodSelected && styles.selectedText,
             ]}
           >
-            Custom theme
+            Custom mood
           </Text>
           <Text
             style={[
-              styles.themeDescription,
-              isCustomThemeSelected && styles.selectedDescription,
+              styles.moodDescription,
+              isCustomMoodSelected && styles.selectedDescription,
             ]}
           >
-            {customTheme || "Create your own unique story theme"}
+            {customMood || "Choose your own mood"}
           </Text>
         </View>
-        {isCustomThemeSelected && (
+        {isCustomMoodSelected && (
           <View style={styles.checkmark}>
             <Text style={styles.checkmarkText}>✓</Text>
           </View>
         )}
       </TouchableOpacity>
 
-      {/* Text input - only show when custom theme is selected */}
-      {isCustomThemeSelected && (
+      {/* Text input - only show when custom mood is selected */}
+      {isCustomMoodSelected && (
         <View style={styles.customInputContainer}>
           <TextInput
             style={styles.customInput}
-            placeholder="E.g. Pirates sailing the seven seas..."
+            placeholder="Enter a custom mood..."
             placeholderTextColor="#9CA3AF"
-            value={customTheme}
-            onChangeText={onCustomThemeChange}
+            value={customMood}
+            onChangeText={onCustomMoodChange}
             returnKeyType="done"
-            autoFocus={!customTheme}
+            autoFocus={!customMood}
           />
+          <Text style={styles.helperText}>
+            Examples: "adventurous", "mysterious", "dreamy"
+          </Text>
         </View>
       )}
     </View>
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: "left",
   },
-  themeListCard: {
+  moodListCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -131,16 +134,16 @@ const styles = StyleSheet.create({
   unselectedIconContainer: {
     opacity: 0.6,
   },
-  themeInfo: {
+  moodInfo: {
     flex: 1,
   },
-  themeName: {
+  moodName: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 4,
   },
-  themeDescription: {
+  moodDescription: {
     fontSize: isTablet ? 14 : 12,
     color: "#9CA3AF",
     lineHeight: 16,
@@ -177,5 +180,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#FFFFFF",
+  },
+  helperText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#9CA3AF",
   },
 });

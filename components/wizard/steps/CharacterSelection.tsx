@@ -467,7 +467,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
-    paddingBottom: 100,
   },
   optionsContainer: {
     marginBottom: Spacing.screenPadding,
