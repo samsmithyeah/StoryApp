@@ -2,10 +2,11 @@ import { useChildren } from "@/hooks/useChildren";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   generateStory,
+  getStory,
   StoryGenerationRequest,
 } from "@/services/firebase/stories";
 import { StoryConfiguration } from "@/types/story.types";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -59,9 +60,32 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     characters: [],
   });
   const [_isGenerating, setIsGenerating] = useState(false);
+  const [textComplete, setTextComplete] = useState(false);
+  const [imagesComplete, setImagesComplete] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [storyId, setStoryId] = useState<string | null>(null);
+  const [monitoringInterval, setMonitoringInterval] = useState<number | null>(null);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
+
+  // Auto-navigate when both text and images are complete
+  useEffect(() => {
+    if (textComplete && imagesComplete && storyId) {
+      onComplete({
+        ...(wizardData as StoryConfiguration),
+        storyId,
+      });
+    }
+  }, [textComplete, imagesComplete, storyId, wizardData, onComplete]);
+
+  // Cleanup monitoring interval on unmount
+  useEffect(() => {
+    return () => {
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+      }
+    };
+  }, [monitoringInterval]);
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
     setWizardData((prev) => ({ ...prev, ...data }));
@@ -83,6 +107,52 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
       setCurrentStep(WIZARD_STEPS[prevIndex]);
+    }
+  };
+
+  const monitorImageGeneration = async (storyId: string) => {
+    // Clear any existing monitoring
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+    }
+    
+    const checkInterval = setInterval(async () => {
+      try {
+        const story = await getStory(storyId);
+        
+        if (story.imageGenerationStatus === "completed") {
+          setImagesComplete(true);
+          clearInterval(checkInterval);
+          setMonitoringInterval(null);
+        } else if (story.imageGenerationStatus === "failed") {
+          // Handle failure - for now just mark as complete to allow navigation
+          setImagesComplete(true);
+          clearInterval(checkInterval);
+          setMonitoringInterval(null);
+        }
+      } catch (error) {
+        console.error("Error monitoring image generation:", error);
+        // Don't clear interval on error, keep trying
+      }
+    }, 2000); // Check every 2 seconds
+    
+    setMonitoringInterval(checkInterval);
+    
+    // Clean up after 5 minutes to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      setMonitoringInterval(null);
+      // If still not complete after 5 minutes, mark as complete anyway
+      setImagesComplete(true);
+    }, 300000); // 5 minutes
+  };
+
+  const handleGoToStoryTitle = () => {
+    if (storyId) {
+      onComplete({
+        ...(wizardData as StoryConfiguration),
+        storyId,
+      });
     }
   };
 
@@ -116,11 +186,23 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
       const result = await generateStory(generationRequest);
 
-      // Don't wait for images - story text is ready, navigate immediately
-      onComplete({
-        ...(wizardData as StoryConfiguration),
-        storyId: result.storyId,
-      });
+      // Story text is ready - show the completion state
+      setStoryId(result.storyId);
+      setTextComplete(true);
+      setIsGenerating(false);
+
+      // If illustrations are disabled, mark images as complete too
+      if (!wizardData.enableIllustrations) {
+        setImagesComplete(true);
+        // Navigate immediately if no images to generate
+        onComplete({
+          ...(wizardData as StoryConfiguration),
+          storyId: result.storyId,
+        });
+      } else {
+        // Start monitoring for image completion
+        monitorImageGeneration(result.storyId);
+      }
     } catch (error: any) {
       console.error("Error generating story:", error);
       setIsGenerating(false);
@@ -226,13 +308,24 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return (
           <GenerationStep
             isGenerating={_isGenerating}
+            textComplete={textComplete}
+            imagesComplete={imagesComplete}
             error={generationError}
             onCancel={onCancel}
             onStartOver={() => {
+              // Cleanup monitoring
+              if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                setMonitoringInterval(null);
+              }
               setGenerationError(null);
               setIsGenerating(false);
+              setTextComplete(false);
+              setImagesComplete(false);
+              setStoryId(null);
               setCurrentStep("child");
             }}
+            onGoToStoryTitle={handleGoToStoryTitle}
           />
         );
     }

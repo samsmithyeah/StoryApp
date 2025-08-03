@@ -9,9 +9,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface GenerationStepProps {
   isGenerating: boolean;
+  textComplete?: boolean;
+  imagesComplete?: boolean;
   error?: string | null;
   onCancel: () => void;
   onStartOver?: () => void;
+  onGoToStoryTitle?: () => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -27,9 +30,12 @@ const GENERATION_MESSAGES = [
 
 export const GenerationStep: React.FC<GenerationStepProps> = ({
   isGenerating,
+  textComplete = false,
+  imagesComplete: _imagesComplete = false,
   error,
   onCancel,
   onStartOver,
+  onGoToStoryTitle,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const insets = useSafeAreaInsets();
@@ -94,26 +100,47 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             {GENERATION_MESSAGES[currentMessageIndex]}
           </Text>
 
-          <View style={styles.tipContainer}>
-            <IconSymbol
-              name="lightbulb"
-              size={isTablet ? 18 : 16}
-              color={Colors.warning}
-            />
-            <Text style={styles.tipText}>
-              Tip: Your story will be saved to your library for future bedtime
-              reading!
-            </Text>
-          </View>
+          {textComplete && (
+            <View style={styles.completionNotice}>
+              <IconSymbol
+                name="checkmark.circle"
+                size={isTablet ? 32 : 24}
+                color={Colors.success}
+              />
+              <Text style={styles.completionText}>
+                Story text ready! You can start reading now or wait for
+                illustrations.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
-          <Button
-            title="Cancel"
-            onPress={onCancel}
-            variant="outline"
-            size="large"
-          />
+          {textComplete ? (
+            <View style={styles.buttonRow}>
+              <Button
+                title="Start reading"
+                onPress={onGoToStoryTitle || (() => {})}
+                variant="wizard"
+                size="large"
+                style={styles.primaryButton}
+              />
+              <Button
+                title="Cancel"
+                onPress={onCancel}
+                variant="outline"
+                size="large"
+                style={styles.secondaryButton}
+              />
+            </View>
+          ) : (
+            <Button
+              title="Cancel"
+              onPress={onCancel}
+              variant="outline"
+              size="large"
+            />
+          )}
         </View>
       </View>
     </BackgroundContainer>
@@ -205,6 +232,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
+    flex: 1,
+  },
+  statusMessage: {
+    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    color: Colors.primary,
+    textAlign: "center",
+    marginBottom: Spacing.xxxl,
+    fontStyle: "italic",
+  },
+  completionNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.large,
+    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+    maxWidth: isTablet ? 500 : 320,
+  },
+  completionText: {
+    flex: 1,
+    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    color: Colors.text,
+    lineHeight: isTablet ? 22 : 20,
+  },
+  primaryButton: {
+    flex: 1,
+  },
+  secondaryButton: {
     flex: 1,
   },
 });

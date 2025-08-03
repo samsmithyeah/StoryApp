@@ -55,6 +55,7 @@ const MAPPING = {
   "books.vertical.fill": "library-books",
   "book.closed.fill": "menu-book",
   "book.fill": "book",
+  lightbulb: "lightbulb",
 
   // Nature & Weather
   "moon.fill": "nights-stay",
