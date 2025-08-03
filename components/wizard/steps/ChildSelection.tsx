@@ -173,6 +173,8 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: "relative",
     marginBottom: 16,
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
   avatar: {
     width: isTablet ? 100 : 70,
@@ -188,8 +190,8 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     position: "absolute",
-    top: -8,
-    right: -8,
+    top: 12,
+    right: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
