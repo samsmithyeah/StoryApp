@@ -6,6 +6,8 @@ import {
   signInWithGoogle,
   signInWithApple,
   configureGoogleSignIn,
+  resendVerificationEmail,
+  checkEmailVerified,
 } from "../services/firebase/auth";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
@@ -122,5 +124,7 @@ export const useAuth = () => {
     googleSignIn,
     appleSignIn,
     signOut,
+    resendVerificationEmail,
+    checkEmailVerified,
   };
 };

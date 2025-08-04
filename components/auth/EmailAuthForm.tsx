@@ -105,6 +105,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
       await emailSignIn({ email, password });
     } else {
       await emailSignUp({ email, password, displayName });
+      // Success message will be handled by the redirect to verify-email screen
     }
   };
 

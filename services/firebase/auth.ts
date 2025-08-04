@@ -7,6 +7,8 @@ import auth, {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  sendEmailVerification,
+  reload,
 } from "@react-native-firebase/auth";
 import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -35,6 +37,7 @@ const convertFirebaseUser = async (
       photoURL: firebaseUser.photoURL,
       createdAt: userData?.createdAt?.toDate() || new Date(),
       isAdmin: userData?.isAdmin || false,
+      emailVerified: firebaseUser.emailVerified,
     };
   } catch (error) {
     console.log(
@@ -49,6 +52,7 @@ const convertFirebaseUser = async (
       photoURL: firebaseUser.photoURL,
       createdAt: new Date(),
       isAdmin: false,
+      emailVerified: firebaseUser.emailVerified,
     };
   }
 };
@@ -104,6 +108,16 @@ export const signUpWithEmail = async ({
 
   if (displayName) {
     await updateProfile(userCredential.user, { displayName });
+  }
+
+  // Send email verification
+  try {
+    console.log("Sending email verification to:", userCredential.user.email);
+    await sendEmailVerification(userCredential.user);
+    console.log("Email verification sent successfully");
+  } catch (verificationError) {
+    console.error("Failed to send email verification:", verificationError);
+    // Don't throw here - allow user creation to succeed even if email fails
   }
 
   await createUserDocument(userCredential.user);
@@ -250,6 +264,32 @@ export const signInWithApple = async (): Promise<User> => {
   }
 };
 
+// Email Verification
+export const resendVerificationEmail = async (): Promise<void> => {
+  const currentUser = authService.currentUser;
+  console.log("Resend verification - Current user:", currentUser?.email, "Verified:", currentUser?.emailVerified);
+  
+  if (currentUser && !currentUser.emailVerified) {
+    console.log("Resending email verification to:", currentUser.email);
+    await sendEmailVerification(currentUser);
+    console.log("Resend email verification sent successfully");
+  } else if (!currentUser) {
+    throw new Error("No user is currently signed in");
+  } else {
+    throw new Error("Email is already verified");
+  }
+};
+
+export const checkEmailVerified = async (): Promise<boolean> => {
+  const currentUser = authService.currentUser;
+  if (currentUser) {
+    // Reload user to get latest email verification status
+    await reload(currentUser);
+    return currentUser.emailVerified;
+  }
+  return false;
+};
+
 // Sign Out
 export const signOutUser = async (): Promise<void> => {
   await GoogleSignin.signOut();
@@ -266,7 +306,7 @@ export const subscribeToAuthChanges = (
       firebaseUser ? "User logged in" : "User logged out"
     );
     if (firebaseUser) {
-      console.log("Firebase user:", firebaseUser.uid, firebaseUser.email);
+      console.log("Firebase user:", firebaseUser.uid, firebaseUser.email, "Verified:", firebaseUser.emailVerified);
       const user = await convertFirebaseUser(firebaseUser);
       console.log("Converted user:", user);
       callback(user);

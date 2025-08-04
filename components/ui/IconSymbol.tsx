@@ -41,6 +41,16 @@ const MAPPING = {
   calendar: "calendar-today",
   "paintbrush.fill": "brush",
   "exclamationmark.circle.fill": "error",
+  "exclamationmark.triangle.fill": "warning",
+
+  // Auth & Security
+  envelope: "mail",
+  "envelope.fill": "email",
+  "envelope.badge": "mark-email-unread",
+  "lock.fill": "lock",
+  eye: "visibility",
+  "eye.slash": "visibility-off",
+  "arrow.clockwise": "refresh",
 
   // People & Characters
   "person.fill": "person",

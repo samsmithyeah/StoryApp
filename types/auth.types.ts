@@ -7,6 +7,7 @@ export interface User {
   photoURL: string | null;
   createdAt: Date;
   isAdmin?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthState {

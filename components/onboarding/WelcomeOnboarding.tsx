@@ -1,10 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   Dimensions,
   ImageBackground,
   Modal,
   Platform,
+  StatusBar as RNStatusBar,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -128,13 +130,166 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   // Calculate the actual step for progress indicator
   const progressStep = currentStep;
 
+  // Shared components to avoid duplication
+  const ProgressHeader = () => (
+    <View
+      style={[
+        styles.progressHeader,
+        Platform.OS === "android" && {
+          paddingTop: (RNStatusBar.currentHeight || 0) + Spacing.xl,
+        },
+      ]}
+    >
+      <View style={styles.stepIndicator}>
+        {steps.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => handleStepClick(index)}
+            style={[
+              styles.stepDot,
+              index === progressStep && styles.stepDotActive,
+              index < progressStep && styles.stepDotCompleted,
+            ]}
+            activeOpacity={0.7}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
+  const ChildFormStep = () => (
+    <View style={styles.childFormContainer}>
+      <ScrollView
+        style={styles.childFormScroll}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <ChildProfileForm
+          ref={childFormRef}
+          onSave={handleChildFormComplete}
+          onCancel={handleSkipChildProfile}
+          title="Add a new child"
+        />
+      </ScrollView>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Platform.select({
+              ios: 0,
+              android: insets.bottom + Spacing.xl,
+            }),
+          },
+        ]}
+      >
+        <Button
+          title="Continue"
+          onPress={() => {
+            // Trigger form submission via ref
+            childFormRef.current?.handleSave();
+          }}
+          size="large"
+          variant="wizard"
+          style={styles.nextButton}
+          rightIcon="chevron.right"
+          disabled={!childFormValid}
+        />
+
+        <Text style={styles.skipLink} onPress={handleSkipChildProfile}>
+          Skip for now
+        </Text>
+      </View>
+    </View>
+  );
+
+  const ContentStep = () => (
+    <>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <View style={styles.iconPlain}>
+              <IconSymbol
+                name={currentStepData.icon as any}
+                size={isTablet ? 100 : 80}
+                color={Colors.primary}
+              />
+            </View>
+          </View>
+
+          <Text style={styles.title}>{currentStepData.title}</Text>
+          <Text style={styles.subtitle}>{currentStepData.subtitle}</Text>
+          <Text style={styles.description}>{currentStepData.description}</Text>
+        </View>
+      </ScrollView>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Platform.select({
+              ios: 0,
+              android: insets.bottom + Spacing.xl,
+            }),
+          },
+        ]}
+      >
+        {isLastStep && (
+          <Button
+            title="Add another child"
+            onPress={() => {
+              setCurrentStep(1); // Go back to step 1
+            }}
+            variant="outline"
+            leftIcon="plus"
+            style={styles.secondaryButton}
+          />
+        )}
+
+        <Button
+          title={
+            currentStep === 0
+              ? "Next"
+              : currentStep === 2
+                ? "Start creating stories!"
+                : "Next"
+          }
+          onPress={handleNext}
+          size="large"
+          variant="wizard"
+          rightIcon={isLastStep ? "arrow.right" : "chevron.right"}
+          style={styles.nextButton}
+        />
+
+        {currentStep === 0 && (
+          <Text style={styles.skipLink} onPress={() => onComplete()}>
+            Skip for now
+          </Text>
+        )}
+      </View>
+    </>
+  );
+
+  const MainContent = () => (
+    <>
+      <ProgressHeader />
+      {currentStep === 1 ? <ChildFormStep /> : <ContentStep />}
+    </>
+  );
+
+  // Conditional wrapper component
+  const WrapperComponent = Platform.OS === "ios" ? SafeAreaView : View;
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
-      statusBarTranslucent={true}
+      statusBarTranslucent={Platform.OS === "android"}
     >
+      <StatusBar style="light" />
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
         resizeMode={isTablet ? "cover" : "none"}
@@ -148,142 +303,9 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
           style={StyleSheet.absoluteFill}
         />
 
-        <SafeAreaView style={styles.safeArea}>
-          {/* Progress indicator at the top - consistent across all screens */}
-          <View style={styles.progressHeader}>
-            <View style={styles.stepIndicator}>
-              {steps.map((_, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => handleStepClick(index)}
-                  style={[
-                    styles.stepDot,
-                    index === progressStep && styles.stepDotActive,
-                    index < progressStep && styles.stepDotCompleted,
-                  ]}
-                  activeOpacity={0.7}
-                />
-              ))}
-            </View>
-          </View>
-
-          {currentStep === 1 ? (
-            <View style={styles.childFormContainer}>
-              <ScrollView
-                style={styles.childFormScroll}
-                contentContainerStyle={{ paddingBottom: 120 }}
-              >
-                <ChildProfileForm
-                  ref={childFormRef}
-                  onSave={handleChildFormComplete}
-                  onCancel={handleSkipChildProfile}
-                  title="Add a new child"
-                />
-              </ScrollView>
-
-              <View
-                style={[
-                  styles.footer,
-                  {
-                    paddingBottom: Platform.select({
-                      ios: Math.max(insets.bottom + Spacing.xl, Spacing.xxxl),
-                      android: insets.bottom + Spacing.xl,
-                    }),
-                  },
-                ]}
-              >
-                <Button
-                  title="Continue"
-                  onPress={() => {
-                    // Trigger form submission via ref
-                    childFormRef.current?.handleSave();
-                  }}
-                  size="large"
-                  variant="wizard"
-                  style={styles.nextButton}
-                  rightIcon="chevron.right"
-                  disabled={!childFormValid}
-                />
-
-                <Text style={styles.skipLink} onPress={handleSkipChildProfile}>
-                  Skip for now
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <>
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.content}>
-                  <View style={styles.iconContainer}>
-                    <View style={styles.iconPlain}>
-                      <IconSymbol
-                        name={currentStepData.icon as any}
-                        size={isTablet ? 100 : 80}
-                        color={Colors.primary}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={styles.title}>{currentStepData.title}</Text>
-                  <Text style={styles.subtitle}>
-                    {currentStepData.subtitle}
-                  </Text>
-                  <Text style={styles.description}>
-                    {currentStepData.description}
-                  </Text>
-                </View>
-              </ScrollView>
-
-              <View
-                style={[
-                  styles.footer,
-                  {
-                    paddingBottom: Platform.select({
-                      ios: Math.max(insets.bottom + Spacing.xl, Spacing.xxxl),
-                      android: insets.bottom + Spacing.xl,
-                    }),
-                  },
-                ]}
-              >
-                {isLastStep && (
-                  <Button
-                    title="Add another child"
-                    onPress={() => {
-                      setCurrentStep(1); // Go back to step 1
-                    }}
-                    variant="outline"
-                    leftIcon="plus"
-                    style={styles.secondaryButton}
-                  />
-                )}
-
-                <Button
-                  title={
-                    currentStep === 0
-                      ? "Next"
-                      : currentStep === 2
-                        ? "Start creating stories!"
-                        : "Next"
-                  }
-                  onPress={handleNext}
-                  size="large"
-                  variant="wizard"
-                  rightIcon={isLastStep ? "arrow.right" : "chevron.right"}
-                  style={styles.nextButton}
-                />
-
-                {currentStep === 0 && (
-                  <Text style={styles.skipLink} onPress={() => onComplete()}>
-                    Skip for now
-                  </Text>
-                )}
-              </View>
-            </>
-          )}
-        </SafeAreaView>
+        <WrapperComponent style={styles.safeArea}>
+          <MainContent />
+        </WrapperComponent>
       </ImageBackground>
     </Modal>
   );
@@ -410,7 +432,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.small,
     color: Colors.primary,
     textAlign: "center",
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     textDecorationLine: "underline",
     opacity: 0.8,
   },

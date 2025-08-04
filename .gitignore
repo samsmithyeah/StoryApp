@@ -67,3 +67,6 @@ app-example
 # Build files
 *.ipa
 *.aab
+
+# Claude
+CLAUDE.md

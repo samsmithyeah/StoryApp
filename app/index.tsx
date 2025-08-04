@@ -36,6 +36,12 @@ export default function Index() {
 
   // Once ready, we can safely check the state and render the correct screen.
   if (user) {
+    // Check if email verification is required
+    if (user.email && !user.emailVerified) {
+      // User needs to verify email
+      return <Redirect href="/(auth)/verify-email" />;
+    }
+    
     if (hasCompletedOnboarding) {
       // User is logged in and fully onboarded.
       return <Redirect href="/(tabs)" />;

@@ -230,7 +230,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
     padding: isTablet ? Spacing.xxxl : Spacing.xxl,
-    ...Shadows.glow,
   },
   welcomeText: {
     fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
@@ -268,6 +267,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     alignItems: "center",
     backgroundColor: "rgba(212, 175, 55, 0.1)",
+    ...Shadows.glow,
   },
   emailButtonText: {
     fontSize: Typography.fontSize.button,
