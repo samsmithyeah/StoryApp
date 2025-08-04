@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Dimensions,
@@ -23,19 +23,25 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { useAuthStore } from "../../store/authStore";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
+  const { googleSignIn, appleSignIn, authLoading, error } = useAuth();
+  
+  // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
     "signin"
   );
 
-  const { googleSignIn, appleSignIn, loading } = useAuth();
-
   const handleGoogleSignIn = async () => {
+    // Clear any existing errors before attempting sign in
+    const { setError } = useAuthStore.getState();
+    setError(null);
+    
     try {
       await googleSignIn();
     } catch (error) {
@@ -47,6 +53,10 @@ export default function LoginScreen() {
   };
 
   const handleAppleSignIn = async () => {
+    // Clear any existing errors before attempting sign in
+    const { setError } = useAuthStore.getState();
+    setError(null);
+    
     try {
       await appleSignIn();
     } catch (error) {
@@ -59,7 +69,18 @@ export default function LoginScreen() {
 
   const handleEmailToggle = () => {
     setShowEmailForm(!showEmailForm);
+    // Clear error when toggling away from email form
+    if (showEmailForm && error) {
+      const { setError } = useAuthStore.getState();
+      setError(null);
+    }
   };
+  
+  // Clear error when component mounts or when switching auth methods
+  useEffect(() => {
+    const { setError } = useAuthStore.getState();
+    setError(null);
+  }, []);
 
   const handleEmailModeToggle = () => {
     setEmailAuthMode(emailAuthMode === "signin" ? "signup" : "signin");
@@ -100,12 +121,12 @@ export default function LoginScreen() {
                   <View style={styles.socialButtons}>
                     <GoogleSignInButton
                       onPress={handleGoogleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
 
                     <AppleSignInButton
                       onPress={handleAppleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
                   </View>
 

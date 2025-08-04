@@ -9,8 +9,48 @@ import {
 } from "../services/firebase/auth";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
+// Map Firebase error codes to user-friendly messages
+const getAuthErrorMessage = (error: any): string => {
+  const errorCode = error?.code || error?.message || "";
+  
+  switch (errorCode) {
+    // Email/Password errors
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
+    case "auth/user-disabled":
+      return "This account has been disabled. Please contact support.";
+    case "auth/user-not-found":
+      return "No account found with this email. Please check your email or sign up.";
+    case "auth/wrong-password":
+      return "Incorrect password. Please try again.";
+    case "auth/invalid-credential":
+      return "Invalid email or password. Please check your credentials and try again.";
+    case "auth/too-many-requests":
+      return "Too many failed attempts. Please try again later.";
+    case "auth/email-already-in-use":
+      return "An account already exists with this email address.";
+    case "auth/weak-password":
+      return "Password should be at least 6 characters long.";
+    case "auth/network-request-failed":
+      return "Network error. Please check your internet connection.";
+    case "auth/operation-not-allowed":
+      return "This sign-in method is not enabled. Please contact support.";
+    case "auth/requires-recent-login":
+      return "Please sign in again to complete this action.";
+    case "auth/invalid-login-credentials":
+      return "Invalid email or password. Please check your credentials and try again.";
+    default:
+      // If it's a custom error message that's already user-friendly, return it
+      if (error?.message && !error.message.includes("auth/") && !error.message.includes("Firebase")) {
+        return error.message;
+      }
+      // Generic fallback
+      return "An error occurred. Please try again.";
+  }
+};
+
 export const useAuth = () => {
-  const { user, loading, error, initialize, setLoading, setError, signOut } =
+  const { user, loading, error, initialize, setError, signOut, authLoading, setAuthLoading } =
     useAuthStore();
 
   useEffect(() => {
@@ -26,51 +66,49 @@ export const useAuth = () => {
 
   const emailSignIn = async (credentials: LoginCredentials) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithEmail(credentials);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Sign in failed");
+      setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const emailSignUp = async (credentials: SignUpCredentials) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signUpWithEmail(credentials);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Sign up failed");
+      setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const googleSignIn = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithGoogle();
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Google sign in failed"
-      );
+      setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const appleSignIn = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithApple();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Apple sign in failed");
+      setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -78,6 +116,7 @@ export const useAuth = () => {
     user,
     loading,
     error,
+    authLoading,
     emailSignIn,
     emailSignUp,
     googleSignIn,
