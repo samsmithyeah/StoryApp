@@ -17,6 +17,7 @@ interface ChildrenStore extends ChildrenState {
   deleteChild: (childId: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  clearChildren: () => void;
 }
 
 export const useChildrenStore = create<ChildrenStore>((set, get) => ({
@@ -109,4 +110,8 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+  clearChildren: () => {
+    console.log('[CHILDREN_STORE] Clearing children data');
+    set({ children: [], loading: false, error: null });
+  },
 }));

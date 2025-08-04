@@ -30,7 +30,7 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
-  const { googleSignIn, appleSignIn, loading, error, user } = useAuth();
+  const { googleSignIn, appleSignIn, authLoading, error, user } = useAuth();
   
   // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -127,12 +127,12 @@ export default function LoginScreen() {
                   <View style={styles.socialButtons}>
                     <GoogleSignInButton
                       onPress={handleGoogleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
 
                     <AppleSignInButton
                       onPress={handleAppleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
                   </View>
 

@@ -17,21 +17,21 @@ export default function Index() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('[INDEX] State change:', {
-      user: user ? `${user.email} (verified: ${user.emailVerified})` : 'null',
+    console.log("[INDEX] State change:", {
+      user: user ? `${user.email} (verified: ${user.emailVerified})` : "null",
       loading,
       onboardingLoading,
       hasCompletedOnboarding,
-      isReady
+      isReady,
     });
-    
+
     // Only when both hooks are done loading, mark the app as ready to proceed.
     // Add condition to prevent setting isReady multiple times
     if (!loading && !onboardingLoading && !isReady) {
-      console.log('[INDEX] Setting isReady to true');
+      console.log("[INDEX] Setting isReady to true");
       setIsReady(true);
     }
-  }, [loading, onboardingLoading, isReady]);
+  }, [loading, onboardingLoading, isReady, user, hasCompletedOnboarding]);
 
   const handleOnboardingComplete = async () => {
     // The hook update will trigger a re-render, and the logic below will handle redirection.
@@ -41,7 +41,7 @@ export default function Index() {
   // While waiting for hooks to resolve, show a loading screen.
   // This is our primary defense against the race condition.
   if (!isReady) {
-    console.log('[INDEX] Showing loading screen - not ready yet');
+    console.log("[INDEX] Showing loading screen - not ready yet");
     return <LoadingScreen message="Setting up DreamWeaver..." />;
   }
 
@@ -49,15 +49,15 @@ export default function Index() {
   if (user) {
     // Check if email verification is required
     if (user.email && !user.emailVerified) {
-      console.log('[INDEX] Redirecting to verify-email');
+      console.log("[INDEX] Redirecting to verify-email");
       return <Redirect href="/(auth)/verify-email" />;
     }
-    
+
     if (hasCompletedOnboarding) {
-      console.log('[INDEX] Redirecting to tabs (onboarding complete)');
+      console.log("[INDEX] Redirecting to tabs (onboarding complete)");
       return <Redirect href="/(tabs)" />;
     } else {
-      console.log('[INDEX] Showing WelcomeOnboarding');
+      console.log("[INDEX] Showing WelcomeOnboarding");
       return (
         <WelcomeOnboarding
           visible={true}
@@ -66,7 +66,7 @@ export default function Index() {
       );
     }
   } else {
-    console.log('[INDEX] Redirecting to login (no user)');
+    console.log("[INDEX] Redirecting to login (no user)");
     return <Redirect href="/(auth)/login" />;
   }
 }

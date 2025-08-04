@@ -122,9 +122,19 @@ export default function LibraryScreen() {
   /* ------------------------------------------------------------------ */
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color="#D4AF37" />
-      </View>
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.bg}
+      >
+        <LinearGradient
+          colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator size="large" color="#D4AF37" />
+        </View>
+      </ImageBackground>
     );
   }
 

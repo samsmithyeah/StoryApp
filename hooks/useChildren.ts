@@ -12,19 +12,30 @@ export const useChildren = () => {
     updateChild,
     deleteChild,
     setError,
+    clearChildren,
   } = useChildrenStore();
   
   const { user } = useAuth();
-  const hasLoadedRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Only load children once when user is available and we haven't loaded yet
-    if (user && !hasLoadedRef.current && !loading && children.length === 0) {
-      console.log('[USE_CHILDREN] Loading children for first time');
-      hasLoadedRef.current = true;
-      loadChildren();
+    // Clear children when user changes (including logout)
+    if (user?.uid !== lastUserIdRef.current) {
+      console.log('[USE_CHILDREN] User changed from', lastUserIdRef.current, 'to', user?.uid);
+      lastUserIdRef.current = user?.uid || null;
+      
+      if (!user) {
+        // User logged out, clear children
+        console.log('[USE_CHILDREN] User logged out, clearing children');
+        clearChildren();
+      } else {
+        // User logged in or switched accounts, clear and reload
+        console.log('[USE_CHILDREN] User logged in, clearing and reloading children');
+        clearChildren();
+        loadChildren();
+      }
     }
-  }, [user, loadChildren, loading, children.length]);
+  }, [user, loadChildren, clearChildren]);
 
   return {
     children,

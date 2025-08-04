@@ -115,7 +115,7 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     if (isDeleting) return; // Prevent multiple attempts
-    
+
     Alert.alert(
       "Delete account",
       "This will permanently delete your account and all associated data including children profiles, saved characters, and stories. This action cannot be undone.",
@@ -132,33 +132,25 @@ export default function SettingsScreen() {
               setIsDeleting(true);
               console.log("Starting account deletion...");
               console.log("Current user before deletion:", user?.uid);
-              
+
               await deleteAccount();
-              
+
               console.log("Delete account completed, current user:", user?.uid);
-              
-              // Show success message briefly before redirect
               Alert.alert(
                 "Account deleted",
-                "Your account and all data have been successfully deleted.",
-                [{ 
-                  text: "OK",
-                  onPress: () => {
-                    // Force navigation to login if auth state hasn't changed yet
-                    console.log("User clicked OK, navigating to login");
-                    router.replace("/(auth)/login");
-                  }
-                }]
+                "Your account has been successfully deleted."
               );
+              // Account deletion should automatically sign out the user
+              // The auth state listener will handle navigation to login screen
             } catch (error) {
               console.error("Delete account error:", error);
               Alert.alert(
-                "Error", 
+                "Error",
                 "Failed to delete account. Please try again or contact support if the problem persists."
               );
-            } finally {
-              setIsDeleting(false);
+              setIsDeleting(false); // Only reset loading state on error
             }
+            // Don't reset setIsDeleting(false) on success - let auth state handle it
           },
         },
       ]
@@ -700,7 +692,10 @@ export default function SettingsScreen() {
               title={isDeleting ? "Deleting account..." : "Delete my account"}
               onPress={handleDeleteAccount}
               variant="danger"
-              style={StyleSheet.flatten([styles.deleteAccountButton, isDeleting && styles.disabledButton])}
+              style={StyleSheet.flatten([
+                styles.deleteAccountButton,
+                isDeleting && styles.disabledButton,
+              ])}
               textStyle={styles.deleteAccountButtonText}
               loading={isDeleting}
               disabled={isDeleting}

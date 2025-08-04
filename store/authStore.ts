@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { subscribeToAuthChanges } from "../services/firebase/auth";
-import { User, AuthState } from "../types/auth.types";
+import { AuthState, User } from "../types/auth.types";
 
 interface AuthStore extends AuthState {
   initialize: () => void;
@@ -8,19 +8,18 @@ interface AuthStore extends AuthState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   signOut: () => Promise<void>;
+  authLoading: boolean;
+  setAuthLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   loading: true,
   error: null,
+  authLoading: false,
 
   initialize: () => {
     const unsubscribe = subscribeToAuthChanges((user) => {
-      console.log('[AUTH_STORE] Auth state changed:', {
-        user: user ? `${user.email} (verified: ${user.emailVerified})` : 'null',
-        previousLoading: get().loading
-      });
       // Don't clear error when auth state changes to prevent losing login errors
       set({ user, loading: false });
     });
@@ -34,6 +33,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   setLoading: (loading) => set({ loading }),
 
   setError: (error) => set({ error }),
+
+  setAuthLoading: (loading) => set({ authLoading: loading }),
 
   signOut: async () => {
     try {

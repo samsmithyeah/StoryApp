@@ -10,6 +10,7 @@ import {
   checkEmailVerified,
   deleteAccount,
 } from "../services/firebase/auth";
+import { authService } from "../services/firebase/config";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
 // Map Firebase error codes to user-friendly messages
@@ -53,7 +54,7 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export const useAuth = () => {
-  const { user, loading, error, initialize, setError, signOut, setLoading } =
+  const { user, loading, error, initialize, setError, signOut, authLoading, setAuthLoading } =
     useAuthStore();
 
   useEffect(() => {
@@ -69,32 +70,32 @@ export const useAuth = () => {
 
   const emailSignIn = async (credentials: LoginCredentials) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithEmail(credentials);
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const emailSignUp = async (credentials: SignUpCredentials) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signUpWithEmail(credentials);
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const googleSignIn = async () => {
     try {
       console.log('[AUTH] Starting Google sign in');
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithGoogle();
       console.log('[AUTH] Google sign in completed');
@@ -102,33 +103,46 @@ export const useAuth = () => {
       console.log('[AUTH] Google sign in error:', error);
       setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
-      console.log('[AUTH] Google sign in finished (loading = false)');
+      setAuthLoading(false);
+      console.log('[AUTH] Google sign in finished (authLoading = false)');
     }
   };
 
   const appleSignIn = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await signInWithApple();
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const deleteUserAccount = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       setError(null);
       await deleteAccount();
+      
+      // Add a delay to allow the cloud function to complete
+      console.log('[AUTH] Waiting for account deletion to complete...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check if user is still authenticated (shouldn't be after deletion)
+      const currentUser = authService.currentUser;
+      if (currentUser) {
+        console.log('[AUTH] User still exists after deletion, manually signing out');
+        await signOut();
+      } else {
+        console.log('[AUTH] User successfully deleted');
+      }
     } catch (error) {
       setError(getAuthErrorMessage(error));
       throw error; // Re-throw so the UI can handle the error
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -136,6 +150,7 @@ export const useAuth = () => {
     user,
     loading,
     error,
+    authLoading,
     emailSignIn,
     emailSignUp,
     googleSignIn,
