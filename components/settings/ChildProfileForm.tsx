@@ -29,6 +29,8 @@ interface ChildProfileFormProps {
   onCancel: () => void;
   loading?: boolean;
   title?: string;
+  // onValidityChange?: (isValid: boolean) => void; // removed for diagnostics
+  contentBottomPadding?: number;
 }
 
 export const ChildProfileForm = forwardRef<
@@ -39,7 +41,8 @@ export const ChildProfileForm = forwardRef<
   },
   ChildProfileFormProps
 >((props, ref) => {
-  const { child, onSave, title } = props;
+  const { child, onSave, title, contentBottomPadding = 120 } = props;
+
   const [childName, setChildName] = useState(child?.childName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
     child?.dateOfBirth
@@ -62,7 +65,6 @@ export const ChildProfileForm = forwardRef<
 
   const isEditing = !!child;
 
-  // Track initial values for detecting changes
   const initialValues = useRef({
     childName: child?.childName || "",
     dateOfBirth: child?.dateOfBirth,
@@ -104,7 +106,6 @@ export const ChildProfileForm = forwardRef<
       setHairStyle(child.hairStyle || "");
       setAppearanceDetails(child.appearanceDetails || "");
 
-      // Update initial values when child changes
       initialValues.current = {
         childName: child.childName,
         dateOfBirth: child.dateOfBirth,
@@ -116,7 +117,6 @@ export const ChildProfileForm = forwardRef<
         appearanceDetails: child.appearanceDetails || "",
       };
     } else {
-      // Reset for new child
       initialValues.current = {
         childName: "",
         dateOfBirth: undefined,
@@ -137,13 +137,10 @@ export const ChildProfileForm = forwardRef<
       newErrors.childName = "Please enter the child's name";
     }
 
-    // Date of birth validation - only if provided
     if (dateOfBirth) {
       const today = new Date();
       const age = today.getFullYear() - dateOfBirth.getFullYear();
       const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-
-      // For month/year dates, we only check if the birth month has passed this year
       const actualAge = monthDiff < 0 ? age - 1 : age;
 
       if (actualAge < 0 || actualAge > 18) {
@@ -183,36 +180,20 @@ export const ChildProfileForm = forwardRef<
     }
   };
 
-  const handleChildNameChange = (text: string) => {
-    setChildName(text);
-    if (errors.childName) {
-      setErrors((prev) => ({ ...prev, childName: undefined }));
-    }
-  };
-
-  const handleDateOfBirthChange = (date: Date) => {
-    setDateOfBirth(date);
-    if (errors.dateOfBirth) {
-      setErrors((prev) => ({ ...prev, dateOfBirth: undefined }));
-    }
-  };
-
-  const handleChildPreferencesChange = (text: string) => {
-    setChildPreferences(text);
-    if (errors.childPreferences) {
-      setErrors((prev) => ({ ...prev, childPreferences: undefined }));
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: contentBottomPadding },
+        ]}
+        keyboardShouldPersistTaps="always"
+        nestedScrollEnabled
       >
         <View style={styles.header}>
           <Text style={styles.title}>
@@ -231,7 +212,7 @@ export const ChildProfileForm = forwardRef<
               label="Child's name"
               placeholder="Enter your child's name"
               value={childName}
-              onChangeText={handleChildNameChange}
+              onChangeText={setChildName}
               leftIcon="person.fill"
               autoCapitalize="words"
               error={errors.childName}
@@ -243,7 +224,7 @@ export const ChildProfileForm = forwardRef<
               label="Birth month & year"
               placeholder="Select your child's birth month and year"
               value={dateOfBirth}
-              onChange={handleDateOfBirthChange}
+              onChange={setDateOfBirth}
               leftIcon="calendar"
               maximumDate={new Date()}
               minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
@@ -257,7 +238,7 @@ export const ChildProfileForm = forwardRef<
               label="Interests & preferences"
               placeholder="What does your child love? (e.g., dinosaurs, princesses, space, animals)"
               value={childPreferences}
-              onChangeText={handleChildPreferencesChange}
+              onChangeText={setChildPreferences}
               leftIcon="heart.fill"
               style={styles.preferencesInput}
               error={errors.childPreferences}

@@ -4,9 +4,9 @@ import React from "react";
 import {
   Alert,
   Platform,
+  StatusBar as RNStatusBar,
   SafeAreaView,
   ScrollView,
-  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   View,

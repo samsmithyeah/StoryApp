@@ -8,6 +8,7 @@ import {
   configureGoogleSignIn,
   resendVerificationEmail,
   checkEmailVerified,
+  deleteAccount,
 } from "../services/firebase/auth";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
@@ -114,6 +115,19 @@ export const useAuth = () => {
     }
   };
 
+  const deleteUserAccount = async () => {
+    try {
+      setAuthLoading(true);
+      setError(null);
+      await deleteAccount();
+    } catch (error) {
+      setError(getAuthErrorMessage(error));
+      throw error; // Re-throw so the UI can handle the error
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
@@ -126,5 +140,6 @@ export const useAuth = () => {
     signOut,
     resendVerificationEmail,
     checkEmailVerified,
+    deleteAccount: deleteUserAccount,
   };
 };

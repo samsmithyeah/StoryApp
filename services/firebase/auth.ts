@@ -3,14 +3,15 @@ import auth, {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reload,
+  sendEmailVerification,
   signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
-  sendEmailVerification,
-  reload,
 } from "@react-native-firebase/auth";
 import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
+import { httpsCallable } from "@react-native-firebase/functions";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
@@ -19,7 +20,7 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
-import { authService, db } from "./config";
+import { authService, db, functionsService } from "./config";
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -267,8 +268,13 @@ export const signInWithApple = async (): Promise<User> => {
 // Email Verification
 export const resendVerificationEmail = async (): Promise<void> => {
   const currentUser = authService.currentUser;
-  console.log("Resend verification - Current user:", currentUser?.email, "Verified:", currentUser?.emailVerified);
-  
+  console.log(
+    "Resend verification - Current user:",
+    currentUser?.email,
+    "Verified:",
+    currentUser?.emailVerified
+  );
+
   if (currentUser && !currentUser.emailVerified) {
     console.log("Resending email verification to:", currentUser.email);
     await sendEmailVerification(currentUser);
@@ -296,6 +302,38 @@ export const signOutUser = async (): Promise<void> => {
   await signOut(authService);
 };
 
+// Delete Account
+export const deleteAccount = async (): Promise<void> => {
+  const currentUser = authService.currentUser;
+  if (!currentUser) {
+    throw new Error("No user is currently signed in");
+  }
+
+  try {
+    // Call the cloud function which will handle ALL deletions including auth
+    console.log("Calling cloud function to delete user data...");
+    console.log("Current user:", currentUser.uid, currentUser.email);
+    console.log("User emailVerified:", currentUser.emailVerified);
+    console.log("Functions service:", functionsService);
+
+    const deleteUserDataFunction = httpsCallable(
+      functionsService,
+      "deleteUserData"
+    );
+
+    console.log("About to call function...");
+    const result = await deleteUserDataFunction({});
+
+    console.log("Cloud function completed:", result.data);
+
+    // The cloud function deletes the auth user, so we don't need to do it here
+    // The user will be automatically signed out when their auth account is deleted
+  } catch (error) {
+    console.error("Error deleting user account:", error);
+    throw error;
+  }
+};
+
 // Auth State Observer
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
@@ -306,7 +344,13 @@ export const subscribeToAuthChanges = (
       firebaseUser ? "User logged in" : "User logged out"
     );
     if (firebaseUser) {
-      console.log("Firebase user:", firebaseUser.uid, firebaseUser.email, "Verified:", firebaseUser.emailVerified);
+      console.log(
+        "Firebase user:",
+        firebaseUser.uid,
+        firebaseUser.email,
+        "Verified:",
+        firebaseUser.emailVerified
+      );
       const user = await convertFirebaseUser(firebaseUser);
       console.log("Converted user:", user);
       callback(user);
