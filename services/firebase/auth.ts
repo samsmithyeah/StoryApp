@@ -334,6 +334,10 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
+// Cache to prevent excessive Firestore reads during auth state changes
+let userCache: { [uid: string]: { user: User; timestamp: number } } = {};
+const CACHE_DURATION = 30000; // 30 seconds
+
 // Auth State Observer
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
@@ -351,11 +355,31 @@ export const subscribeToAuthChanges = (
         "Verified:",
         firebaseUser.emailVerified
       );
-      const user = await convertFirebaseUser(firebaseUser);
-      console.log("Converted user:", user);
-      callback(user);
+      
+      // Check cache first to avoid excessive Firestore reads
+      const cached = userCache[firebaseUser.uid];
+      const now = Date.now();
+      
+      if (cached && (now - cached.timestamp < CACHE_DURATION)) {
+        console.log("Using cached user data");
+        // Update the cached user with latest auth info (like emailVerified)
+        const updatedUser = {
+          ...cached.user,
+          emailVerified: firebaseUser.emailVerified,
+        };
+        callback(updatedUser);
+      } else {
+        console.log("Converting Firebase user (cache miss or expired)");
+        const user = await convertFirebaseUser(firebaseUser);
+        // Cache the user data
+        userCache[firebaseUser.uid] = { user, timestamp: now };
+        console.log("Converted user:", user);
+        callback(user);
+      }
     } else {
       console.log("No user - showing login screen");
+      // Clear cache on logout
+      userCache = {};
       callback(null);
     }
   });

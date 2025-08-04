@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useChildrenStore } from "../store/childrenStore";
+import { useAuth } from "./useAuth";
 
 export const useChildren = () => {
   const {
@@ -12,10 +13,18 @@ export const useChildren = () => {
     deleteChild,
     setError,
   } = useChildrenStore();
+  
+  const { user } = useAuth();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    loadChildren();
-  }, [loadChildren]);
+    // Only load children once when user is available and we haven't loaded yet
+    if (user && !hasLoadedRef.current && !loading && children.length === 0) {
+      console.log('[USE_CHILDREN] Loading children for first time');
+      hasLoadedRef.current = true;
+      loadChildren();
+    }
+  }, [user, loadChildren, loading, children.length]);
 
   return {
     children,

@@ -53,7 +53,7 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export const useAuth = () => {
-  const { user, loading, error, initialize, setError, signOut, authLoading, setAuthLoading } =
+  const { user, loading, error, initialize, setError, signOut, setLoading } =
     useAuthStore();
 
   useEffect(() => {
@@ -69,62 +69,66 @@ export const useAuth = () => {
 
   const emailSignIn = async (credentials: LoginCredentials) => {
     try {
-      setAuthLoading(true);
+      setLoading(true);
       setError(null);
       await signInWithEmail(credentials);
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setAuthLoading(false);
+      setLoading(false);
     }
   };
 
   const emailSignUp = async (credentials: SignUpCredentials) => {
     try {
-      setAuthLoading(true);
+      setLoading(true);
       setError(null);
       await signUpWithEmail(credentials);
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setAuthLoading(false);
+      setLoading(false);
     }
   };
 
   const googleSignIn = async () => {
     try {
-      setAuthLoading(true);
+      console.log('[AUTH] Starting Google sign in');
+      setLoading(true);
       setError(null);
       await signInWithGoogle();
+      console.log('[AUTH] Google sign in completed');
     } catch (error) {
+      console.log('[AUTH] Google sign in error:', error);
       setError(getAuthErrorMessage(error));
     } finally {
-      setAuthLoading(false);
+      setLoading(false);
+      console.log('[AUTH] Google sign in finished (loading = false)');
     }
   };
 
   const appleSignIn = async () => {
     try {
-      setAuthLoading(true);
+      setLoading(true);
       setError(null);
       await signInWithApple();
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
-      setAuthLoading(false);
+      setLoading(false);
     }
   };
 
   const deleteUserAccount = async () => {
     try {
-      setAuthLoading(true);
+      setLoading(true);
       setError(null);
       await deleteAccount();
     } catch (error) {
       setError(getAuthErrorMessage(error));
       throw error; // Re-throw so the UI can handle the error
     } finally {
-      setAuthLoading(false);
+      setLoading(false);
     }
   };
 
@@ -132,7 +136,6 @@ export const useAuth = () => {
     user,
     loading,
     error,
-    authLoading,
     emailSignIn,
     emailSignUp,
     googleSignIn,

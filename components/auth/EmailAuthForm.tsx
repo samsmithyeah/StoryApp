@@ -34,7 +34,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   const [displayNameError, setDisplayNameError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  const { emailSignIn, emailSignUp, authLoading, error } = useAuth();
+  const { emailSignIn, emailSignUp, loading, error } = useAuth();
   
   // Clear errors when switching modes
   React.useEffect(() => {
@@ -182,7 +182,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
         <Button
           title={mode === "signin" ? "Sign in" : "Create account"}
           onPress={handleSubmit}
-          loading={authLoading}
+          loading={loading}
           style={styles.submitButton}
         />
 

@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { Redirect } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   Alert,
@@ -29,13 +30,24 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
-  const { googleSignIn, appleSignIn, authLoading, error } = useAuth();
+  const { googleSignIn, appleSignIn, loading, error, user } = useAuth();
   
   // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
     "signin"
   );
+
+  // Clear error when component mounts or when switching auth methods
+  useEffect(() => {
+    const { setError } = useAuthStore.getState();
+    setError(null);
+  }, []);
+
+  // Redirect to main app if user is already authenticated
+  if (user) {
+    return <Redirect href="/" />;
+  }
 
   const handleGoogleSignIn = async () => {
     // Clear any existing errors before attempting sign in
@@ -75,12 +87,6 @@ export default function LoginScreen() {
       setError(null);
     }
   };
-  
-  // Clear error when component mounts or when switching auth methods
-  useEffect(() => {
-    const { setError } = useAuthStore.getState();
-    setError(null);
-  }, []);
 
   const handleEmailModeToggle = () => {
     setEmailAuthMode(emailAuthMode === "signin" ? "signup" : "signin");
@@ -121,12 +127,12 @@ export default function LoginScreen() {
                   <View style={styles.socialButtons}>
                     <GoogleSignInButton
                       onPress={handleGoogleSignIn}
-                      loading={authLoading}
+                      loading={loading}
                     />
 
                     <AppleSignInButton
                       onPress={handleAppleSignIn}
-                      loading={authLoading}
+                      loading={loading}
                     />
                   </View>
 

@@ -8,29 +8,21 @@ interface AuthStore extends AuthState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   signOut: () => Promise<void>;
-  authLoading: boolean; // Separate loading state for auth attempts
-  setAuthLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   loading: true,
   error: null,
-  authLoading: false,
 
   initialize: () => {
     const unsubscribe = subscribeToAuthChanges((user) => {
+      console.log('[AUTH_STORE] Auth state changed:', {
+        user: user ? `${user.email} (verified: ${user.emailVerified})` : 'null',
+        previousLoading: get().loading
+      });
       // Don't clear error when auth state changes to prevent losing login errors
-      const previousUser = get().user;
-      
-      // If we're transitioning from no user to a user (successful login), show loading
-      if (!previousUser && user) {
-        set({ user, loading: true });
-        // Keep loading screen for a moment during transition
-        setTimeout(() => set({ loading: false }), 500);
-      } else {
-        set({ user, loading: false });
-      }
+      set({ user, loading: false });
     });
 
     // Store the unsubscribe function for cleanup
@@ -42,8 +34,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   setLoading: (loading) => set({ loading }),
 
   setError: (error) => set({ error }),
-  
-  setAuthLoading: (loading) => set({ authLoading: loading }),
 
   signOut: async () => {
     try {
