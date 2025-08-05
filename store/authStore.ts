@@ -20,8 +20,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   initialize: () => {
     const unsubscribe = subscribeToAuthChanges((user) => {
-      // Don't clear error when auth state changes to prevent losing login errors
-      set({ user, loading: false });
+      const currentState = get();
+      
+      // Clear error only when successfully authenticated
+      // This prevents stale errors from persisting after successful login
+      if (user && currentState.error) {
+        set({ user, loading: false, error: null });
+      } else {
+        // Keep error if auth fails or user logs out
+        set({ user, loading: false });
+      }
     });
 
     // Store the unsubscribe function for cleanup
