@@ -70,3 +70,6 @@ app-example
 
 # Claude
 CLAUDE.md
+
+# Testing
+coverage/
