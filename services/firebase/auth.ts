@@ -121,7 +121,7 @@ export const signUpWithEmail = async ({
 
   // Check if this is a test account (for development only)
   const isTestAccount = __DEV__ && email.endsWith("@test.dreamweaver");
-  
+
   if (!isTestAccount) {
     // Send email verification for real accounts
     try {
@@ -346,7 +346,10 @@ export const deleteAccount = async (): Promise<void> => {
       console.log("Signing out after account deletion...");
       await signOut(authService);
     } catch (signOutError) {
-      console.log("Sign out error after deletion (this is expected):", signOutError);
+      console.log(
+        "Sign out error after deletion (this is expected):",
+        signOutError
+      );
     }
   } catch (error) {
     console.error("Error deleting user account:", error);

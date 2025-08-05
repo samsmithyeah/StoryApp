@@ -11,11 +11,16 @@ export default function TabLayout() {
   const { user } = useAuth();
   const router = useRouter();
 
-  console.log("[TABS LAYOUT] User state:", user ? `${user.email} (${user.uid})` : "null");
+  console.log(
+    "[TABS LAYOUT] User state:",
+    user ? `${user.email} (${user.uid})` : "null"
+  );
 
   useEffect(() => {
     if (!user) {
-      console.log("[TABS LAYOUT] No user detected in useEffect, navigating to login");
+      console.log(
+        "[TABS LAYOUT] No user detected in useEffect, navigating to login"
+      );
       router.replace("/(auth)/login");
     }
   }, [user, router]);

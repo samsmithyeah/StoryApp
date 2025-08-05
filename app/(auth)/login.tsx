@@ -31,8 +31,9 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
-  const { googleSignIn, appleSignIn, authLoading, error, user, emailSignUp } = useAuth();
-  
+  const { googleSignIn, appleSignIn, authLoading, error, user, emailSignUp } =
+    useAuth();
+
   // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
@@ -55,7 +56,7 @@ export default function LoginScreen() {
     // Clear any existing errors before attempting sign in
     const { setError } = useAuthStore.getState();
     setError(null);
-    
+
     try {
       await googleSignIn();
     } catch (error) {
@@ -70,7 +71,7 @@ export default function LoginScreen() {
     // Clear any existing errors before attempting sign in
     const { setError } = useAuthStore.getState();
     setError(null);
-    
+
     try {
       await appleSignIn();
     } catch (error) {
@@ -98,18 +99,18 @@ export default function LoginScreen() {
   const handleDebugTap = async () => {
     // Only allow in development mode
     if (__DEV__) {
-      setDebugTapCount(prev => prev + 1);
-      
+      setDebugTapCount((prev) => prev + 1);
+
       if (debugTapCount >= 4) {
         setDebugTapCount(0);
         const testEmail = `test${Date.now()}@test.dreamweaver`;
         const testPassword = "test123456";
-        
+
         try {
           await emailSignUp({
             email: testEmail,
             password: testPassword,
-            displayName: "Test User"
+            displayName: "Test User",
           });
           Alert.alert(
             "Test User Created",

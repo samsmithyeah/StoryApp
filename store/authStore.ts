@@ -21,7 +21,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initialize: () => {
     const unsubscribe = subscribeToAuthChanges((user) => {
       const currentState = get();
-      
+
       // Clear error only when successfully authenticated
       // This prevents stale errors from persisting after successful login
       if (user && currentState.error) {

@@ -27,7 +27,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   // Validation error states
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -35,7 +35,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   const { emailSignIn, emailSignUp, authLoading, error } = useAuth();
-  
+
   // Clear errors when switching modes
   React.useEffect(() => {
     setEmailError("");
@@ -48,7 +48,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
     setDisplayName("");
     setConfirmPassword("");
   }, [mode]);
-  
+
   // Clear global error when component mounts to avoid showing social sign-in errors
   React.useEffect(() => {
     const { setError } = useAuthStore.getState();
@@ -57,7 +57,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
   const validateForm = () => {
     let isValid = true;
-    
+
     // Clear all errors first
     setEmailError("");
     setPasswordError("");

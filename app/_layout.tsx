@@ -32,7 +32,7 @@ export default function RootLayout() {
     // Show loading screen for iOS font loading
     return <LoadingScreen message="Starting DreamWeaver..." />;
   }
-  
+
   if (loading) {
     // Show loading screen only for initial auth state check
     return <LoadingScreen message="Setting up DreamWeaver..." />;
