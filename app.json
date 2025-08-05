@@ -4,7 +4,7 @@
     "slug": "StoryApp",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icons/icon.png",
     "scheme": "storyapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -83,9 +83,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "image": "./assets/images/splash.png",
+          "resizeMode": "cover",
           "backgroundColor": "#0f1129"
         }
       ]

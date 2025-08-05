@@ -92,7 +92,7 @@ export const deleteUserData = https.onCall(
       // Delete all user files from Firebase Storage
       try {
         const bucket = storage.bucket();
-        const userStoragePrefix = `users/${userId}/`;
+        const userStoragePrefix = `stories/${userId}/`;
 
         // List all files with the user's prefix
         const [files] = await bucket.getFiles({ prefix: userStoragePrefix });
