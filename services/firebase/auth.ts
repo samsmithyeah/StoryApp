@@ -12,7 +12,7 @@ import auth, {
 } from "@react-native-firebase/auth";
 import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, SignInResponse } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Alert, Platform } from "react-native";
 import {
@@ -22,13 +22,6 @@ import {
 } from "../../types/auth.types";
 import { authService, db, functionsService } from "./config";
 
-// Google Sign-In result interface
-interface GoogleSignInResult {
-  data?: {
-    idToken?: string;
-  };
-  idToken?: string;
-}
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -125,7 +118,6 @@ export const signUpWithEmail = async ({
   if (!isTestAccount) {
     // Send email verification for real accounts
     try {
-      console.log("Sending email verification to:", userCredential.user.email);
       await sendEmailVerification(userCredential.user);
       console.log("Email verification sent successfully");
     } catch (verificationError) {
@@ -167,13 +159,15 @@ export const signInWithGoogle = async (): Promise<User> => {
 
     // Get the users ID token
     console.log("Attempting to sign in with Google...");
-    const result = await GoogleSignin.signIn();
+    const result: SignInResponse = await GoogleSignin.signIn();
     console.log("Google Sign-In result:", result);
 
-    // Extract idToken from the result data
-    const idToken =
-      (result as GoogleSignInResult).data?.idToken ||
-      (result as GoogleSignInResult).idToken;
+    // Check if sign-in was successful and extract idToken
+    if (result.type !== 'success') {
+      throw new Error("Google Sign-In was cancelled or failed");
+    }
+    
+    const idToken = result.data.idToken;
     if (!idToken) {
       throw new Error("No ID token received from Google Sign-In");
     }
@@ -297,7 +291,6 @@ export const resendVerificationEmail = async (): Promise<void> => {
   );
 
   if (currentUser && !currentUser.emailVerified) {
-    console.log("Resending email verification to:", currentUser.email);
     await sendEmailVerification(currentUser);
     console.log("Resend email verification sent successfully");
   } else if (!currentUser) {
