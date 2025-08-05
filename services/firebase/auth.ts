@@ -285,12 +285,6 @@ export const signInWithApple = async (): Promise<User> => {
 // Email Verification
 export const resendVerificationEmail = async (): Promise<void> => {
   const currentUser = authService.currentUser;
-  console.log(
-    "Resend verification - Current user:",
-    currentUser?.email,
-    "Verified:",
-    currentUser?.emailVerified
-  );
 
   if (currentUser && !currentUser.emailVerified) {
     await sendEmailVerification(currentUser);
@@ -369,7 +363,6 @@ export const subscribeToAuthChanges = (
       console.log(
         "Firebase user:",
         firebaseUser.uid,
-        firebaseUser.email,
         "Verified:",
         firebaseUser.emailVerified
       );
