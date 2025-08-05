@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
@@ -30,13 +31,14 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
-  const { googleSignIn, appleSignIn, authLoading, error, user } = useAuth();
+  const { googleSignIn, appleSignIn, authLoading, error, user, emailSignUp } = useAuth();
   
   // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
     "signin"
   );
+  const [debugTapCount, setDebugTapCount] = useState(0);
 
   // Clear error when component mounts or when switching auth methods
   useEffect(() => {
@@ -90,6 +92,35 @@ export default function LoginScreen() {
 
   const handleEmailModeToggle = () => {
     setEmailAuthMode(emailAuthMode === "signin" ? "signup" : "signin");
+  };
+
+  // Debug feature: tap 5 times on the footer to create a test user
+  const handleDebugTap = async () => {
+    // Only allow in development mode
+    if (__DEV__) {
+      setDebugTapCount(prev => prev + 1);
+      
+      if (debugTapCount >= 4) {
+        setDebugTapCount(0);
+        const testEmail = `test${Date.now()}@test.dreamweaver`;
+        const testPassword = "test123456";
+        
+        try {
+          await emailSignUp({
+            email: testEmail,
+            password: testPassword,
+            displayName: "Test User"
+          });
+          Alert.alert(
+            "Test User Created",
+            `Email: ${testEmail}\nPassword: ${testPassword}\n\nThis account bypasses email verification.`,
+            [{ text: "OK" }]
+          );
+        } catch (err) {
+          Alert.alert("Error", "Failed to create test user");
+        }
+      }
+    }
   };
 
   return (
@@ -170,12 +201,12 @@ export default function LoginScreen() {
               )}
             </View>
 
-            <View style={styles.footer}>
+            <TouchableOpacity style={styles.footer} onPress={handleDebugTap}>
               <Text style={styles.footerText}>
                 By continuing, you agree to our Terms of Service and Privacy
                 Policy
               </Text>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

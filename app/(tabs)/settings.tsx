@@ -140,8 +140,7 @@ export default function SettingsScreen() {
                 "Account deleted",
                 "Your account has been successfully deleted."
               );
-              // Account deletion should automatically sign out the user
-              // The auth state listener will handle navigation to login screen
+              // The auth state listener in (tabs)/_layout.tsx will handle navigation
             } catch (error) {
               console.error("Delete account error:", error);
               Alert.alert(
@@ -150,7 +149,6 @@ export default function SettingsScreen() {
               );
               setIsDeleting(false); // Only reset loading state on error
             }
-            // Don't reset setIsDeleting(false) on success - let auth state handle it
           },
         },
       ]

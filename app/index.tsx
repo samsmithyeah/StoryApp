@@ -47,8 +47,9 @@ export default function Index() {
 
   // Once ready, we can safely check the state and render the correct screen.
   if (user) {
-    // Check if email verification is required
-    if (user.email && !user.emailVerified) {
+    // Check if email verification is required (skip for test accounts in dev)
+    const isTestAccount = __DEV__ && user.email?.endsWith("@test.dreamweaver");
+    if (user.email && !user.emailVerified && !isTestAccount) {
       console.log("[INDEX] Redirecting to verify-email");
       return <Redirect href="/(auth)/verify-email" />;
     }

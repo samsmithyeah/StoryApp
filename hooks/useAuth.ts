@@ -1,22 +1,21 @@
 import { useEffect } from "react";
-import { useAuthStore } from "../store/authStore";
 import {
-  signInWithEmail,
-  signUpWithEmail,
-  signInWithGoogle,
-  signInWithApple,
-  configureGoogleSignIn,
-  resendVerificationEmail,
   checkEmailVerified,
+  configureGoogleSignIn,
   deleteAccount,
+  resendVerificationEmail,
+  signInWithApple,
+  signInWithEmail,
+  signInWithGoogle,
+  signUpWithEmail,
 } from "../services/firebase/auth";
-import { authService } from "../services/firebase/config";
+import { useAuthStore } from "../store/authStore";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
 // Map Firebase error codes to user-friendly messages
 const getAuthErrorMessage = (error: any): string => {
   const errorCode = error?.code || error?.message || "";
-  
+
   switch (errorCode) {
     // Email/Password errors
     case "auth/invalid-email":
@@ -45,7 +44,11 @@ const getAuthErrorMessage = (error: any): string => {
       return "Invalid email or password. Please check your credentials and try again.";
     default:
       // If it's a custom error message that's already user-friendly, return it
-      if (error?.message && !error.message.includes("auth/") && !error.message.includes("Firebase")) {
+      if (
+        error?.message &&
+        !error.message.includes("auth/") &&
+        !error.message.includes("Firebase")
+      ) {
         return error.message;
       }
       // Generic fallback
@@ -54,8 +57,16 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export const useAuth = () => {
-  const { user, loading, error, initialize, setError, signOut, authLoading, setAuthLoading } =
-    useAuthStore();
+  const {
+    user,
+    loading,
+    error,
+    initialize,
+    setError,
+    signOut,
+    authLoading,
+    setAuthLoading,
+  } = useAuthStore();
 
   useEffect(() => {
     // Configure Google Sign-In
@@ -94,17 +105,17 @@ export const useAuth = () => {
 
   const googleSignIn = async () => {
     try {
-      console.log('[AUTH] Starting Google sign in');
+      console.log("[AUTH] Starting Google sign in");
       setAuthLoading(true);
       setError(null);
       await signInWithGoogle();
-      console.log('[AUTH] Google sign in completed');
+      console.log("[AUTH] Google sign in completed");
     } catch (error) {
-      console.log('[AUTH] Google sign in error:', error);
+      console.log("[AUTH] Google sign in error:", error);
       setError(getAuthErrorMessage(error));
     } finally {
       setAuthLoading(false);
-      console.log('[AUTH] Google sign in finished (authLoading = false)');
+      console.log("[AUTH] Google sign in finished (authLoading = false)");
     }
   };
 
@@ -125,19 +136,19 @@ export const useAuth = () => {
       setAuthLoading(true);
       setError(null);
       await deleteAccount();
-      
+
       // Add a delay to allow the cloud function to complete
-      console.log('[AUTH] Waiting for account deletion to complete...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Check if user is still authenticated (shouldn't be after deletion)
-      const currentUser = authService.currentUser;
-      if (currentUser) {
-        console.log('[AUTH] User still exists after deletion, manually signing out');
-        await signOut();
-      } else {
-        console.log('[AUTH] User successfully deleted');
-      }
+      // console.log('[AUTH] Waiting for account deletion to complete...');
+      // await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // // Check if user is still authenticated (shouldn't be after deletion)
+      // const currentUser = authService.currentUser;
+      // if (currentUser) {
+      //   console.log('[AUTH] User still exists after deletion, manually signing out');
+      //   await signOut();
+      // } else {
+      //   console.log('[AUTH] User successfully deleted');
+      // }
     } catch (error) {
       setError(getAuthErrorMessage(error));
       throw error; // Re-throw so the UI can handle the error

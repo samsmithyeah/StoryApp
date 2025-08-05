@@ -14,13 +14,21 @@ import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import {
   LoginCredentials,
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
 import { authService, db, functionsService } from "./config";
+
+// Google Sign-In result interface
+interface GoogleSignInResult {
+  data?: {
+    idToken?: string;
+  };
+  idToken?: string;
+}
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -111,14 +119,25 @@ export const signUpWithEmail = async ({
     await updateProfile(userCredential.user, { displayName });
   }
 
-  // Send email verification
-  try {
-    console.log("Sending email verification to:", userCredential.user.email);
-    await sendEmailVerification(userCredential.user);
-    console.log("Email verification sent successfully");
-  } catch (verificationError) {
-    console.error("Failed to send email verification:", verificationError);
-    // Don't throw here - allow user creation to succeed even if email fails
+  // Check if this is a test account (for development only)
+  const isTestAccount = __DEV__ && email.endsWith("@test.dreamweaver");
+  
+  if (!isTestAccount) {
+    // Send email verification for real accounts
+    try {
+      console.log("Sending email verification to:", userCredential.user.email);
+      await sendEmailVerification(userCredential.user);
+      console.log("Email verification sent successfully");
+    } catch (verificationError) {
+      console.error("Failed to send email verification:", verificationError);
+      Alert.alert(
+        "Verification error",
+        "We encountered an issue while sending the verification email. Please try sending it again.",
+        [{ text: "OK" }]
+      );
+    }
+  } else {
+    console.log("Test account detected - skipping email verification");
   }
 
   await createUserDocument(userCredential.user);
@@ -152,7 +171,9 @@ export const signInWithGoogle = async (): Promise<User> => {
     console.log("Google Sign-In result:", result);
 
     // Extract idToken from the result data
-    const idToken = (result as any).data?.idToken || (result as any).idToken;
+    const idToken =
+      (result as GoogleSignInResult).data?.idToken ||
+      (result as GoogleSignInResult).idToken;
     if (!idToken) {
       throw new Error("No ID token received from Google Sign-In");
     }
@@ -310,12 +331,6 @@ export const deleteAccount = async (): Promise<void> => {
   }
 
   try {
-    // Call the cloud function which will handle ALL deletions including auth
-    console.log("Calling cloud function to delete user data...");
-    console.log("Current user:", currentUser.uid, currentUser.email);
-    console.log("User emailVerified:", currentUser.emailVerified);
-    console.log("Functions service:", functionsService);
-
     const deleteUserDataFunction = httpsCallable(
       functionsService,
       "deleteUserData"
@@ -326,8 +341,13 @@ export const deleteAccount = async (): Promise<void> => {
 
     console.log("Cloud function completed:", result.data);
 
-    // The cloud function deletes the auth user, so we don't need to do it here
-    // The user will be automatically signed out when their auth account is deleted
+    // Explicitly sign out to ensure auth state updates
+    try {
+      console.log("Signing out after account deletion...");
+      await signOut(authService);
+    } catch (signOutError) {
+      console.log("Sign out error after deletion (this is expected):", signOutError);
+    }
   } catch (error) {
     console.error("Error deleting user account:", error);
     throw error;
@@ -355,12 +375,12 @@ export const subscribeToAuthChanges = (
         "Verified:",
         firebaseUser.emailVerified
       );
-      
+
       // Check cache first to avoid excessive Firestore reads
       const cached = userCache[firebaseUser.uid];
       const now = Date.now();
-      
-      if (cached && (now - cached.timestamp < CACHE_DURATION)) {
+
+      if (cached && now - cached.timestamp < CACHE_DURATION) {
         console.log("Using cached user data");
         // Update the cached user with latest auth info (like emailVerified)
         const updatedUser = {
