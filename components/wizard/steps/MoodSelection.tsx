@@ -67,7 +67,7 @@ const MOOD_OPTIONS: MoodOption[] = [
     icon: "book.fill",
   },
   {
-    id: "adsurd",
+    id: "absurd",
     title: "Absurd",
     description: "Bizarre and nonsensical fun",
     icon: "gamecontroller.fill",

@@ -55,6 +55,8 @@ const MAPPING = {
   // People & Characters
   "person.fill": "person",
   "person.crop.circle.badge.plus": "person-add",
+  "person.2.circle": "groups",
+  "figure.child.circle": "child-care",
   "face.smiling.fill": "sentiment-satisfied",
 
   // Objects & Symbols
