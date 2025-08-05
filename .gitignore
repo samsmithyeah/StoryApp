@@ -70,6 +70,7 @@ app-example
 
 # Claude
 CLAUDE.md
+.claude/
 
 # Testing
 coverage/

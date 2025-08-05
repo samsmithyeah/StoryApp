@@ -12,7 +12,10 @@ import auth, {
 } from "@react-native-firebase/auth";
 import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
-import { GoogleSignin, SignInResponse } from "@react-native-google-signin/google-signin";
+import {
+  GoogleSignin,
+  SignInResponse,
+} from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Alert, Platform } from "react-native";
 import {
@@ -21,7 +24,6 @@ import {
   User,
 } from "../../types/auth.types";
 import { authService, db, functionsService } from "./config";
-
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -163,10 +165,10 @@ export const signInWithGoogle = async (): Promise<User> => {
     console.log("Google Sign-In result:", result);
 
     // Check if sign-in was successful and extract idToken
-    if (result.type !== 'success') {
+    if (result.type !== "success") {
       throw new Error("Google Sign-In was cancelled or failed");
     }
-    
+
     const idToken = result.data.idToken;
     if (!idToken) {
       throw new Error("No ID token received from Google Sign-In");
