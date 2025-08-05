@@ -28,9 +28,14 @@ export default function RootLayout() {
       : {}
   );
 
-  if ((Platform.OS === "ios" && !loaded) || loading) {
-    // Show loading screen for iOS font loading or auth loading
+  if (Platform.OS === "ios" && !loaded) {
+    // Show loading screen for iOS font loading
     return <LoadingScreen message="Starting DreamWeaver..." />;
+  }
+
+  if (loading) {
+    // Show loading screen only for initial auth state check
+    return <LoadingScreen message="Setting up DreamWeaver..." />;
   }
 
   return (
@@ -45,7 +50,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(auth)" options={{ animation: "none" }} />
           <Stack.Screen name="wizard" />
           <Stack.Screen name="+not-found" />
           <Stack.Screen

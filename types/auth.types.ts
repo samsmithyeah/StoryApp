@@ -1,5 +1,3 @@
-import { User as FirebaseUser } from "firebase/auth";
-
 export interface User {
   uid: string;
   email: string | null;
@@ -7,6 +5,7 @@ export interface User {
   photoURL: string | null;
   createdAt: Date;
   isAdmin?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthState {

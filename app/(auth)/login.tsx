@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import { Redirect } from "expo-router";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Dimensions,
@@ -10,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
@@ -23,19 +25,38 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { useAuthStore } from "../../store/authStore";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
+  const { googleSignIn, appleSignIn, authLoading, error, user, emailSignUp } =
+    useAuth();
+
+  // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
     "signin"
   );
+  const [debugTapCount, setDebugTapCount] = useState(0);
 
-  const { googleSignIn, appleSignIn, loading } = useAuth();
+  // Clear error when component mounts or when switching auth methods
+  useEffect(() => {
+    const { setError } = useAuthStore.getState();
+    setError(null);
+  }, []);
+
+  // Redirect to main app if user is already authenticated
+  if (user) {
+    return <Redirect href="/" />;
+  }
 
   const handleGoogleSignIn = async () => {
+    // Clear any existing errors before attempting sign in
+    const { setError } = useAuthStore.getState();
+    setError(null);
+
     try {
       await googleSignIn();
     } catch (error) {
@@ -47,6 +68,10 @@ export default function LoginScreen() {
   };
 
   const handleAppleSignIn = async () => {
+    // Clear any existing errors before attempting sign in
+    const { setError } = useAuthStore.getState();
+    setError(null);
+
     try {
       await appleSignIn();
     } catch (error) {
@@ -59,10 +84,44 @@ export default function LoginScreen() {
 
   const handleEmailToggle = () => {
     setShowEmailForm(!showEmailForm);
+    // Clear error when toggling away from email form
+    if (showEmailForm && error) {
+      const { setError } = useAuthStore.getState();
+      setError(null);
+    }
   };
 
   const handleEmailModeToggle = () => {
     setEmailAuthMode(emailAuthMode === "signin" ? "signup" : "signin");
+  };
+
+  // Debug feature: tap 5 times on the footer to create a test user
+  const handleDebugTap = async () => {
+    // Only allow in development mode
+    if (__DEV__) {
+      setDebugTapCount((prev) => prev + 1);
+
+      if (debugTapCount >= 4) {
+        setDebugTapCount(0);
+        const testEmail = `test${Date.now()}@test.dreamweaver`;
+        const testPassword = "test123456";
+
+        try {
+          await emailSignUp({
+            email: testEmail,
+            password: testPassword,
+            displayName: "Test User",
+          });
+          Alert.alert(
+            "Test User Created",
+            `Email: ${testEmail}\nPassword: ${testPassword}\n\nThis account bypasses email verification.`,
+            [{ text: "OK" }]
+          );
+        } catch (err) {
+          Alert.alert("Error", "Failed to create test user");
+        }
+      }
+    }
   };
 
   return (
@@ -100,12 +159,12 @@ export default function LoginScreen() {
                   <View style={styles.socialButtons}>
                     <GoogleSignInButton
                       onPress={handleGoogleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
 
                     <AppleSignInButton
                       onPress={handleAppleSignIn}
-                      loading={loading}
+                      loading={authLoading}
                     />
                   </View>
 
@@ -143,12 +202,12 @@ export default function LoginScreen() {
               )}
             </View>
 
-            <View style={styles.footer}>
+            <TouchableOpacity style={styles.footer} onPress={handleDebugTap}>
               <Text style={styles.footerText}>
                 By continuing, you agree to our Terms of Service and Privacy
                 Policy
               </Text>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -209,7 +268,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
     padding: isTablet ? Spacing.xxxl : Spacing.xxl,
-    ...Shadows.glow,
   },
   welcomeText: {
     fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
@@ -247,6 +305,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     alignItems: "center",
     backgroundColor: "rgba(212, 175, 55, 0.1)",
+    ...Shadows.glow,
   },
   emailButtonText: {
     fontSize: Typography.fontSize.button,

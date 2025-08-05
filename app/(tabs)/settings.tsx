@@ -40,7 +40,7 @@ const isTablet = width >= 768;
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const insets = useSafeAreaInsets();
   const {
     children,
@@ -62,6 +62,7 @@ export default function SettingsScreen() {
 
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showWelcomeWizard, setShowWelcomeWizard] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
@@ -110,6 +111,48 @@ export default function SettingsScreen() {
         onPress: signOut,
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    if (isDeleting) return; // Prevent multiple attempts
+
+    Alert.alert(
+      "Delete account",
+      "This will permanently delete your account and all associated data including children profiles, saved characters, and stories. This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              console.log("Starting account deletion...");
+              console.log("Current user before deletion:", user?.uid);
+
+              await deleteAccount();
+
+              console.log("Delete account completed, current user:", user?.uid);
+              Alert.alert(
+                "Account deleted",
+                "Your account has been successfully deleted."
+              );
+              // The auth state listener in (tabs)/_layout.tsx will handle navigation
+            } catch (error) {
+              console.error("Delete account error:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete account. Please try again or contact support if the problem persists."
+              );
+              setIsDeleting(false); // Only reset loading state on error
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleShowWelcomeWizard = () => {
@@ -642,6 +685,19 @@ export default function SettingsScreen() {
               variant="danger"
               style={styles.signOutButton}
             />
+
+            <Button
+              title={isDeleting ? "Deleting account..." : "Delete my account"}
+              onPress={handleDeleteAccount}
+              variant="danger"
+              style={StyleSheet.flatten([
+                styles.deleteAccountButton,
+                isDeleting && styles.disabledButton,
+              ])}
+              textStyle={styles.deleteAccountButtonText}
+              loading={isDeleting}
+              disabled={isDeleting}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -842,6 +898,18 @@ const styles = StyleSheet.create({
   signOutButton: {
     borderColor: Colors.error,
     backgroundColor: "rgba(239, 68, 68, 0.1)",
+    marginBottom: Spacing.lg,
+  },
+  deleteAccountButton: {
+    borderColor: "#DC2626",
+    backgroundColor: "#DC2626",
+    borderWidth: 0,
+  },
+  deleteAccountButtonText: {
+    color: Colors.text,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   star: {
     position: "absolute",

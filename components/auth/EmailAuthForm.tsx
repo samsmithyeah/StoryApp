@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import {
   BorderRadius,
   Colors,
@@ -7,6 +7,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { useAuthStore } from "../../store/authStore";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
@@ -27,56 +28,84 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   const [displayName, setDisplayName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { emailSignIn, emailSignUp, loading, error } = useAuth();
+  // Validation error states
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [displayNameError, setDisplayNameError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  const { emailSignIn, emailSignUp, authLoading, error } = useAuth();
+
+  // Clear errors when switching modes
+  React.useEffect(() => {
+    setEmailError("");
+    setPasswordError("");
+    setDisplayNameError("");
+    setConfirmPasswordError("");
+    // Clear form data when switching modes
+    setEmail("");
+    setPassword("");
+    setDisplayName("");
+    setConfirmPassword("");
+  }, [mode]);
+
+  // Clear global error when component mounts to avoid showing social sign-in errors
+  React.useEffect(() => {
+    const { setError } = useAuthStore.getState();
+    setError(null);
+  }, []);
 
   const validateForm = () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address");
-      return false;
-    }
+    let isValid = true;
 
-    if (!email.includes("@")) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return false;
+    // Clear all errors first
+    setEmailError("");
+    setPasswordError("");
+    setDisplayNameError("");
+    setConfirmPasswordError("");
+
+    if (!email.trim()) {
+      setEmailError("Please enter your email address");
+      isValid = false;
+    } else if (!email.includes("@")) {
+      setEmailError("Please enter a valid email address");
+      isValid = false;
     }
 
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
-      return false;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long");
-      return false;
+      setPasswordError("Please enter your password");
+      isValid = false;
+    } else if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      isValid = false;
     }
 
     if (mode === "signup") {
       if (!displayName.trim()) {
-        Alert.alert("Error", "Please enter your name");
-        return false;
+        setDisplayNameError("Please enter your name");
+        isValid = false;
       }
 
-      if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
-        return false;
+      if (!confirmPassword.trim()) {
+        setConfirmPasswordError("Please confirm your password");
+        isValid = false;
+      } else if (password !== confirmPassword) {
+        setConfirmPasswordError("Passwords do not match");
+        isValid = false;
       }
     }
 
-    return true;
+    return isValid;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    try {
-      if (mode === "signin") {
-        await emailSignIn({ email, password });
-      } else {
-        await emailSignUp({ email, password, displayName });
-      }
-    } catch (err) {
-      // Error is already handled in useAuth hook
-      console.error("Auth error:", err);
+    if (mode === "signin") {
+      await emailSignIn({ email, password });
+    } else {
+      await emailSignUp({ email, password, displayName });
+      // Success message will be handled by the redirect to verify-email screen
     }
   };
 
@@ -96,9 +125,13 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
             label="Full Name"
             placeholder="Enter your full name"
             value={displayName}
-            onChangeText={setDisplayName}
+            onChangeText={(text) => {
+              setDisplayName(text);
+              if (displayNameError) setDisplayNameError("");
+            }}
             leftIcon="person.fill"
             autoCapitalize="words"
+            error={displayNameError}
           />
         )}
 
@@ -106,10 +139,14 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           label="Email"
           placeholder="Enter your email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            if (emailError) setEmailError("");
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
           leftIcon="envelope.fill"
+          error={emailError}
         />
 
         <Input
@@ -118,9 +155,13 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
             mode === "signin" ? "Enter your password" : "Create a password"
           }
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            if (passwordError) setPasswordError("");
+          }}
           secureTextEntry
           leftIcon="lock.fill"
+          error={passwordError}
         />
 
         {mode === "signup" && (
@@ -128,16 +169,20 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
             label="Confirm Password"
             placeholder="Confirm your password"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (confirmPasswordError) setConfirmPasswordError("");
+            }}
             secureTextEntry
             leftIcon="lock.fill"
+            error={confirmPasswordError}
           />
         )}
 
         <Button
           title={mode === "signin" ? "Sign in" : "Create account"}
           onPress={handleSubmit}
-          loading={loading}
+          loading={authLoading}
           style={styles.submitButton}
         />
 
@@ -190,6 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium,
     borderWidth: 1,
     borderColor: "rgba(239, 68, 68, 0.3)",
+    overflow: "hidden",
   },
   form: {
     width: "100%",

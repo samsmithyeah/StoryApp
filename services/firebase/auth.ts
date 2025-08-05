@@ -3,21 +3,27 @@ import auth, {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reload,
+  sendEmailVerification,
   signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
 import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { httpsCallable } from "@react-native-firebase/functions";
+import {
+  GoogleSignin,
+  SignInResponse,
+} from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import {
   LoginCredentials,
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
-import { authService, db } from "./config";
+import { authService, db, functionsService } from "./config";
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -35,6 +41,7 @@ const convertFirebaseUser = async (
       photoURL: firebaseUser.photoURL,
       createdAt: userData?.createdAt?.toDate() || new Date(),
       isAdmin: userData?.isAdmin || false,
+      emailVerified: firebaseUser.emailVerified,
     };
   } catch (error) {
     console.log(
@@ -49,6 +56,7 @@ const convertFirebaseUser = async (
       photoURL: firebaseUser.photoURL,
       createdAt: new Date(),
       isAdmin: false,
+      emailVerified: firebaseUser.emailVerified,
     };
   }
 };
@@ -106,6 +114,26 @@ export const signUpWithEmail = async ({
     await updateProfile(userCredential.user, { displayName });
   }
 
+  // Check if this is a test account (for development only)
+  const isTestAccount = __DEV__ && email.endsWith("@test.dreamweaver");
+
+  if (!isTestAccount) {
+    // Send email verification for real accounts
+    try {
+      await sendEmailVerification(userCredential.user);
+      console.log("Email verification sent successfully");
+    } catch (verificationError) {
+      console.error("Failed to send email verification:", verificationError);
+      Alert.alert(
+        "Verification error",
+        "We encountered an issue while sending the verification email. Please try sending it again.",
+        [{ text: "OK" }]
+      );
+    }
+  } else {
+    console.log("Test account detected - skipping email verification");
+  }
+
   await createUserDocument(userCredential.user);
   return convertFirebaseUser(userCredential.user);
 };
@@ -133,11 +161,15 @@ export const signInWithGoogle = async (): Promise<User> => {
 
     // Get the users ID token
     console.log("Attempting to sign in with Google...");
-    const result = await GoogleSignin.signIn();
+    const result: SignInResponse = await GoogleSignin.signIn();
     console.log("Google Sign-In result:", result);
 
-    // Extract idToken from the result data
-    const idToken = (result as any).data?.idToken || (result as any).idToken;
+    // Check if sign-in was successful and extract idToken
+    if (result.type !== "success") {
+      throw new Error("Google Sign-In was cancelled or failed");
+    }
+
+    const idToken = result.data.idToken;
     if (!idToken) {
       throw new Error("No ID token received from Google Sign-In");
     }
@@ -250,11 +282,73 @@ export const signInWithApple = async (): Promise<User> => {
   }
 };
 
+// Email Verification
+export const resendVerificationEmail = async (): Promise<void> => {
+  const currentUser = authService.currentUser;
+
+  if (currentUser && !currentUser.emailVerified) {
+    await sendEmailVerification(currentUser);
+    console.log("Resend email verification sent successfully");
+  } else if (!currentUser) {
+    throw new Error("No user is currently signed in");
+  } else {
+    throw new Error("Email is already verified");
+  }
+};
+
+export const checkEmailVerified = async (): Promise<boolean> => {
+  const currentUser = authService.currentUser;
+  if (currentUser) {
+    // Reload user to get latest email verification status
+    await reload(currentUser);
+    return currentUser.emailVerified;
+  }
+  return false;
+};
+
 // Sign Out
 export const signOutUser = async (): Promise<void> => {
   await GoogleSignin.signOut();
   await signOut(authService);
 };
+
+// Delete Account
+export const deleteAccount = async (): Promise<void> => {
+  const currentUser = authService.currentUser;
+  if (!currentUser) {
+    throw new Error("No user is currently signed in");
+  }
+
+  try {
+    const deleteUserDataFunction = httpsCallable(
+      functionsService,
+      "deleteUserData"
+    );
+
+    console.log("About to call function...");
+    const result = await deleteUserDataFunction({});
+
+    console.log("Cloud function completed:", result.data);
+
+    // Explicitly sign out to ensure auth state updates
+    try {
+      console.log("Signing out after account deletion...");
+      await signOut(authService);
+    } catch (signOutError) {
+      console.log(
+        "Sign out error after deletion (this is expected):",
+        signOutError
+      );
+    }
+  } catch (error) {
+    console.error("Error deleting user account:", error);
+    throw error;
+  }
+};
+
+// Cache to prevent excessive Firestore reads during auth state changes
+let userCache: { [uid: string]: { user: User; timestamp: number } } = {};
+const CACHE_DURATION = 30000; // 30 seconds
 
 // Auth State Observer
 export const subscribeToAuthChanges = (
@@ -266,12 +360,37 @@ export const subscribeToAuthChanges = (
       firebaseUser ? "User logged in" : "User logged out"
     );
     if (firebaseUser) {
-      console.log("Firebase user:", firebaseUser.uid, firebaseUser.email);
-      const user = await convertFirebaseUser(firebaseUser);
-      console.log("Converted user:", user);
-      callback(user);
+      console.log(
+        "Firebase user:",
+        firebaseUser.uid,
+        "Verified:",
+        firebaseUser.emailVerified
+      );
+
+      // Check cache first to avoid excessive Firestore reads
+      const cached = userCache[firebaseUser.uid];
+      const now = Date.now();
+
+      if (cached && now - cached.timestamp < CACHE_DURATION) {
+        console.log("Using cached user data");
+        // Update the cached user with latest auth info (like emailVerified)
+        const updatedUser = {
+          ...cached.user,
+          emailVerified: firebaseUser.emailVerified,
+        };
+        callback(updatedUser);
+      } else {
+        console.log("Converting Firebase user (cache miss or expired)");
+        const user = await convertFirebaseUser(firebaseUser);
+        // Cache the user data
+        userCache[firebaseUser.uid] = { user, timestamp: now };
+        console.log("Converted user:", user);
+        callback(user);
+      }
     } else {
       console.log("No user - showing login screen");
+      // Clear cache on logout
+      userCache = {};
       callback(null);
     }
   });

@@ -36,7 +36,7 @@ export default function StoryScreen() {
     }
 
     let unsubscribe: (() => void) | null = null;
-    let refreshInterval: number | null = null;
+    let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
     const loadStory = async () => {
       try {
