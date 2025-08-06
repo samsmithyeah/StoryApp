@@ -22,6 +22,7 @@ import { ChildProfileCard } from "../../components/settings/ChildProfileCard";
 import { SavedCharacterCard } from "../../components/settings/SavedCharacterCard";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
+import { SettingsLinkItem } from "../../components/ui/SettingsLinkItem";
 import {
   Colors,
   CommonStyles,
@@ -652,7 +653,38 @@ export default function SettingsScreen() {
           )}
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Support & Legal</Text>
+            <Text style={styles.sectionDescription}>
+              Access help resources and legal information
+            </Text>
+
+            <SettingsLinkItem
+              title="Privacy policy"
+              description="How we handle your data"
+              icon="shield"
+              onPress={() => router.push("/privacy-policy")}
+            />
+
+            <SettingsLinkItem
+              title="Terms of service"
+              description="Terms and conditions"
+              icon="doc.text"
+              onPress={() => router.push("/terms-of-service")}
+            />
+
+            <SettingsLinkItem
+              title="Help & support"
+              description="Get help or contact us"
+              icon="questionmark.circle"
+              onPress={() => router.push("/help")}
+            />
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
+            <Text style={styles.sectionDescription}>
+              Manage your account and sign out options
+            </Text>
 
             <View style={styles.accountInfo}>
               <View style={styles.userAvatar}>

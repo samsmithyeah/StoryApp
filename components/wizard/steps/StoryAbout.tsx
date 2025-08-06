@@ -1,6 +1,8 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { ContentLimits } from "@/constants/ContentLimits";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
@@ -27,6 +29,17 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const [text, setText] = useState(storyAbout);
 
   const handleNext = () => {
+    if (mode === "custom" && text.trim()) {
+      const filterResult = filterContent(text);
+      if (!filterResult.isAppropriate) {
+        Alert.alert(
+          "Content not appropriate",
+          getFilterErrorMessage(filterResult.reason),
+          [{ text: "OK" }]
+        );
+        return;
+      }
+    }
     onUpdate({ storyAbout: mode === "surprise" ? "" : text });
     onNext();
   };
@@ -90,6 +103,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 numberOfLines={6}
                 textAlignVertical="top"
                 returnKeyType="done"
+                maxLength={ContentLimits.STORY_ABOUT_MAX_LENGTH}
               />
             </View>
           )}

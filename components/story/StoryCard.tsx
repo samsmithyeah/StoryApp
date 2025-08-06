@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Colors, Shadows } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
+import { StoryCardMenu } from "./StoryCardMenu";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
@@ -34,6 +35,9 @@ interface StoryCardProps {
 
 export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
   const [imageError, setImageError] = React.useState(false);
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [isReporting, setIsReporting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const storagePath = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
   const imageUrl = useStorageUrl(storagePath);
 
@@ -46,26 +50,46 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
 
   const pageCount = story.storyContent?.length ?? 0;
 
+  const handleMenuPress = () => {
+    setMenuVisible(true);
+  };
+
+
   /* ---------- render ---------- */
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPress}
-      style={[styles.card, { width: CARD_W, height: CARD_H }]}
-    >
-      {/* cover (or placeholder) */}
-      {!imageError && imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          onError={() => setImageError(true)}
+    <View style={[styles.card, { width: CARD_W, height: CARD_H }]}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onPress}
+        style={StyleSheet.absoluteFill}
+      >
+        {/* cover (or placeholder) */}
+        {!imageError && imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={styles.placeholder}>
+            <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* menu button -------------------------------------------------- */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={handleMenuPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <IconSymbol
+          name="ellipsis"
+          size={20}
+          color="rgba(255, 255, 255, 0.7)"
         />
-      ) : (
-        <View style={styles.placeholder}>
-          <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
-        </View>
-      )}
+      </TouchableOpacity>
 
       {/* status badge -------------------------------------------------- */}
       {story.imageGenerationStatus &&
@@ -98,10 +122,11 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
       <LinearGradient
         colors={["transparent", "rgba(15,17,41,0.96)"]}
         style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
 
       {/* meta block ---------------------------------------------------- */}
-      <View style={styles.meta}>
+      <View style={styles.meta} pointerEvents="none">
         <Text numberOfLines={4} style={styles.title}>
           {story.title}
         </Text>
@@ -109,7 +134,17 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
           {formatDate(story.createdAt)} – {pageCount} pages
         </Text>
       </View>
-    </TouchableOpacity>
+
+      <StoryCardMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        story={story}
+        isReporting={isReporting}
+        setIsReporting={setIsReporting}
+        isDeleting={isDeleting}
+        setIsDeleting={setIsDeleting}
+      />
+    </View>
   );
 };
 
@@ -133,11 +168,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  /* menu button */
+  menuButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   /* status badge */
   imageStatusBadge: {
     position: "absolute",
     top: 8,
-    right: 8,
+    left: 8,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(26,27,58,0.85)",

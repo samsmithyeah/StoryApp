@@ -167,6 +167,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     if (pageIdx !== currentPage) setCurrentPage(pageIdx);
   };
 
+
   const renderPage = (page: any, index: number) => {
     const pageText = page.text || "";
     const imageUrl = imageUrls[index];

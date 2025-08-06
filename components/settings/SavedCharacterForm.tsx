@@ -17,7 +17,12 @@ import {
   View,
 } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { ContentLimits } from "../../constants/ContentLimits";
 import { SavedCharacter } from "../../types/savedCharacter.types";
+import {
+  filterContent,
+  getFilterErrorMessage,
+} from "../../utils/contentFilter";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
@@ -69,6 +74,8 @@ export const SavedCharacterForm = forwardRef<
     useState(defaultSaveToggle);
   const [errors, setErrors] = useState<{
     name?: string;
+    description?: string;
+    appearance?: string;
   }>({});
 
   const isEditing = !!character;
@@ -120,6 +127,28 @@ export const SavedCharacterForm = forwardRef<
 
     if (!name.trim()) {
       newErrors.name = "Please enter the character's name";
+    } else {
+      // Check for inappropriate content in name
+      const nameFilter = filterContent(name, true);
+      if (!nameFilter.isAppropriate) {
+        newErrors.name = "Please use an appropriate name";
+      }
+    }
+
+    // Check description for inappropriate content
+    if (description.trim()) {
+      const descriptionFilter = filterContent(description);
+      if (!descriptionFilter.isAppropriate) {
+        newErrors.description = getFilterErrorMessage(descriptionFilter.reason);
+      }
+    }
+
+    // Check appearance for inappropriate content
+    if (appearance.trim()) {
+      const appearanceFilter = filterContent(appearance);
+      if (!appearanceFilter.isAppropriate) {
+        newErrors.appearance = getFilterErrorMessage(appearanceFilter.reason);
+      }
     }
 
     setErrors(newErrors);
@@ -155,6 +184,20 @@ export const SavedCharacterForm = forwardRef<
     }
   };
 
+  const handleDescriptionChange = (text: string) => {
+    setDescription(text);
+    if (errors.description) {
+      setErrors((prev) => ({ ...prev, description: undefined }));
+    }
+  };
+
+  const handleAppearanceChange = (text: string) => {
+    setAppearance(text);
+    if (errors.appearance) {
+      setErrors((prev) => ({ ...prev, appearance: undefined }));
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -186,6 +229,7 @@ export const SavedCharacterForm = forwardRef<
               leftIcon="person.fill"
               autoCapitalize="words"
               error={errors.name}
+              maxLength={ContentLimits.CHARACTER_NAME_MAX_LENGTH}
             />
           </View>
 
@@ -194,12 +238,14 @@ export const SavedCharacterForm = forwardRef<
               label="Description"
               placeholder="Brief description of the character"
               value={description}
-              onChangeText={setDescription}
+              onChangeText={handleDescriptionChange}
               leftIcon="text.bubble.fill"
               multiline
               numberOfLines={3}
               style={styles.textAreaInput}
               optional
+              error={errors.description}
+              maxLength={ContentLimits.CHARACTER_DESCRIPTION_MAX_LENGTH}
             />
           </View>
 
@@ -208,12 +254,14 @@ export const SavedCharacterForm = forwardRef<
               label="Appearance"
               placeholder="Physical description (e.g., red hair, green eyes, tall)"
               value={appearance}
-              onChangeText={setAppearance}
+              onChangeText={handleAppearanceChange}
               leftIcon="sparkles"
               multiline
               numberOfLines={3}
               style={styles.textAreaInput}
               optional
+              error={errors.appearance}
+              maxLength={ContentLimits.CHARACTER_DESCRIPTION_MAX_LENGTH}
             />
           </View>
 

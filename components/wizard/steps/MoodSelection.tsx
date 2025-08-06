@@ -1,6 +1,14 @@
 import { Colors } from "@/constants/Theme";
 import React, { useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { CustomMoodSection } from "../shared/CustomMoodSection";
 import { MoodCard } from "../shared/MoodCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -121,6 +129,21 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   const isNextDisabled =
     !selectedMood || (isCustomMoodSelected && !customMood.trim());
 
+  const handleNext = () => {
+    if (isCustomMoodSelected && customMood.trim()) {
+      const filterResult = filterContent(customMood);
+      if (!filterResult.isAppropriate) {
+        Alert.alert(
+          "Content not appropriate",
+          getFilterErrorMessage(filterResult.reason),
+          [{ text: "OK" }]
+        );
+        return;
+      }
+    }
+    onNext();
+  };
+
   return (
     <WizardContainer>
       <WizardStepHeader
@@ -160,7 +183,7 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
           </View>
         </View>
       </ScrollView>
-      <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
+      <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
     </WizardContainer>
   );
 };

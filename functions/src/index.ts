@@ -13,3 +13,5 @@ export { generateThemeSuggestions } from "./generateThemeSuggestions";
 export { getStories } from "./getStories";
 export { getStory } from "./getStory";
 export { deleteUserData } from "./deleteUserData";
+export { deleteStory } from "./deleteStory";
+export { reportStory } from "./reportStory";
