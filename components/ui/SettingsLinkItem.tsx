@@ -25,11 +25,7 @@ export const SettingsLinkItem: React.FC<SettingsLinkItemProps> = ({
           <Text style={styles.linkDescription}>{description}</Text>
         </View>
       </View>
-      <IconSymbol
-        name="chevron.right"
-        size={20}
-        color={Colors.textSecondary}
-      />
+      <IconSymbol name="chevron.right" size={20} color={Colors.textSecondary} />
     </TouchableOpacity>
   );
 };

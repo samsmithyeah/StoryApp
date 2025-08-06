@@ -39,7 +39,7 @@ const MAPPING = {
   flag: "flag",
   "square.and.arrow.up": "share",
   "arrow.up.forward": "open-in-new",
-  "shield": "security",
+  shield: "security",
   "doc.text": "description",
   "questionmark.circle": "help",
 

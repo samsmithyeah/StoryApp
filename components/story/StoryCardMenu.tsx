@@ -8,10 +8,9 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { Colors, Shadows } from "../../constants/Theme";
-import { IconSymbol } from "../ui/IconSymbol";
+import { deleteStory, reportStory } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
-import { reportStory, deleteStory } from "../../services/firebase/stories";
+import { IconSymbol } from "../ui/IconSymbol";
 
 interface StoryCardMenuProps {
   visible: boolean;
@@ -34,7 +33,7 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
 }) => {
   const handleReportStory = async () => {
     onClose();
-    
+
     Alert.alert(
       "Report story",
       "Are you sure you want to report this story for inappropriate content?",
@@ -72,7 +71,7 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
 
   const handleDeleteStory = async () => {
     onClose();
-    
+
     Alert.alert(
       "Delete story",
       "Are you sure you want to permanently delete this story? This action cannot be undone.",
@@ -129,7 +128,7 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
               </TouchableOpacity>
 
               <View style={styles.menuDivider} />
-              
+
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={handleDeleteStory}
@@ -160,7 +159,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.3)",
     padding: 8,
     minWidth: 200,
-    ...Shadows.glowMedium,
   },
   menuItem: {
     flexDirection: "row",

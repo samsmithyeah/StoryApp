@@ -29,7 +29,6 @@ export default function HelpScreen() {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
   };
 
-
   return (
     <ImageBackground
       source={require("../assets/images/background-landscape.png")}
@@ -90,7 +89,6 @@ export default function HelpScreen() {
               />
             </TouchableOpacity>
           </View>
-
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Report an issue</Text>

@@ -54,7 +54,6 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
     setMenuVisible(true);
   };
 
-
   /* ---------- render ---------- */
   return (
     <View style={[styles.card, { width: CARD_W, height: CARD_H }]}>

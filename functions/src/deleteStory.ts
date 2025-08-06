@@ -38,16 +38,15 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
     }
 
     if (!data?.storyId) {
-      throw new https.HttpsError(
-        "invalid-argument",
-        "Story ID is required."
-      );
+      throw new https.HttpsError("invalid-argument", "Story ID is required.");
     }
 
     const userId = auth.uid;
     const { storyId } = data;
-    
-    console.log(`Starting story deletion for story: ${storyId}, user: ${userId}`);
+
+    console.log(
+      `Starting story deletion for story: ${storyId}, user: ${userId}`
+    );
 
     try {
       // First, get the story document to verify ownership and get image paths
@@ -55,14 +54,11 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
       const storyDoc = await storyDocRef.get();
 
       if (!storyDoc.exists) {
-        throw new https.HttpsError(
-          "not-found",
-          "Story not found."
-        );
+        throw new https.HttpsError("not-found", "Story not found.");
       }
 
       const storyData = storyDoc.data();
-      
+
       // Verify the story belongs to the authenticated user
       if (storyData?.userId !== userId) {
         throw new https.HttpsError(
@@ -106,7 +102,9 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
         // The story document is already deleted from Firestore
       }
 
-      console.log(`Story deletion completed successfully for story: ${storyId}`);
+      console.log(
+        `Story deletion completed successfully for story: ${storyId}`
+      );
 
       return {
         success: true,
@@ -115,12 +113,12 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
       };
     } catch (error) {
       console.error(`Error deleting story ${storyId}:`, error);
-      
+
       // Re-throw HttpsError instances as-is
       if (error instanceof https.HttpsError) {
         throw error;
       }
-      
+
       throw new https.HttpsError("unknown", "Failed to delete story.");
     }
   }
