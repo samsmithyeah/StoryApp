@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Shadows } from "@/constants/Theme";
+import { ContentLimits } from "@/constants/ContentLimits";
 import React from "react";
 import {
   Dimensions,
@@ -84,10 +85,13 @@ export const CustomMoodSection: React.FC<CustomMoodSectionProps> = ({
             onChangeText={onCustomMoodChange}
             returnKeyType="done"
             autoFocus={!customMood}
+            maxLength={ContentLimits.CUSTOM_MOOD_MAX_LENGTH}
           />
-          <Text style={styles.helperText}>
-            Examples: "adventurous", "mysterious", "dreamy"
-          </Text>
+          <View style={styles.helperContainer}>
+            <Text style={styles.helperText}>
+              Examples: "adventurous", "mysterious", "dreamy"
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -182,8 +186,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   helperText: {
-    marginTop: 8,
     fontSize: 14,
+    color: "#9CA3AF",
+    flex: 1,
+  },
+  helperContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  characterCount: {
+    fontSize: 12,
     color: "#9CA3AF",
   },
 });

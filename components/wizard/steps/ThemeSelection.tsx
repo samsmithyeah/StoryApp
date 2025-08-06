@@ -2,7 +2,15 @@
 // import { ThemeSuggestion } from "@/services/firebase/stories";
 import { Colors } from "@/constants/Theme";
 import React, { useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -176,6 +184,21 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   const isNextDisabled =
     !selectedTheme || (isCustomThemeSelected && !customTheme.trim());
 
+  const handleNext = () => {
+    if (isCustomThemeSelected && customTheme.trim()) {
+      const filterResult = filterContent(customTheme);
+      if (!filterResult.isAppropriate) {
+        Alert.alert(
+          "Content not appropriate",
+          getFilterErrorMessage(filterResult.reason),
+          [{ text: "OK" }]
+        );
+        return;
+      }
+    }
+    onNext();
+  };
+
   return (
     <WizardContainer>
       <WizardStepHeader
@@ -227,7 +250,7 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
           </View>
         </View>
       </ScrollView>
-      <WizardFooter onNext={onNext} nextDisabled={isNextDisabled} />
+      <WizardFooter onNext={handleNext} nextDisabled={isNextDisabled} />
     </WizardContainer>
   );
 };

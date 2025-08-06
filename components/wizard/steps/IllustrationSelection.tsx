@@ -1,6 +1,8 @@
 import { Colors } from "@/constants/Theme";
+import { ContentLimits } from "@/constants/ContentLimits";
 import React, { useState } from "react";
 import {
+  Alert,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -10,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
@@ -222,6 +225,22 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     }
   };
 
+  const handleNext = () => {
+    // Validate custom illustration style if it's selected
+    if (isCustomStyleSelected && customStyle.trim()) {
+      const filterResult = filterContent(customStyle);
+      if (!filterResult.isAppropriate) {
+        Alert.alert(
+          "Content not appropriate",
+          getFilterErrorMessage(filterResult.reason),
+          [{ text: "OK" }]
+        );
+        return;
+      }
+    }
+    onNext();
+  };
+
   return (
     <WizardContainer>
       <WizardStepHeader
@@ -325,6 +344,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                     returnKeyType="done"
                     autoFocus={!customStyle}
                     multiline
+                    maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
                   />
                 </View>
               )}
@@ -333,7 +353,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         </View>
       </ScrollView>
 
-      <WizardFooter onNext={onNext} nextText="Create story" />
+      <WizardFooter onNext={handleNext} nextText="Create story" />
     </WizardContainer>
   );
 };

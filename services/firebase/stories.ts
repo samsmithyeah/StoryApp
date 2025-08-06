@@ -100,3 +100,42 @@ export const getStory = async (storyId: string): Promise<Story> => {
     throw error;
   }
 };
+
+export const reportStory = async (
+  storyId: string,
+  story: Story
+): Promise<void> => {
+  try {
+    const reportStoryFn = httpsCallable(functionsService, "reportStory");
+    const result = await reportStoryFn({
+      storyId,
+      storyTitle: story.title,
+      storyContent: story.storyContent,
+      storyConfiguration: story.storyConfiguration,
+      reportedAt: new Date().toISOString(),
+    });
+
+    if (!(result.data as any).success) {
+      throw new Error("Failed to report story");
+    }
+  } catch (error) {
+    console.error("Error calling reportStory function:", error);
+    throw error;
+  }
+};
+
+export const deleteStory = async (storyId: string): Promise<void> => {
+  try {
+    const deleteStoryFn = httpsCallable(functionsService, "deleteStory");
+    const result = await deleteStoryFn({
+      storyId,
+    });
+
+    if (!(result.data as any).success) {
+      throw new Error("Failed to delete story");
+    }
+  } catch (error) {
+    console.error("Error calling deleteStory function:", error);
+    throw error;
+  }
+};

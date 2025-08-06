@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Shadows } from "@/constants/Theme";
+import { ContentLimits } from "@/constants/ContentLimits";
 import React from "react";
 import {
   Dimensions,
@@ -84,6 +85,7 @@ export const CustomThemeSection: React.FC<CustomThemeSectionProps> = ({
             onChangeText={onCustomThemeChange}
             returnKeyType="done"
             autoFocus={!customTheme}
+            maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
           />
         </View>
       )}
@@ -177,5 +179,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#FFFFFF",
+  },
+  helperText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "right",
   },
 });

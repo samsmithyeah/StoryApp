@@ -15,8 +15,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { ContentLimits } from "../../constants/ContentLimits";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Child } from "../../types/child.types";
+import {
+  filterContent,
+  getFilterErrorMessage,
+} from "../../utils/contentFilter";
 import { Input } from "../ui/Input";
 import { MonthYearPicker } from "../ui/MonthYearPicker";
 
@@ -29,7 +34,6 @@ interface ChildProfileFormProps {
   onCancel: () => void;
   loading?: boolean;
   title?: string;
-  // onValidityChange?: (isValid: boolean) => void; // removed for diagnostics
   contentBottomPadding?: number;
 }
 
@@ -135,6 +139,12 @@ export const ChildProfileForm = forwardRef<
 
     if (!childName.trim()) {
       newErrors.childName = "Please enter the child's name";
+    } else {
+      // Check for inappropriate content in name
+      const nameFilter = filterContent(childName, true);
+      if (!nameFilter.isAppropriate) {
+        newErrors.childName = "Please use an appropriate name";
+      }
     }
 
     if (dateOfBirth) {
@@ -145,6 +155,16 @@ export const ChildProfileForm = forwardRef<
 
       if (actualAge < 0 || actualAge > 18) {
         newErrors.dateOfBirth = "Child must be between 0 and 18 years old";
+      }
+    }
+
+    // Check preferences for inappropriate content
+    if (childPreferences.trim()) {
+      const preferencesFilter = filterContent(childPreferences);
+      if (!preferencesFilter.isAppropriate) {
+        newErrors.childPreferences = getFilterErrorMessage(
+          preferencesFilter.reason
+        );
       }
     }
 
@@ -216,6 +236,7 @@ export const ChildProfileForm = forwardRef<
               leftIcon="person.fill"
               autoCapitalize="words"
               error={errors.childName}
+              maxLength={ContentLimits.CHILD_NAME_MAX_LENGTH}
             />
           </View>
 
@@ -243,6 +264,9 @@ export const ChildProfileForm = forwardRef<
               style={styles.preferencesInput}
               error={errors.childPreferences}
               optional
+              multiline
+              numberOfLines={3}
+              maxLength={ContentLimits.CHILD_PREFERENCES_MAX_LENGTH}
             />
             <Text style={styles.preferencesHint}>
               This helps us create more personalized and engaging stories that

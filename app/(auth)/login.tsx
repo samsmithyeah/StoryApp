@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   Alert,
@@ -31,6 +31,7 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { googleSignIn, appleSignIn, authLoading, error, user, emailSignUp } =
     useAuth();
 
@@ -202,12 +203,36 @@ export default function LoginScreen() {
               )}
             </View>
 
-            <TouchableOpacity style={styles.footer} onPress={handleDebugTap}>
+            <View style={styles.footer}>
               <Text style={styles.footerText}>
-                By continuing, you agree to our Terms of Service and Privacy
-                Policy
+                By continuing, you agree to our{" "}
               </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/terms-of-service")}
+              >
+                <Text style={[styles.footerText, styles.footerLink]}>
+                  Terms of Service
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.footerText}> and </Text>
+              <TouchableOpacity onPress={() => router.push("/privacy-policy")}>
+                <Text style={[styles.footerText, styles.footerLink]}>
+                  Privacy Policy
+                </Text>
+              </TouchableOpacity>
+
+              {/* Debug tap area - only visible in dev mode */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  style={styles.debugTapArea}
+                  onPress={handleDebugTap}
+                >
+                  <Text style={styles.debugText}>
+                    [DEV] Tap 5x for test user
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -325,12 +350,32 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: isTablet ? Spacing.massive : Spacing.huge,
     alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    maxWidth: isTablet ? 400 : 300,
+    alignSelf: "center",
   },
   footerText: {
     fontSize: Typography.fontSize.tiny,
     color: Colors.textMuted,
     textAlign: "center",
     lineHeight: 16,
-    maxWidth: isTablet ? 400 : 300,
+  },
+  footerLink: {
+    color: Colors.textMuted,
+    textDecorationLine: "underline",
+    fontWeight: Typography.fontWeight.medium,
+  },
+  debugTapArea: {
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    width: "100%",
+    alignItems: "center",
+  },
+  debugText: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.textMuted,
+    opacity: 0.5,
   },
 });

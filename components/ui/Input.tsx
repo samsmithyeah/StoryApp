@@ -34,6 +34,9 @@ interface InputProps {
   multiline?: boolean;
   numberOfLines?: number;
   optional?: boolean;
+  maxLength?: number;
+  helperText?: string;
+  showCharacterCount?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -54,6 +57,9 @@ export const Input: React.FC<InputProps> = ({
   multiline = false,
   numberOfLines = 1,
   optional = false,
+  maxLength,
+  helperText,
+  showCharacterCount = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
@@ -121,6 +127,7 @@ export const Input: React.FC<InputProps> = ({
           placeholderTextColor={Colors.textMuted}
           blurOnSubmit={false}
           selectTextOnFocus={false}
+          maxLength={maxLength}
         />
 
         {secureTextEntry && (
@@ -144,6 +151,16 @@ export const Input: React.FC<InputProps> = ({
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {!error && helperText && (
+        <Text style={styles.helperText}>{helperText}</Text>
+      )}
+
+      {showCharacterCount && maxLength && (
+        <Text style={styles.characterCount}>
+          {value.length}/{maxLength}
+        </Text>
+      )}
     </View>
   );
 };
@@ -216,5 +233,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.tiny,
     color: Colors.error,
     marginTop: Spacing.xs,
+  },
+  helperText: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+  },
+  characterCount: {
+    fontSize: Typography.fontSize.tiny,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+    textAlign: "right",
   },
 });

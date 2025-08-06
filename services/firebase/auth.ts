@@ -23,6 +23,7 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
+import { FCMService } from "../fcm";
 import { authService, db, functionsService } from "./config";
 
 // Convert Firebase User to our User type
@@ -135,6 +136,14 @@ export const signUpWithEmail = async ({
   }
 
   await createUserDocument(userCredential.user);
+
+  // Initialize FCM for push notifications
+  try {
+    await FCMService.initializeFCM();
+  } catch (error) {
+    console.log("FCM initialization failed (non-critical):", error);
+  }
+
   return convertFirebaseUser(userCredential.user);
 };
 
@@ -147,6 +156,14 @@ export const signInWithEmail = async ({
     email,
     password
   );
+
+  // Initialize FCM for push notifications
+  try {
+    await FCMService.initializeFCM();
+  } catch (error) {
+    console.log("FCM initialization failed (non-critical):", error);
+  }
+
   return convertFirebaseUser(userCredential.user);
 };
 
@@ -187,6 +204,14 @@ export const signInWithGoogle = async (): Promise<User> => {
     console.log("Firebase sign-in successful");
 
     await createUserDocument(userCredential.user);
+
+    // Initialize FCM for push notifications
+    try {
+      await FCMService.initializeFCM();
+    } catch (error) {
+      console.log("FCM initialization failed (non-critical):", error);
+    }
+
     return convertFirebaseUser(userCredential.user);
   } catch (error) {
     console.error("Google Sign-In error:", error);
@@ -257,6 +282,14 @@ export const signInWithApple = async (): Promise<User> => {
     }
 
     await createUserDocument(userCredential.user);
+
+    // Initialize FCM for push notifications
+    try {
+      await FCMService.initializeFCM();
+    } catch (error) {
+      console.log("FCM initialization failed (non-critical):", error);
+    }
+
     return convertFirebaseUser(userCredential.user);
   } catch (error: any) {
     console.error("Apple Sign-In error:", error);
@@ -308,6 +341,13 @@ export const checkEmailVerified = async (): Promise<boolean> => {
 
 // Sign Out
 export const signOutUser = async (): Promise<void> => {
+  // Cleanup FCM token before sign out
+  try {
+    await FCMService.cleanup();
+  } catch (error) {
+    console.log("FCM cleanup failed (non-critical):", error);
+  }
+
   await GoogleSignin.signOut();
   await signOut(authService);
 };
