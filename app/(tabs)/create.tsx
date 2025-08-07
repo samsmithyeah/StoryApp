@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Platform,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { Button } from "../../components/ui/Button";
 import { CreditIndicator } from "../../components/ui/CreditIndicator";
+import { InsufficientCreditsModal } from "../../components/ui/InsufficientCreditsModal";
 import {
   Colors,
   CommonStyles,
@@ -28,6 +29,8 @@ export default function CreateScreen() {
   const { children } = useChildren();
   const { balance } = useCredits();
   const insets = useSafeAreaInsets();
+  const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
+    useState(false);
 
   const handleCreateStory = () => {
     if (children.length === 0) {
@@ -47,17 +50,7 @@ export default function CreateScreen() {
 
     // Check if user has enough credits (minimum 1 for a story)
     if (balance < 1) {
-      Alert.alert(
-        "Insufficient credits",
-        "You need at least 1 credit to create a story. Would you like to get more credits?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Get credits",
-            onPress: () => router.push("/credits" as any),
-          },
-        ]
-      );
+      setShowInsufficientCreditsModal(true);
       return;
     }
 
@@ -136,6 +129,15 @@ export default function CreateScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        visible={showInsufficientCreditsModal}
+        onClose={() => setShowInsufficientCreditsModal(false)}
+        currentBalance={balance}
+        message="You need credits to create stories. Each credit creates one page. Would you like to purchase credits or choose from our subscription plans?"
+        showAlternativeAction={false}
+      />
     </BackgroundContainer>
   );
 }

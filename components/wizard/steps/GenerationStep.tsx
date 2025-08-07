@@ -3,6 +3,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,6 +34,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   // Use safe area bottom instead of tab bar height since we're outside tabs
   const tabBarHeight = insets.bottom + Spacing.lg;
@@ -49,6 +51,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     };
   }, [isGenerating]);
 
+  // Check if this is an insufficient credits error
+  const isInsufficientCreditsError =
+    error?.includes("Insufficient credits") ||
+    (error?.includes("need") && error?.includes("credits"));
+
   // Show error state if there's an error
   if (error && !isGenerating) {
     return (
@@ -57,17 +64,52 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           <View style={styles.content}>
             <View style={styles.errorContainer}>
               <IconSymbol
-                name="exclamationmark.triangle"
+                name={
+                  isInsufficientCreditsError
+                    ? "sparkles"
+                    : "exclamationmark.triangle"
+                }
                 size={isTablet ? 80 : 64}
-                color={Colors.error}
+                color={
+                  isInsufficientCreditsError ? Colors.primary : Colors.error
+                }
               />
-              <Text style={styles.errorTitle}>Story Generation Failed</Text>
-              <Text style={styles.errorMessage}>{error}</Text>
+              <Text style={styles.errorTitle}>
+                {isInsufficientCreditsError
+                  ? "More credits needed"
+                  : "Story generation failed"}
+              </Text>
+              <Text style={styles.errorMessage}>
+                {isInsufficientCreditsError
+                  ? "You need more credits to create this story. Purchase credits to continue your magical storytelling journey."
+                  : error}
+              </Text>
+
+              {isInsufficientCreditsError && (
+                <View style={styles.creditActions}>
+                  <Button
+                    title="Buy credits"
+                    onPress={() => router.push("/credits-modal")}
+                    variant="primary"
+                    size="large"
+                    style={styles.buyCreditsButton}
+                  />
+                  <Text style={styles.orText}>or</Text>
+                  {onStartOver && (
+                    <Button
+                      title="Choose fewer pages"
+                      onPress={onStartOver}
+                      variant="outline"
+                      size="large"
+                    />
+                  )}
+                </View>
+              )}
             </View>
           </View>
 
           <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
-            {onStartOver && (
+            {!isInsufficientCreditsError && onStartOver && (
               <Button
                 title="Try a different story"
                 onPress={onStartOver}
@@ -206,5 +248,19 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
+  },
+  creditActions: {
+    marginTop: Spacing.xl,
+    alignItems: "center",
+    width: "100%",
+    gap: Spacing.md,
+  },
+  buyCreditsButton: {
+    minWidth: 200,
+  },
+  orText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
   },
 });

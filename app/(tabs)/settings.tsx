@@ -23,7 +23,6 @@ import { SavedCharacterCard } from "../../components/settings/SavedCharacterCard
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import { SettingsLinkItem } from "../../components/ui/SettingsLinkItem";
-import { CreditIndicator } from "../../components/ui/CreditIndicator";
 import {
   Colors,
   CommonStyles,
@@ -658,14 +657,6 @@ export default function SettingsScreen() {
             <Text style={styles.sectionDescription}>
               Access help resources and legal information
             </Text>
-
-            <SettingsLinkItem
-              title="Credits & subscriptions"
-              description="Manage your credits and purchases"
-              icon="sparkles"
-              onPress={() => router.push("/credits" as any)}
-              rightContent={<CreditIndicator compact />}
-            />
 
             <SettingsLinkItem
               title="Privacy policy"
