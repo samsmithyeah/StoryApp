@@ -1,5 +1,6 @@
 import { Colors, Shadows } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
+import { useCredits } from "@/hooks/useCredits";
 import { Child } from "@/types/child.types";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -15,6 +16,9 @@ import {
 } from "react-native";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Button } from "@/components/ui/Button";
+import { Typography, Spacing } from "@/constants/Theme";
 
 interface ChildSelectionProps {
   selectedChildren: string[];
@@ -33,6 +37,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
+  const { balance } = useCredits();
+
   const handleChildSelect = (child: Child) => {
     if (selectedChildren.includes(child.id)) {
       onUpdate({
@@ -44,6 +50,11 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   };
 
   const isNextDisabled = selectedChildren.length === 0;
+  const isLowCredits = balance < 5; // Show warning if less than 5 credits
+
+  const handleBuyCredits = () => {
+    router.push("/credits-modal");
+  };
 
   return (
     <View style={styles.container}>
@@ -58,13 +69,33 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
         />
         <WizardStepHeader
           title="Audience selection"
-          subtitle="Who's the story for? This will help us tailor the content to their age and interests."
+          subtitle={`Who's the story for? This will help us tailor the content to their age and interests. • ${balance} credits available`}
           stepNumber={1}
           totalSteps={7}
           onBack={() => {}}
           onCancel={onCancel}
           showBackButton={false}
         />
+
+        {/* Low credits warning */}
+        {isLowCredits && (
+          <View style={styles.warningBanner}>
+            <IconSymbol name="info.circle" size={20} color={Colors.primary} />
+            <View style={styles.warningContent}>
+              <Text style={styles.warningText}>
+                You have {balance} credits. Consider getting more credits for
+                longer stories.
+              </Text>
+            </View>
+            <Button
+              title="Get credits"
+              onPress={handleBuyCredits}
+              variant="outline"
+              size="small"
+              style={styles.warningButton}
+            />
+          </View>
+        )}
 
         {/* Children List */}
         <ScrollView
@@ -237,5 +268,29 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     textAlign: "center",
+  },
+  warningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginHorizontal: 24,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.text,
+    lineHeight: 18,
+  },
+  warningButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
 });

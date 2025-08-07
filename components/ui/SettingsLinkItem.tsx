@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { IconSymbol } from "./IconSymbol";
@@ -8,6 +8,7 @@ interface SettingsLinkItemProps {
   description: string;
   icon: string;
   onPress: () => void;
+  rightContent?: ReactNode;
 }
 
 export const SettingsLinkItem: React.FC<SettingsLinkItemProps> = ({
@@ -15,6 +16,7 @@ export const SettingsLinkItem: React.FC<SettingsLinkItemProps> = ({
   description,
   icon,
   onPress,
+  rightContent,
 }) => {
   return (
     <TouchableOpacity style={styles.linkItem} onPress={onPress}>
@@ -25,7 +27,14 @@ export const SettingsLinkItem: React.FC<SettingsLinkItemProps> = ({
           <Text style={styles.linkDescription}>{description}</Text>
         </View>
       </View>
-      <IconSymbol name="chevron.right" size={20} color={Colors.textSecondary} />
+      <View style={styles.rightSection}>
+        {rightContent}
+        <IconSymbol
+          name="chevron.right"
+          size={20}
+          color={Colors.textSecondary}
+        />
+      </View>
     </TouchableOpacity>
   );
 };
@@ -60,5 +69,10 @@ const styles = StyleSheet.create({
   linkDescription: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
 });

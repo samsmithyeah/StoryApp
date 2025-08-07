@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Platform,
@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { Button } from "../../components/ui/Button";
+import { CreditIndicator } from "../../components/ui/CreditIndicator";
+import { InsufficientCreditsModal } from "../../components/ui/InsufficientCreditsModal";
 import {
   Colors,
   CommonStyles,
@@ -21,10 +23,14 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
+import { useCredits } from "../../hooks/useCredits";
 
 export default function CreateScreen() {
   const { children } = useChildren();
+  const { balance } = useCredits();
   const insets = useSafeAreaInsets();
+  const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
+    useState(false);
 
   const handleCreateStory = () => {
     if (children.length === 0) {
@@ -41,6 +47,13 @@ export default function CreateScreen() {
       );
       return;
     }
+
+    // Check if user has enough credits (minimum 1 for a story)
+    if (balance < 1) {
+      setShowInsufficientCreditsModal(true);
+      return;
+    }
+
     router.push("/wizard" as any);
   };
 
@@ -67,6 +80,10 @@ export default function CreateScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
+            <View style={styles.headerSection}>
+              <CreditIndicator />
+            </View>
+
             <Text style={styles.title}>Create a story</Text>
             <Text style={styles.subtitle}>
               Create a personalised bedtime story for your child
@@ -112,6 +129,15 @@ export default function CreateScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        visible={showInsufficientCreditsModal}
+        onClose={() => setShowInsufficientCreditsModal(false)}
+        currentBalance={balance}
+        message="You need credits to create stories. Each credit creates one page. Would you like to purchase credits or choose from our subscription plans?"
+        showAlternativeAction={false}
+      />
     </BackgroundContainer>
   );
 }
@@ -132,6 +158,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     maxWidth: 400,
     width: "100%",
+  },
+  headerSection: {
+    marginBottom: Spacing.xxxl,
   },
 
   // Header
