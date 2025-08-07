@@ -10,7 +10,7 @@ import auth, {
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
-import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
+import firestore from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import {
   GoogleSignin,
@@ -24,15 +24,18 @@ import {
   User,
 } from "../../types/auth.types";
 import { FCMService } from "../fcm";
-import { authService, db, functionsService } from "./config";
+import { authService, functionsService } from "./config";
+import { creditsService } from "./credits";
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
   firebaseUser: FirebaseAuthTypes.User
 ): Promise<User> => {
   try {
-    const userDocRef = doc(db, "users", firebaseUser.uid);
-    const userDoc = await getDoc(userDocRef);
+    const userDoc = await firestore()
+      .collection("users")
+      .doc(firebaseUser.uid)
+      .get();
     const userData = userDoc.data();
 
     return {
@@ -65,11 +68,13 @@ const convertFirebaseUser = async (
 // Create user document in Firestore
 const createUserDocument = async (user: FirebaseAuthTypes.User) => {
   try {
-    const userDocRef = doc(db, "users", user.uid);
-    const userSnapshot = await getDoc(userDocRef);
+    const userSnapshot = await firestore()
+      .collection("users")
+      .doc(user.uid)
+      .get();
 
-    if (!userSnapshot.exists()) {
-      await setDoc(userDocRef, {
+    if (!userSnapshot.exists) {
+      await firestore().collection("users").doc(user.uid).set({
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,
@@ -77,8 +82,18 @@ const createUserDocument = async (user: FirebaseAuthTypes.User) => {
         children: [],
       });
       console.log("User document created in Firestore");
+
+      // Initialize free credits for new users
+      await creditsService.initializeUserCredits(user.uid);
+      console.log("Initial free credits granted");
     } else {
       console.log("User document already exists");
+      // Check if user has credits initialized (for existing users before credits system)
+      const userCredits = await creditsService.getUserCredits(user.uid);
+      if (!userCredits) {
+        await creditsService.initializeUserCredits(user.uid);
+        console.log("Credits initialized for existing user");
+      }
     }
   } catch (error) {
     console.log(

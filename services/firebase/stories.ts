@@ -1,6 +1,7 @@
 import { Story, StoryConfiguration } from "@/types/story.types";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { authService, functionsService } from "./config";
+import { creditsService } from "./credits";
 
 export interface StoryGenerationRequest extends StoryConfiguration {
   enableIllustrations: boolean;
@@ -8,14 +9,33 @@ export interface StoryGenerationRequest extends StoryConfiguration {
 
 export const generateStory = async (config: StoryGenerationRequest) => {
   try {
+    // Check if user has enough credits
+    const userId = authService.currentUser?.uid;
+    if (!userId) {
+      throw new Error("User must be authenticated");
+    }
+
+    const userCredits = await creditsService.getUserCredits(userId);
+    const creditsNeeded = config.pageCount || 5;
+
+    if (!userCredits || userCredits.balance < creditsNeeded) {
+      throw new Error(
+        `Insufficient credits. You need ${creditsNeeded} credits to generate this story.`
+      );
+    }
+
     const generateStoryFn = httpsCallable(functionsService, "generateStory", {
       timeout: 180000, // 3 minutes timeout
     });
     const result = await generateStoryFn(config);
 
     if ((result.data as any).success) {
+      // Deduct credits after successful generation
+      const storyId = (result.data as any).storyId;
+      await creditsService.useCredits(userId, creditsNeeded, storyId);
+
       return {
-        storyId: (result.data as any).storyId,
+        storyId,
         story: (result.data as any).story,
         imageGenerationStatus: (result.data as any).imageGenerationStatus,
       };

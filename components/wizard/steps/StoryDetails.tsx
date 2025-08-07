@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { IconSymbol } from "@/components/ui/IconSymbol";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
@@ -59,7 +60,13 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Story Length</Text>
           <View style={styles.sliderContainer}>
-            <Text style={styles.sliderLabel}>{pageCount} pages</Text>
+            <View style={styles.sliderHeader}>
+              <Text style={styles.sliderLabel}>{pageCount} pages</Text>
+              <View style={styles.creditCost}>
+                <IconSymbol name="sparkles" size={16} color={Colors.primary} />
+                <Text style={styles.creditCostText}>{pageCount} credits</Text>
+              </View>
+            </View>
             <View style={styles.customSlider}>
               <View style={styles.sliderTrack}>
                 <View
@@ -148,12 +155,30 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
   },
+  sliderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   sliderLabel: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "600",
     color: Colors.primary,
-    textAlign: "center",
-    marginBottom: 20,
+  },
+  creditCost: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  creditCostText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.primary,
+    marginLeft: 6,
   },
   customSlider: {
     marginVertical: 16,

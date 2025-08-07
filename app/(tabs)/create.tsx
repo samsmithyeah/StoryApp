@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { Button } from "../../components/ui/Button";
+import { CreditIndicator } from "../../components/ui/CreditIndicator";
 import {
   Colors,
   CommonStyles,
@@ -21,9 +22,11 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
+import { useCredits } from "../../hooks/useCredits";
 
 export default function CreateScreen() {
   const { children } = useChildren();
+  const { balance } = useCredits();
   const insets = useSafeAreaInsets();
 
   const handleCreateStory = () => {
@@ -41,6 +44,23 @@ export default function CreateScreen() {
       );
       return;
     }
+
+    // Check if user has enough credits (minimum 1 for a story)
+    if (balance < 1) {
+      Alert.alert(
+        "Insufficient credits",
+        "You need at least 1 credit to create a story. Would you like to get more credits?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Get credits",
+            onPress: () => router.push("/credits" as any),
+          },
+        ]
+      );
+      return;
+    }
+
     router.push("/wizard" as any);
   };
 
@@ -67,6 +87,10 @@ export default function CreateScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
+            <View style={styles.headerSection}>
+              <CreditIndicator />
+            </View>
+
             <Text style={styles.title}>Create a story</Text>
             <Text style={styles.subtitle}>
               Create a personalised bedtime story for your child
@@ -132,6 +156,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     maxWidth: 400,
     width: "100%",
+  },
+  headerSection: {
+    marginBottom: Spacing.xxxl,
   },
 
   // Header

@@ -12,5 +12,36 @@ service cloud.firestore {
       // Allow creation (resource.data won't exist yet)
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
+    
+    // Users can read and initialize their own credits
+    match /userCredits/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow creation/initialization and updates for the same user
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      // Prevent deletion
+      allow delete: if false;
+    }
+    
+    // Users can read and create their own credit transactions
+    match /creditTransactions/{transactionId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow creation for valid transactions
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.userId &&
+                    request.resource.data.keys().hasAll(['userId', 'amount', 'type', 'description', 'createdAt']);
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+    
+    // Users can read and create their own purchase history
+    match /purchaseHistory/{purchaseId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow creation for valid purchases
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.userId &&
+                    request.resource.data.keys().hasAll(['userId', 'productId', 'purchaseDate']);
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
   }
 }
