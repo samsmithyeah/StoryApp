@@ -127,6 +127,7 @@ export const revenueCatWebhook = onRequest(
       switch (event.type) {
         case "INITIAL_PURCHASE":
         case "RENEWAL":
+        case "NON_RENEWING_PURCHASE":
           await handlePurchaseEvent(event, userId);
           break;
 
@@ -136,11 +137,25 @@ export const revenueCatWebhook = onRequest(
           break;
 
         case "PRODUCT_CHANGE":
+        case "SUBSCRIPTION_PAUSED":
+        case "SUBSCRIPTION_EXTENDED":
           await handleProductChange(event, userId);
           break;
 
+        case "BILLING_ISSUE":
+          logger.warn("Billing issue detected", {
+            userId,
+            productId: event.product_id,
+            transactionId: event.transaction_id,
+          });
+          break;
+
         default:
-          logger.info("Unhandled webhook event type", { type: event.type });
+          logger.info("Unhandled webhook event type", {
+            type: event.type,
+            userId,
+            productId: event.product_id,
+          });
       }
 
       response.status(200).json({ success: true });
@@ -235,22 +250,24 @@ async function handlePurchaseEvent(
         },
       });
 
-      // Record the purchase
+      // Record the purchase - filter out undefined values
+      const purchaseMetadata: any = {
+        eventType: event.type,
+      };
+      if (event.currency) purchaseMetadata.currency = event.currency;
+      if (event.country_code) purchaseMetadata.countryCode = event.country_code;
+
       const purchaseRef = db.collection("purchaseHistory").doc();
       transaction.set(purchaseRef, {
         userId,
         productId: event.product_id,
         purchaseDate: new Date(event.purchased_at_ms),
-        amount: event.price,
+        amount: event.price || 0,
         credits,
         platform: event.store === "app_store" ? "ios" : "android",
         transactionId: event.transaction_id,
         status: "completed",
-        metadata: {
-          ...(event.currency && { currency: event.currency }),
-          ...(event.country_code && { countryCode: event.country_code }),
-          eventType: event.type,
-        },
+        metadata: purchaseMetadata,
       });
     });
 
@@ -322,15 +339,121 @@ async function handleProductChange(
   event: RevenueCatEvent["event"],
   userId: string
 ) {
-  // Handle subscription plan changes
+  // Handle subscription plan changes (upgrades/downgrades)
   logger.info("Processing product change", {
     userId,
     productId: event.product_id,
     transactionId: event.transaction_id,
   });
 
-  // For now, treat as a new purchase - could be enhanced to handle downgrades/upgrades
-  await handlePurchaseEvent(event, userId);
+  const credits = CREDIT_AMOUNTS[event.product_id];
+
+  if (!credits) {
+    logger.warn("Unknown product ID in product change event", {
+      productId: event.product_id,
+      userId,
+    });
+    return;
+  }
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const creditsRef = db.collection("userCredits").doc(userId);
+      const creditsDoc = await transaction.get(creditsRef);
+
+      // Initialize user credits if they don't exist
+      if (!creditsDoc.exists) {
+        transaction.set(creditsRef, {
+          userId,
+          balance: 0,
+          lifetimeUsed: 0,
+          subscriptionActive: false,
+          freeCreditsGranted: false,
+          lastUpdated: FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Check if we've already processed this transaction
+      const transactionQuery = db
+        .collection("creditTransactions")
+        .where("purchaseId", "==", event.transaction_id);
+
+      const existingTransactions = await transactionQuery.get();
+
+      if (!existingTransactions.empty) {
+        logger.info("Product change transaction already processed", {
+          transactionId: event.transaction_id,
+          userId,
+        });
+        return;
+      }
+
+      // Update subscription to new product (this replaces the old one)
+      transaction.update(creditsRef, {
+        balance: FieldValue.increment(credits), // Add new subscription credits
+        subscriptionActive: true,
+        subscriptionId: event.product_id, // This is the key fix - update to new product
+        subscriptionRenewsAt: event.expiration_at_ms
+          ? new Date(event.expiration_at_ms)
+          : null,
+        lastUpdated: FieldValue.serverTimestamp(),
+      });
+
+      // Record the product change transaction
+      const transactionRef = db.collection("creditTransactions").doc();
+      transaction.set(transactionRef, {
+        userId,
+        amount: credits,
+        type: "subscription",
+        description: `Subscription upgraded/changed to ${event.product_id}: ${credits} credits`,
+        createdAt: FieldValue.serverTimestamp(),
+        purchaseId: event.transaction_id,
+        metadata: {
+          productId: event.product_id,
+          ...(event.price !== undefined && { price: event.price }),
+          ...(event.currency && { currency: event.currency }),
+          ...(event.store && { store: event.store }),
+          eventType: event.type,
+          isProductChange: true,
+        },
+      });
+
+      // Record the purchase
+      const purchaseRef = db.collection("purchaseHistory").doc();
+      transaction.set(purchaseRef, {
+        userId,
+        productId: event.product_id,
+        purchaseDate: new Date(event.purchased_at_ms),
+        amount: event.price,
+        credits,
+        platform: event.store === "app_store" ? "ios" : "android",
+        transactionId: event.transaction_id,
+        status: "completed",
+        metadata: {
+          ...(event.currency && { currency: event.currency }),
+          ...(event.country_code && { countryCode: event.country_code }),
+          eventType: event.type,
+          isProductChange: true,
+        },
+      });
+    });
+
+    logger.info("Successfully processed product change", {
+      userId,
+      oldProductId: "previous subscription", // We don't have this in the webhook
+      newProductId: event.product_id,
+      credits,
+      transactionId: event.transaction_id,
+    });
+  } catch (error) {
+    logger.error("Error processing product change event", {
+      error: error instanceof Error ? error.message : String(error),
+      userId,
+      productId: event.product_id,
+      transactionId: event.transaction_id,
+    });
+    throw error;
+  }
 }
 
 /**

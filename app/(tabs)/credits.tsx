@@ -40,7 +40,7 @@ interface CreditsScreenProps {
 }
 
 export default function CreditsScreen({
-  isModal = false,
+  isModal: _isModal = false,
 }: CreditsScreenProps = {}) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -48,17 +48,13 @@ export default function CreditsScreen({
   const [purchasing, setPurchasing] = useState(false);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
   const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
-  const [selectedPackage, setSelectedPackage] =
-    useState<PurchasesPackage | null>(null);
-  const [selectedPackageByTab, setSelectedPackageByTab] = useState<{
-    packs: PurchasesPackage | null;
-    subscriptions: PurchasesPackage | null;
-  }>({ packs: null, subscriptions: null });
-  const [selectedTab, setSelectedTab] = useState<"packs" | "subscriptions">(
+  const [selectedTab, setSelectedTab] = useState<"subscriptions" | "packs">(
     "subscriptions"
   );
   const [activeSubscriptions, setActiveSubscriptions] = useState<string[]>([]);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [_subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [selectedPackage, setSelectedPackage] =
+    useState<PurchasesPackage | null>(null);
 
   const loadCreditsAndOfferings = useCallback(async () => {
     if (!user) return;
@@ -70,32 +66,10 @@ export default function CreditsScreen({
       const credits = await creditsService.getUserCredits(user.uid);
       setUserCredits(credits);
 
-      // Load offerings (RevenueCat should already be configured)
+      // Load offerings
       const offerings = await revenueCatService.getOfferings();
       if (offerings.current) {
         setOfferings(offerings.current);
-
-        // Set default selections
-        const packages = offerings.current.availablePackages;
-
-        // Default for credit packs: "Family Pack" (credits_50)
-        const familyPack = packages.find(
-          (pkg) => pkg.product.identifier === PRODUCT_IDS.CREDITS_50
-        );
-
-        // Default for subscriptions: "Monthly Story Master" (subscription_monthly_pro)
-        const monthlyStoryMaster = packages.find(
-          (pkg) => pkg.product.identifier === PRODUCT_IDS.MONTHLY_PRO
-        );
-
-        const defaults = {
-          packs: familyPack || null,
-          subscriptions: monthlyStoryMaster || null,
-        };
-
-        setSelectedPackageByTab(defaults);
-        // Set the initial selected package based on current tab
-        setSelectedPackage(defaults.subscriptions); // Since subscriptions is default tab
       }
 
       // Load customer info to get active subscriptions
@@ -105,12 +79,9 @@ export default function CreditsScreen({
         setSubscriptionInfo(customerInfo);
       } catch (error) {
         console.log("Could not load customer info:", error);
-        // This is OK during development when RevenueCat isn't fully configured
       }
     } catch (error: any) {
       console.error("Error loading credits/offerings:", error);
-
-      // Don't show error alert for missing RevenueCat products during development
       if (!error.message?.includes("None of the products registered")) {
         Alert.alert("Error", "Failed to load store information");
       }
@@ -123,23 +94,10 @@ export default function CreditsScreen({
     loadCreditsAndOfferings();
   }, [loadCreditsAndOfferings]);
 
-  const handleTabChange = (newTab: "packs" | "subscriptions") => {
-    setSelectedTab(newTab);
-
-    // Update selected package to the tab's selection
-    const tabSelection = selectedPackageByTab[newTab];
-    setSelectedPackage(tabSelection);
-  };
-
-  const handlePackageSelect = (pkg: PurchasesPackage) => {
-    setSelectedPackage(pkg);
-
-    // Store the selection for the current tab
-    setSelectedPackageByTab((prev) => ({
-      ...prev,
-      [selectedTab]: pkg,
-    }));
-  };
+  // Clear selected package when switching tabs
+  useEffect(() => {
+    setSelectedPackage(null);
+  }, [selectedTab]);
 
   const handlePurchase = async (packageToPurchase: PurchasesPackage) => {
     try {
@@ -147,6 +105,61 @@ export default function CreditsScreen({
 
       const isSubscription =
         packageToPurchase.product.identifier.includes("subscription");
+
+      // For subscriptions, check if this would replace an existing subscription
+      if (isSubscription) {
+        const changeInfo = await revenueCatService.getSubscriptionChangeInfo(
+          packageToPurchase.product.identifier
+        );
+
+        if (changeInfo) {
+          // Show confirmation alert for subscription changes
+          Alert.alert(
+            changeInfo.isUpgrade
+              ? "Upgrade subscription?"
+              : "Change subscription?",
+            changeInfo.message,
+            [
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => setPurchasing(false),
+              },
+              {
+                text: changeInfo.isUpgrade ? "Upgrade" : "Change",
+                onPress: async () => {
+                  try {
+                    const success =
+                      await revenueCatService.purchaseSubscription(
+                        packageToPurchase
+                      );
+                    if (success) {
+                      Alert.alert(
+                        "Success",
+                        "Subscription updated successfully!"
+                      );
+                      await loadCreditsAndOfferings();
+                    }
+                  } catch (purchaseError: any) {
+                    console.error("Purchase error:", purchaseError);
+                    if (!purchaseError.userCancelled) {
+                      Alert.alert(
+                        "Purchase failed",
+                        purchaseError.message || "Something went wrong"
+                      );
+                    }
+                  } finally {
+                    setPurchasing(false);
+                  }
+                },
+              },
+            ]
+          );
+          return; // Exit early, alert will handle the rest
+        }
+      }
+
+      // Proceed with normal purchase (no subscription change needed)
       const success = isSubscription
         ? await revenueCatService.purchaseSubscription(packageToPurchase)
         : await revenueCatService.purchaseCreditPack(packageToPurchase);
@@ -181,74 +194,75 @@ export default function CreditsScreen({
 
   const getProductInfo = (productId: string) => {
     const products = {
+      // Subscriptions
+      [PRODUCT_IDS.MONTHLY_BASIC]: {
+        credits: 30,
+        type: "subscription",
+        name: "Monthly Storyteller",
+        period: "month",
+        displayName: "Monthly\nStoryteller",
+      },
+      [PRODUCT_IDS.MONTHLY_PRO]: {
+        credits: 100,
+        type: "subscription",
+        name: "Monthly Story Master",
+        period: "month",
+        displayName: "Monthly\nStory Master",
+        popular: true,
+      },
+      [PRODUCT_IDS.ANNUAL_BASIC]: {
+        credits: 360,
+        type: "subscription",
+        name: "Annual Storyteller",
+        period: "year",
+        displayName: "Annual\nStoryteller",
+      },
+      [PRODUCT_IDS.ANNUAL_PRO]: {
+        credits: 1200,
+        type: "subscription",
+        name: "Annual Story Master",
+        period: "year",
+        displayName: "Annual\nStory Master",
+        bestValue: true,
+      },
       // Credit packs
       [PRODUCT_IDS.CREDITS_10]: {
         credits: 10,
         type: "pack",
-        icon: "sparkles",
         name: "Starter Pack",
         period: null,
+        displayName: "Starter\nPack",
       },
       [PRODUCT_IDS.CREDITS_25]: {
         credits: 25,
         type: "pack",
-        icon: "star.fill",
         name: "Story Bundle",
         period: null,
+        displayName: "Story\nBundle",
       },
       [PRODUCT_IDS.CREDITS_50]: {
         credits: 50,
         type: "pack",
-        icon: "wand.and.stars",
         name: "Family Pack",
         period: null,
+        displayName: "Family\nPack",
         popular: true,
       },
       [PRODUCT_IDS.CREDITS_100]: {
         credits: 100,
         type: "pack",
-        icon: "crown.fill",
         name: "Story Master",
         period: null,
-      },
-      // Subscriptions
-      [PRODUCT_IDS.MONTHLY_BASIC]: {
-        credits: 30,
-        type: "subscription",
-        icon: "sparkles",
-        name: "Monthly Storyteller",
-        period: "month",
-      },
-      [PRODUCT_IDS.MONTHLY_PRO]: {
-        credits: 100,
-        type: "subscription",
-        icon: "star.fill",
-        name: "Monthly Story Master",
-        period: "month",
-      },
-      [PRODUCT_IDS.ANNUAL_BASIC]: {
-        credits: 360,
-        type: "subscription",
-        icon: "wand.and.stars",
-        name: "Annual Storyteller",
-        period: "year",
-      },
-      [PRODUCT_IDS.ANNUAL_PRO]: {
-        credits: 1200,
-        type: "subscription",
-        icon: "crown.fill",
-        name: "Annual Story Master",
-        period: "year",
-        popular: true,
+        displayName: "Story\nMaster",
       },
     };
     return (
       products[productId] || {
         credits: 0,
         type: "pack",
-        icon: "sparkles",
         name: "Unknown",
         period: null,
+        displayName: "Unknown",
       }
     );
   };
@@ -257,45 +271,7 @@ export default function CreditsScreen({
     return activeSubscriptions.includes(productId);
   };
 
-  const getSubscriptionExpirationDate = (productId: string) => {
-    if (!subscriptionInfo?.allExpirationDates) return null;
-    const expirationDate = subscriptionInfo.allExpirationDates[productId];
-    return expirationDate ? new Date(expirationDate) : null;
-  };
-
-  const formatExpirationDate = (date: Date) => {
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const calculateCostPerCredit = (pkg: PurchasesPackage) => {
-    const info = getProductInfo(pkg.product.identifier);
-    const price = pkg.product.price;
-    const costPerCredit = price / info.credits;
-
-    // Debug currency info
-    console.log("Currency debug:", {
-      productId: pkg.product.identifier,
-      price: pkg.product.price,
-      priceString: pkg.product.priceString,
-      currencyCode: pkg.product.currencyCode,
-      costPerCredit,
-    });
-
-    // Format as currency with proper locale - force GBP if not detected
-    const currency = pkg.product.currencyCode || "GBP";
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(costPerCredit);
-  };
-
-  // Group packages by type for matrix display and sort by price (lowest to highest)
+  // Group packages by type and sort by price
   const creditPacks = (
     offerings?.availablePackages.filter(
       (pkg) => !pkg.product.identifier.includes("subscription")
@@ -308,7 +284,113 @@ export default function CreditsScreen({
     ) || []
   ).sort((a, b) => a.product.price - b.product.price);
 
-  const allPackages = [...creditPacks, ...subscriptions];
+  // Auto-select popular options by default
+  useEffect(() => {
+    if (!offerings?.availablePackages || selectedPackage) return;
+
+    if (selectedTab === "subscriptions") {
+      // Don't auto-select if user has an active subscription
+      const hasActiveSubscription = activeSubscriptions.length > 0;
+      if (hasActiveSubscription) return;
+
+      // Find popular subscription
+      const popularSubscription = subscriptions.find(
+        (pkg) =>
+          getProductInfo(pkg.product.identifier).popular ||
+          getProductInfo(pkg.product.identifier).bestValue
+      );
+      if (popularSubscription) {
+        setSelectedPackage(popularSubscription);
+      }
+    } else {
+      // Find popular credit pack
+      const popularCreditPack = creditPacks.find(
+        (pkg) => getProductInfo(pkg.product.identifier).popular
+      );
+      if (popularCreditPack) {
+        setSelectedPackage(popularCreditPack);
+      }
+    }
+  }, [
+    offerings,
+    selectedTab,
+    activeSubscriptions,
+    subscriptions,
+    creditPacks,
+    selectedPackage,
+  ]);
+
+  const renderSubscriptionCard = (pkg: PurchasesPackage) => {
+    const info = getProductInfo(pkg.product.identifier);
+    const isActive = isSubscriptionActive(pkg.product.identifier);
+    const isSelected = selectedPackage?.identifier === pkg.identifier;
+    const priceText =
+      info.period === "month"
+        ? `${pkg.product.priceString} / month`
+        : `${pkg.product.priceString} / year`;
+
+    return (
+      <TouchableOpacity
+        key={pkg.identifier}
+        style={[
+          styles.subscriptionCard,
+          isActive && styles.subscriptionCardActive,
+          isSelected && styles.subscriptionCardSelected,
+        ]}
+        onPress={() => setSelectedPackage(pkg)}
+        disabled={isActive}
+      >
+        {info.popular && !isActive && (
+          <View style={styles.popularBadge}>
+            <Text style={styles.badgeText}>POPULAR</Text>
+          </View>
+        )}
+        {info.bestValue && !isActive && (
+          <View style={styles.bestValueBadge}>
+            <Text style={styles.badgeText}>BEST VALUE</Text>
+          </View>
+        )}
+        {isActive && (
+          <View style={styles.currentBadge}>
+            <Text style={styles.badgeText}>CURRENT</Text>
+          </View>
+        )}
+
+        <Text style={styles.cardTitle}>{info.displayName}</Text>
+        <Text style={styles.cardCredits}>
+          {info.credits} credits
+          {info.period === "month" ? "\n/ month" : "\n/ year"}
+        </Text>
+        <Text style={styles.cardPrice}>{priceText}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderCreditPackCard = (pkg: PurchasesPackage) => {
+    const info = getProductInfo(pkg.product.identifier);
+    const isSelected = selectedPackage?.identifier === pkg.identifier;
+
+    return (
+      <TouchableOpacity
+        key={pkg.identifier}
+        style={[
+          styles.creditPackCard,
+          isSelected && styles.creditPackCardSelected,
+        ]}
+        onPress={() => setSelectedPackage(pkg)}
+      >
+        {info.popular && (
+          <View style={styles.popularBadge}>
+            <Text style={styles.badgeText}>POPULAR</Text>
+          </View>
+        )}
+
+        <Text style={styles.cardTitle}>{info.displayName}</Text>
+        <Text style={styles.cardCredits}>{info.credits} credits</Text>
+        <Text style={styles.cardPrice}>{pkg.product.priceString}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ImageBackground
@@ -346,6 +428,7 @@ export default function CreditsScreen({
             contentInsetAdjustmentBehavior="never"
             showsVerticalScrollIndicator={false}
           >
+            {/* Header with Credits title and balance */}
             <View style={styles.header}>
               <Text style={styles.title}>Credits</Text>
               <View style={styles.headerBalance}>
@@ -354,504 +437,231 @@ export default function CreditsScreen({
                 </Text>
                 <IconSymbol name="sparkles" size={16} color={Colors.primary} />
               </View>
-              {/* <Text style={styles.subtitle}>
-                Purchase credit packs or subscribe for discounted deals
-              </Text> */}
             </View>
 
-            {allPackages.length === 0 ? (
-              <View style={styles.noOfferings}>
-                <IconSymbol
-                  name="exclamationmark.triangle"
-                  size={32}
-                  color={Colors.textSecondary}
-                />
-                <Text style={styles.noOfferingsTitle}>
-                  No products available
+            {/* Info Message */}
+            <View style={styles.infoContainer}>
+              <IconSymbol
+                name="info.circle"
+                size={16}
+                color={Colors.textSecondary}
+              />
+              <Text style={styles.infoText}>
+                Each credit enables you to generate 1 page of a story.
+              </Text>
+            </View>
+
+            {/* Tab Selector */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  selectedTab === "subscriptions" && styles.tabActive,
+                ]}
+                onPress={() => setSelectedTab("subscriptions")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === "subscriptions" && styles.tabTextActive,
+                  ]}
+                >
+                  Subscriptions
                 </Text>
-                <Text style={styles.noOfferingsText}>
-                  Products haven't been configured yet. Set up products in
-                  RevenueCat and App Store Connect to enable purchases.
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  selectedTab === "packs" && styles.tabActive,
+                ]}
+                onPress={() => setSelectedTab("packs")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === "packs" && styles.tabTextActive,
+                  ]}
+                >
+                  Credit packs
                 </Text>
-              </View>
-            ) : (
-              <>
-                {/* Subscription status */}
-                {userCredits?.subscriptionActive && (
-                  <View style={styles.subscriptionStatusContainer}>
-                    <Text style={styles.subscriptionStatus}>
-                      <IconSymbol
-                        name="checkmark.circle.fill"
-                        size={14}
-                        color={Colors.success}
-                      />{" "}
-                      Active subscription
-                    </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Content based on selected tab */}
+            {selectedTab === "subscriptions" ? (
+              <View>
+                {subscriptions.length > 0 && (
+                  <View style={styles.planGrid}>
+                    {subscriptions.map(renderSubscriptionCard)}
                   </View>
                 )}
-
-                {/* Tab Selector */}
-                <View style={styles.section}>
-                  <View style={styles.tabSelector}>
-                    <TouchableOpacity
-                      style={[
-                        styles.tab,
-                        selectedTab === "subscriptions" && styles.tabActive,
-                      ]}
-                      onPress={() => handleTabChange("subscriptions")}
-                    >
-                      <Text
-                        style={[
-                          styles.tabText,
-                          selectedTab === "subscriptions" &&
-                            styles.tabTextActive,
-                        ]}
-                      >
-                        Subscriptions
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.tab,
-                        selectedTab === "packs" && styles.tabActive,
-                      ]}
-                      onPress={() => handleTabChange("packs")}
-                    >
-                      <Text
-                        style={[
-                          styles.tabText,
-                          selectedTab === "packs" && styles.tabTextActive,
-                        ]}
-                      >
-                        Credit packs
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Pricing Matrix */}
-                  <View style={styles.matrixContainer}>
-                    {/* <Text style={styles.matrixTitle}>
-            {selectedTab === "packs" ? "Credit Packs" : "Subscriptions"}
-          </Text> */}
-                    <Text style={styles.matrixSubtitle}>
-                      {selectedTab === "packs"
-                        ? "One-time purchase of credits to use whenever you need them. Each credit enables you to generate 1 page of a story."
-                        : "Get credits every month at a discounted rate. Each credit enables you to generate 1 page of a story."}
-                    </Text>
-
-                    {/* Matrix Header */}
-                    <View style={styles.matrixHeader}>
-                      <View style={styles.matrixHeaderCell}>
-                        <Text style={styles.matrixHeaderText}>Plan</Text>
-                      </View>
-                      <View style={styles.matrixHeaderCell}>
-                        <Text style={styles.matrixHeaderText}>Credits</Text>
-                      </View>
-                      <View style={styles.matrixHeaderCell}>
-                        <Text style={styles.matrixHeaderText}>Price</Text>
-                      </View>
-                      <View style={styles.matrixHeaderCell}>
-                        <Text style={styles.matrixHeaderText}>Per Credit</Text>
-                      </View>
-                    </View>
-
-                    {/* Credit Packs */}
-                    {selectedTab === "packs" && creditPacks.length > 0 && (
-                      <>
-                        <View style={styles.subscriptionSectionHeader}>
-                          <Text style={styles.subscriptionSectionText}>
-                            Credit Packs
-                          </Text>
-                          <Text style={styles.subscriptionSectionSubtext}>
-                            One-time purchase, use anytime
-                          </Text>
-                        </View>
-                        {creditPacks.map((pkg) => {
-                          const info = getProductInfo(pkg.product.identifier);
-                          const costPerCredit = calculateCostPerCredit(pkg);
-                          return (
-                            <TouchableOpacity
-                              key={pkg.identifier}
-                              style={[
-                                styles.matrixRow,
-                                info.popular && styles.matrixRowPopular,
-                                selectedPackage?.identifier ===
-                                  pkg.identifier && styles.matrixRowSelected,
-                              ]}
-                              onPress={() => handlePackageSelect(pkg)}
-                              disabled={purchasing}
-                            >
-                              {info.popular && (
-                                <View style={styles.matrixPopularBadge}>
-                                  <Text style={styles.matrixPopularText}>
-                                    POPULAR
-                                  </Text>
-                                </View>
-                              )}
-                              <View style={styles.matrixCell}>
-                                <View style={styles.matrixPlanCell}>
-                                  <IconSymbol
-                                    name={info.icon}
-                                    size={16}
-                                    color={Colors.primary}
-                                  />
-                                  <Text style={styles.matrixPlanText}>
-                                    {info.name}
-                                  </Text>
-                                </View>
-                              </View>
-                              <View style={styles.matrixCell}>
-                                <Text style={styles.matrixCreditsText}>
-                                  {info.credits}
-                                </Text>
-                              </View>
-                              <View style={styles.matrixCell}>
-                                <Text style={styles.matrixPriceText}>
-                                  {pkg.product.priceString}
-                                </Text>
-                              </View>
-                              <View style={styles.matrixCell}>
-                                <Text style={styles.matrixCostText}>
-                                  {costPerCredit}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {/* Subscriptions */}
-                    {selectedTab === "subscriptions" &&
-                      subscriptions.length > 0 && (
-                        <>
-                          {/* Monthly Subscriptions */}
-                          {subscriptions.filter(
-                            (pkg) =>
-                              getProductInfo(pkg.product.identifier).period ===
-                              "month"
-                          ).length > 0 && (
-                            <>
-                              <View style={styles.subscriptionSectionHeader}>
-                                <Text style={styles.subscriptionSectionText}>
-                                  Monthly Plans
-                                </Text>
-                              </View>
-                              {subscriptions
-                                .filter(
-                                  (pkg) =>
-                                    getProductInfo(pkg.product.identifier)
-                                      .period === "month"
-                                )
-                                .map((pkg) => {
-                                  const info = getProductInfo(
-                                    pkg.product.identifier
-                                  );
-                                  const costPerCredit =
-                                    calculateCostPerCredit(pkg);
-                                  const isActive = isSubscriptionActive(
-                                    pkg.product.identifier
-                                  );
-                                  const expirationDate =
-                                    getSubscriptionExpirationDate(
-                                      pkg.product.identifier
-                                    );
-                                  return (
-                                    <TouchableOpacity
-                                      key={pkg.identifier}
-                                      style={[
-                                        styles.matrixRow,
-                                        info.popular && styles.matrixRowPopular,
-                                        isActive && styles.matrixRowActive,
-                                        selectedPackage?.identifier ===
-                                          pkg.identifier &&
-                                          styles.matrixRowSelected,
-                                      ]}
-                                      onPress={() =>
-                                        isActive
-                                          ? null
-                                          : handlePackageSelect(pkg)
-                                      }
-                                      disabled={purchasing || isActive}
-                                    >
-                                      {isActive && (
-                                        <View style={styles.matrixActiveBadge}>
-                                          <Text style={styles.matrixActiveText}>
-                                            CURRENT
-                                          </Text>
-                                        </View>
-                                      )}
-                                      {info.popular && !isActive && (
-                                        <View style={styles.matrixPopularBadge}>
-                                          <Text
-                                            style={styles.matrixPopularText}
-                                          >
-                                            {getProductInfo(
-                                              pkg.product.identifier
-                                            ).period === "year"
-                                              ? "BEST VALUE"
-                                              : "POPULAR"}
-                                          </Text>
-                                        </View>
-                                      )}
-                                      <View style={styles.matrixCell}>
-                                        <View style={styles.matrixPlanCell}>
-                                          <IconSymbol
-                                            name={info.icon}
-                                            size={16}
-                                            color={Colors.primary}
-                                          />
-                                          <Text style={styles.matrixPlanText}>
-                                            {info.name}
-                                          </Text>
-                                        </View>
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixCreditsText}>
-                                          {info.credits}/mo
-                                        </Text>
-                                        {isActive && expirationDate && (
-                                          <Text
-                                            style={styles.matrixRenewalText}
-                                          >
-                                            Renews{" "}
-                                            {formatExpirationDate(
-                                              expirationDate
-                                            )}
-                                          </Text>
-                                        )}
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixPriceText}>
-                                          {pkg.product.priceString}/mo
-                                        </Text>
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixCostText}>
-                                          {costPerCredit}
-                                        </Text>
-                                      </View>
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                            </>
-                          )}
-
-                          {/* Annual Subscriptions */}
-                          {subscriptions.filter(
-                            (pkg) =>
-                              getProductInfo(pkg.product.identifier).period ===
-                              "year"
-                          ).length > 0 && (
-                            <>
-                              <View style={styles.subscriptionSectionHeader}>
-                                <Text style={styles.subscriptionSectionText}>
-                                  Annual Plans
-                                </Text>
-                                <Text style={styles.subscriptionSectionSubtext}>
-                                  Save up to 70% vs monthly
-                                </Text>
-                              </View>
-                              {subscriptions
-                                .filter(
-                                  (pkg) =>
-                                    getProductInfo(pkg.product.identifier)
-                                      .period === "year"
-                                )
-                                .map((pkg) => {
-                                  const info = getProductInfo(
-                                    pkg.product.identifier
-                                  );
-                                  const costPerCredit =
-                                    calculateCostPerCredit(pkg);
-                                  const isActive = isSubscriptionActive(
-                                    pkg.product.identifier
-                                  );
-                                  const expirationDate =
-                                    getSubscriptionExpirationDate(
-                                      pkg.product.identifier
-                                    );
-                                  return (
-                                    <TouchableOpacity
-                                      key={pkg.identifier}
-                                      style={[
-                                        styles.matrixRow,
-                                        info.popular && styles.matrixRowPopular,
-                                        isActive && styles.matrixRowActive,
-                                        selectedPackage?.identifier ===
-                                          pkg.identifier &&
-                                          styles.matrixRowSelected,
-                                      ]}
-                                      onPress={() =>
-                                        isActive
-                                          ? null
-                                          : handlePackageSelect(pkg)
-                                      }
-                                      disabled={purchasing || isActive}
-                                    >
-                                      {isActive && (
-                                        <View style={styles.matrixActiveBadge}>
-                                          <Text style={styles.matrixActiveText}>
-                                            CURRENT
-                                          </Text>
-                                        </View>
-                                      )}
-                                      {info.popular && !isActive && (
-                                        <View style={styles.matrixPopularBadge}>
-                                          <Text
-                                            style={styles.matrixPopularText}
-                                          >
-                                            {getProductInfo(
-                                              pkg.product.identifier
-                                            ).period === "year"
-                                              ? "BEST VALUE"
-                                              : "POPULAR"}
-                                          </Text>
-                                        </View>
-                                      )}
-                                      <View style={styles.matrixCell}>
-                                        <View style={styles.matrixPlanCell}>
-                                          <IconSymbol
-                                            name={info.icon}
-                                            size={16}
-                                            color={Colors.primary}
-                                          />
-                                          <Text style={styles.matrixPlanText}>
-                                            {info.name}
-                                          </Text>
-                                        </View>
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixCreditsText}>
-                                          {info.credits}/yr
-                                        </Text>
-                                        {isActive && expirationDate && (
-                                          <Text
-                                            style={styles.matrixRenewalText}
-                                          >
-                                            Renews{" "}
-                                            {formatExpirationDate(
-                                              expirationDate
-                                            )}
-                                          </Text>
-                                        )}
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixPriceText}>
-                                          {pkg.product.priceString}/yr
-                                        </Text>
-                                      </View>
-                                      <View style={styles.matrixCell}>
-                                        <Text style={styles.matrixCostText}>
-                                          {costPerCredit}
-                                        </Text>
-                                      </View>
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                            </>
-                          )}
-                        </>
-                      )}
-
-                    {/* Empty State */}
-                    {((selectedTab === "packs" && creditPacks.length === 0) ||
-                      (selectedTab === "subscriptions" &&
-                        subscriptions.length === 0)) && (
-                      <View style={styles.matrixEmptyState}>
-                        <IconSymbol
-                          name="exclamationmark.triangle"
-                          size={32}
-                          color={Colors.textSecondary}
-                        />
-                        <Text style={styles.noOfferingsTitle}>
-                          No{" "}
-                          {selectedTab === "packs"
-                            ? "credit packs"
-                            : "subscriptions"}{" "}
-                          available
-                        </Text>
-                        <Text style={styles.noOfferingsText}>
-                          {selectedTab === "packs"
-                            ? "Credit packs haven't"
-                            : "Subscriptions haven't"}{" "}
-                          been configured yet.
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Restore Purchases */}
-                  <TouchableOpacity
-                    style={styles.restoreButton}
-                    onPress={handleRestorePurchases}
-                    disabled={purchasing}
-                  >
-                    <Text style={styles.restoreText}>Restore purchases</Text>
-                  </TouchableOpacity>
-
-                  <View style={{ height: 100 }} />
+              </View>
+            ) : (
+              <View>
+                <View style={styles.planGrid}>
+                  {creditPacks.map(renderCreditPackCard)}
                 </View>
+              </View>
+            )}
+
+            {/* Restore Purchases */}
+            <TouchableOpacity
+              style={styles.restoreButton}
+              onPress={handleRestorePurchases}
+              disabled={purchasing}
+            >
+              <Text style={styles.restoreText}>Restore purchases</Text>
+            </TouchableOpacity>
+
+            {/* Debug Buttons - Only visible in development */}
+            {__DEV__ && (
+              <>
+                <TouchableOpacity
+                  style={styles.debugButton}
+                  onPress={async () => {
+                    console.log("=== DEBUGGING SUBSCRIPTION ===");
+                    try {
+                      // Check what RevenueCat is reporting
+                      await revenueCatService.configure(user?.uid || "");
+
+                      console.log("🐛 DEBUG: Raw RevenueCat customer info:");
+                      const customerInfo =
+                        await revenueCatService.getCustomerInfo();
+                      console.log(
+                        "🐛 Active subscriptions:",
+                        customerInfo.activeSubscriptions
+                      );
+                      console.log(
+                        "🐛 All expiration dates:",
+                        customerInfo.allExpirationDates
+                      );
+                      console.log(
+                        "🐛 All purchased products:",
+                        customerInfo.allPurchasedProductIdentifiers
+                      );
+
+                      // Get current active subscription
+                      const currentSub =
+                        await revenueCatService.getCurrentActiveSubscription();
+                      console.log(
+                        "🐛 getCurrentActiveSubscription result:",
+                        currentSub
+                      );
+
+                      // Force sync
+                      await revenueCatService.syncSubscriptionStatus();
+
+                      // Reload this screen
+                      await loadCreditsAndOfferings();
+
+                      Alert.alert(
+                        "Debug Complete",
+                        `Current subscription: ${currentSub?.productId || "None"}\nCheck console for details`
+                      );
+                    } catch (error) {
+                      console.error("🐛 DEBUG ERROR:", error);
+                      Alert.alert("Debug Error", String(error));
+                    }
+                    console.log("=== DEBUG COMPLETE ===");
+                  }}
+                >
+                  <Text style={styles.debugText}>🐛 Debug Subscription</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.forceRefreshButton}
+                  onPress={async () => {
+                    console.log("=== FORCE REFRESH REVENUECAT ===");
+                    try {
+                      await revenueCatService.configure(user?.uid || "");
+
+                      // Force RevenueCat to refresh from server (not cache)
+                      console.log(
+                        "🔄 Calling restorePurchases to force refresh..."
+                      );
+                      const freshCustomerInfo =
+                        await revenueCatService.restorePurchases();
+                      console.log("🔄 Fresh customer info after restore:", {
+                        activeSubscriptions:
+                          freshCustomerInfo.activeSubscriptions,
+                        allExpirationDates:
+                          freshCustomerInfo.allExpirationDates,
+                      });
+
+                      // Now sync with fresh data
+                      await revenueCatService.syncSubscriptionStatus();
+
+                      // Reload screen
+                      await loadCreditsAndOfferings();
+
+                      Alert.alert(
+                        "Refresh Complete",
+                        `Active subs: ${freshCustomerInfo.activeSubscriptions.join(", ")}\nCheck console for details`
+                      );
+                    } catch (error) {
+                      console.error("🔄 REFRESH ERROR:", error);
+                      Alert.alert("Refresh Error", String(error));
+                    }
+                    console.log("=== FORCE REFRESH COMPLETE ===");
+                  }}
+                >
+                  <Text style={styles.forceRefreshText}>
+                    🔄 Force Refresh RevenueCat
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
+
+            <View style={{ height: 100 }} />
           </ScrollView>
         )}
       </SafeAreaView>
 
-      {/* Fixed Bottom Section */}
+      {/* Fixed Bottom Purchase Button Section */}
       <View
         style={[
           styles.bottomSection,
           {
-            paddingBottom: isModal ? insets.bottom : insets.bottom + 37, // Account for tab bar
+            paddingBottom: insets.bottom + 37, // Account for tab bar
           },
         ]}
       >
-        {/* Purchase Button */}
-        {selectedPackage && (
+        {(offerings?.availablePackages?.length || 0) > 0 && (
           <TouchableOpacity
             style={[
               styles.purchaseButton,
-              (purchasing ||
-                isSubscriptionActive(selectedPackage.product.identifier)) &&
-                styles.purchaseButtonDisabled,
+              (purchasing || !selectedPackage) && styles.purchaseButtonDisabled,
             ]}
             onPress={() => {
-              if (!isSubscriptionActive(selectedPackage.product.identifier)) {
+              if (selectedPackage) {
                 handlePurchase(selectedPackage);
               }
             }}
-            disabled={
-              purchasing ||
-              isSubscriptionActive(selectedPackage.product.identifier)
-            }
+            disabled={purchasing || !selectedPackage}
           >
             {purchasing ? (
               <ActivityIndicator size="small" color={Colors.textDark} />
-            ) : isSubscriptionActive(selectedPackage.product.identifier) ? (
-              <>
-                <Text style={styles.purchaseButtonText}>
-                  Current Subscription
-                </Text>
-                <Text style={styles.purchaseButtonPrice}>
-                  {(() => {
-                    const expirationDate = getSubscriptionExpirationDate(
-                      selectedPackage.product.identifier
-                    );
-                    return expirationDate
-                      ? `Renews ${formatExpirationDate(expirationDate)}`
-                      : "Active";
-                  })()}
-                </Text>
-              </>
-            ) : (
+            ) : selectedPackage ? (
               <>
                 <Text style={styles.purchaseButtonText}>
                   Purchase{" "}
                   {getProductInfo(selectedPackage.product.identifier).name}
                 </Text>
-                <Text style={styles.purchaseButtonPrice}>
+                <Text style={styles.purchaseButtonSubtext}>
                   {selectedPackage.product.priceString}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.purchaseButtonText}>
+                  {selectedTab === "subscriptions"
+                    ? "Start subscription"
+                    : "Purchase credits"}
+                </Text>
+                <Text style={styles.purchaseButtonSubtext}>
+                  {selectedTab === "subscriptions"
+                    ? "Choose your preferred plan above"
+                    : "Select your credit pack above"}
                 </Text>
               </>
             )}
@@ -913,6 +723,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  // Header section
   header: {
     marginBottom: Spacing.lg,
     alignItems: "center",
@@ -920,17 +732,9 @@ const styles = StyleSheet.create({
   },
   title: {
     ...CommonStyles.brandTitle,
-    fontSize: isTablet
-      ? Typography.fontSize.h1Tablet
-      : Typography.fontSize.h1Phone,
+    fontSize:
+      width >= 768 ? Typography.fontSize.h1Tablet : Typography.fontSize.h1Phone,
     textAlign: "center",
-    // marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
   },
   headerBalance: {
     position: "absolute",
@@ -945,21 +749,246 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.3)",
   },
-  headerBalanceAmount: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary,
-    marginRight: Spacing.xs,
-  },
-  section: {
-    marginBottom: Spacing.xxxl,
-  },
   star: {
     position: "absolute",
     width: 10,
     height: 10,
     opacity: 0.6,
   },
+  headerBalanceAmount: {
+    fontSize: Typography.fontSize.medium,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary,
+    marginRight: Spacing.xs,
+  },
+
+  // Info section
+  infoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.medium,
+    marginBottom: Spacing.xl,
+    backdropFilter: "blur(10px)",
+  },
+  infoText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.sm,
+    lineHeight: 18,
+  },
+
+  // Tab section
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: BorderRadius.round,
+    padding: 4,
+    marginBottom: Spacing.xl,
+    backdropFilter: "blur(10px)",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: "center",
+    borderRadius: BorderRadius.round,
+  },
+  tabActive: {
+    backgroundColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  tabTextActive: {
+    color: Colors.textDark,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+
+  // Section
+  sectionTitle: {
+    fontSize: Typography.fontSize.h2,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text,
+    marginBottom: Spacing.xl,
+    textAlign: "center",
+  },
+
+  // Plan grid
+  planGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
+  // Subscription cards
+  subscriptionCard: {
+    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: BorderRadius.large,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    alignItems: "center",
+    position: "relative",
+    borderWidth: 2,
+    borderColor: "transparent",
+    backdropFilter: "blur(10px)",
+    minHeight: 160,
+  },
+  subscriptionCardActive: {
+    borderColor: Colors.success,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+  },
+  subscriptionCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  // Credit pack cards
+  creditPackCard: {
+    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: BorderRadius.large,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    backdropFilter: "blur(10px)",
+    borderWidth: 2,
+    borderColor: "transparent",
+    minHeight: 160,
+  },
+  creditPackCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  // Card content
+  cardTitle: {
+    fontSize: Typography.fontSize.medium,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+    lineHeight: 22,
+  },
+  cardCredits: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
+  },
+  cardPrice: {
+    fontSize: Typography.fontSize.large,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary,
+    textAlign: "center",
+  },
+
+  // Badges
+  popularBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderTopRightRadius: BorderRadius.medium,
+    borderBottomLeftRadius: BorderRadius.medium,
+  },
+  bestValueBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderTopRightRadius: BorderRadius.medium,
+    borderBottomLeftRadius: BorderRadius.medium,
+  },
+  currentBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.success,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderTopRightRadius: BorderRadius.medium,
+    borderBottomLeftRadius: BorderRadius.medium,
+  },
+  badgeText: {
+    fontSize: Typography.fontSize.tiny,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textDark,
+  },
+
+  // Restore button
+  restoreButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.lg,
+    marginTop: -15,
+    marginBottom: Spacing.lg,
+  },
+  restoreText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    textDecorationLine: "underline",
+  },
+
+  // Debug button - Temporary
+  debugButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: "rgba(255, 0, 0, 0.1)",
+    borderRadius: BorderRadius.medium,
+    borderWidth: 1,
+    borderColor: "rgba(255, 0, 0, 0.3)",
+  },
+  debugText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Force refresh button - Temporary
+  forceRefreshButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.xxl,
+    backgroundColor: "rgba(0, 150, 255, 0.1)",
+    borderRadius: BorderRadius.medium,
+    borderWidth: 1,
+    borderColor: "rgba(0, 150, 255, 0.3)",
+  },
+  forceRefreshText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  // Bottom section and purchase button
   bottomSection: {
     position: "absolute",
     bottom: 0,
@@ -971,236 +1000,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(212, 175, 55, 0.2)",
   },
-  subscriptionStatusContainer: {
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  subscriptionStatus: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.success,
-  },
-
-  // Tab styles
-  tabSelector: {
-    flexDirection: "row",
-    backgroundColor: Colors.backgroundLight,
-    borderRadius: BorderRadius.medium,
-    padding: 4,
-    marginBottom: Spacing.md,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: "center",
-    borderRadius: BorderRadius.small,
-  },
-  tabActive: {
-    backgroundColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: Colors.textDark,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-
-  // Matrix styles
-  matrixContainer: {
-    backgroundColor: Colors.backgroundLight,
-    borderRadius: BorderRadius.large,
-    overflow: "visible",
-    marginBottom: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
-  },
-  matrixTitle: {
-    fontSize: Typography.fontSize.h4,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text,
-    textAlign: "center",
-    paddingTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  matrixSubtitle: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    paddingBottom: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-  },
-  matrixHeader: {
-    flexDirection: "row",
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-  },
-  matrixHeaderCell: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  matrixHeaderText: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textDark,
-    textTransform: "uppercase",
-  },
-  sectionHeaderRow: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  sectionHeaderText: {
-    fontSize: Typography.fontSize.small,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  matrixRow: {
-    flexDirection: "row",
-    backgroundColor: Colors.backgroundLight,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(212, 175, 55, 0.1)",
-    paddingVertical: Spacing.md,
-    position: "relative",
-    minHeight: 60,
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginHorizontal: 4,
-    marginVertical: 3,
-    borderRadius: BorderRadius.small,
-  },
-  matrixRowPopular: {
-    backgroundColor: Colors.backgroundLight,
-    borderBottomColor: "rgba(212, 175, 55, 0.1)",
-  },
-  matrixRowSelected: {
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  matrixRowActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
-    borderColor: Colors.success,
-    borderWidth: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.success,
-    opacity: 0.8,
-  },
-  matrixPopularBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderBottomLeftRadius: BorderRadius.small,
-    zIndex: 1,
-  },
-  matrixPopularText: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textDark,
-  },
-  matrixActiveBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderBottomLeftRadius: BorderRadius.small,
-    zIndex: 1,
-  },
-  matrixActiveText: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textDark,
-  },
-  matrixCell: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xs,
-  },
-  matrixPlanCell: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-  matrixPlanText: {
-    fontSize: Typography.fontSize.tiny,
-    color: Colors.text,
-    textAlign: "center",
-    marginTop: Spacing.xs,
-    lineHeight: 12,
-  },
-  matrixCreditsText: {
-    fontSize: Typography.fontSize.small,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-    textAlign: "center",
-  },
-  matrixPriceText: {
-    fontSize: Typography.fontSize.small,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary,
-    textAlign: "center",
-  },
-  matrixCostText: {
-    fontSize: Typography.fontSize.tiny,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  matrixRenewalText: {
-    fontSize: Typography.fontSize.tiny,
-    color: Colors.success,
-    textAlign: "center",
-    marginTop: 2,
-    fontStyle: "italic",
-  },
-  matrixEmptyState: {
-    padding: Spacing.xl,
-    alignItems: "center",
-    backgroundColor: Colors.backgroundLight,
-  },
-
-  // Subscription section styles
-  subscriptionSectionHeader: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: "rgba(212, 175, 55, 0.08)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(212, 175, 55, 0.2)",
-  },
-  subscriptionSectionText: {
-    fontSize: Typography.fontSize.small,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  subscriptionSectionSubtext: {
-    fontSize: Typography.fontSize.tiny,
-    color: Colors.primary,
-    marginTop: 2,
-    fontWeight: Typography.fontWeight.medium,
-  },
-
-  // Purchase button styles
   purchaseButton: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.medium,
@@ -1228,23 +1027,15 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     textAlign: "center",
   },
-  purchaseButtonPrice: {
-    fontSize: Typography.fontSize.large,
-    fontWeight: Typography.fontWeight.bold,
+  purchaseButtonSubtext: {
+    fontSize: Typography.fontSize.small,
     color: Colors.textDark,
-    marginTop: 2,
     textAlign: "center",
+    marginTop: 2,
+    opacity: 0.8,
   },
 
-  restoreButton: {
-    alignItems: "center",
-    paddingVertical: Spacing.lg,
-  },
-  restoreText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    textDecorationLine: "underline",
-  },
+  // Purchasing overlay
   purchasingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.8)",
@@ -1256,25 +1047,5 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginTop: Spacing.lg,
     textAlign: "center",
-  },
-  noOfferings: {
-    backgroundColor: Colors.backgroundLight,
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.xl,
-    alignItems: "center",
-    marginVertical: Spacing.lg,
-  },
-  noOfferingsTitle: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  noOfferingsText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
   },
 });

@@ -26,7 +26,33 @@ export const CreditIndicator: React.FC<CreditIndicatorProps> = ({
   };
 
   if (loading) {
-    return null;
+    if (compact) {
+      return (
+        <View style={styles.compactContainer}>
+          <IconSymbol name="sparkles" size={16} color={Colors.textSecondary} />
+          <Text style={[styles.compactText, { color: Colors.textSecondary }]}>
+            -
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <IconSymbol name="sparkles" size={18} color={Colors.textSecondary} />
+          <Text style={[styles.balance, { color: Colors.textSecondary }]}>
+            -
+          </Text>
+          <Text style={styles.label}>credits</Text>
+        </View>
+        <IconSymbol
+          name="chevron.right"
+          size={14}
+          color={Colors.textSecondary}
+        />
+      </View>
+    );
   }
 
   if (compact) {

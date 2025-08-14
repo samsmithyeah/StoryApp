@@ -55,6 +55,45 @@ export const useCredits = () => {
     return credits ? credits.balance >= amount : false;
   };
 
+  // Debug methods for subscription troubleshooting
+  const debugSubscription = async () => {
+    if (!user) return;
+
+    console.log("=== DEBUGGING SUBSCRIPTION ===");
+
+    try {
+      const { revenueCatService } = await import("../services/revenuecat");
+      await revenueCatService.configure(user.uid);
+
+      // Debug what RevenueCat is reporting
+      await revenueCatService.debugCustomerInfo();
+
+      // Force a sync
+      await revenueCatService.forceSyncSubscription();
+
+      // Refresh credits to see the result
+      await refreshCredits();
+    } catch (error) {
+      console.error("Debug failed:", error);
+    }
+
+    console.log("=== DEBUG COMPLETE ===");
+  };
+
+  const forceSync = async () => {
+    if (!user) return;
+
+    try {
+      const { revenueCatService } = await import("../services/revenuecat");
+      await revenueCatService.configure(user.uid);
+      await revenueCatService.forceSyncSubscription();
+      await refreshCredits();
+      console.log("✅ Force sync completed");
+    } catch (error) {
+      console.error("Force sync failed:", error);
+    }
+  };
+
   return {
     credits,
     balance: credits?.balance || 0,
@@ -63,5 +102,8 @@ export const useCredits = () => {
     refreshCredits,
     hasEnoughCredits,
     subscriptionActive: credits?.subscriptionActive || false,
+    // Debug methods
+    debugSubscription,
+    forceSync,
   };
 };

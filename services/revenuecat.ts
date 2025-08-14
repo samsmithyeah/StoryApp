@@ -110,7 +110,18 @@ class RevenueCatService {
       const activeSubscriptions = customerInfo.activeSubscriptions;
 
       if (activeSubscriptions.length > 0) {
-        // Get the latest subscription (most recent)
+        // Warn if multiple subscriptions detected (shouldn't happen with upgrade path)
+        if (activeSubscriptions.length > 1) {
+          console.warn(
+            "⚠️ MULTIPLE ACTIVE SUBSCRIPTIONS DETECTED:",
+            activeSubscriptions
+          );
+          console.warn(
+            "This may indicate an upgrade/downgrade in progress or a configuration issue"
+          );
+        }
+
+        // Get the primary subscription (most recent/preferred)
         // Priority: annual > monthly (since annual is usually preferred)
         const sortedSubscriptions = activeSubscriptions.sort((a, b) => {
           if (a.includes("annual") && !b.includes("annual")) return -1;
@@ -125,6 +136,7 @@ class RevenueCatService {
           primarySubscription,
           credits,
           totalActive: activeSubscriptions.length,
+          allActiveSubscriptions: activeSubscriptions,
         });
 
         if (credits > 0) {
@@ -380,71 +392,92 @@ class RevenueCatService {
         throw new Error(`Unknown subscription: ${productId}`);
       }
 
-      // Make the purchase
+      // Check for existing active subscription to handle upgrades/downgrades
+      const currentSubscription = await this.getCurrentActiveSubscription();
+      let purchaseOptions: any = {};
+
+      if (currentSubscription && currentSubscription.productId !== productId) {
+        console.log("🔄 EXISTING SUBSCRIPTION DETECTED:", {
+          current: currentSubscription.productId,
+          new: productId,
+        });
+
+        // Use RevenueCat's upgrade/downgrade functionality
+        purchaseOptions.oldProductIdentifier = currentSubscription.productId;
+        console.log(
+          "🔄 WILL REPLACE SUBSCRIPTION:",
+          currentSubscription.productId,
+          "->",
+          productId
+        );
+      }
+
+      // Make the purchase (with upgrade/replace if applicable)
       console.log("🔔 SUBSCRIPTION PURCHASE STARTING...");
-      purchaseInfo = await Purchases.purchasePackage(packageToPurchase);
+      purchaseInfo = await Purchases.purchasePackage(
+        packageToPurchase,
+        purchaseOptions
+      );
       console.log("🔔 SUBSCRIPTION PURCHASE COMPLETED!");
 
       // Critical: Update subscription and add credits atomically
       try {
-        const expirationDate =
-          purchaseInfo.customerInfo.allExpirationDates?.[productId] || null;
+        // For upgrades/downgrades, we need to be more careful about which subscription to track
+        const customerInfo = purchaseInfo.customerInfo;
+        const activeSubscriptions = customerInfo.activeSubscriptions;
 
-        console.log("Subscription debug:", {
-          productId,
-          allExpirationDates: purchaseInfo.customerInfo.allExpirationDates,
-          extractedExpiration: expirationDate,
-          processedDate: expirationDate ? new Date(expirationDate) : new Date(),
+        console.log("🔄 POST-PURCHASE SUBSCRIPTION DEBUG:", {
+          requestedProductId: productId,
+          activeSubscriptions,
+          allExpirationDates: customerInfo.allExpirationDates,
+          wasUpgrade: !!currentSubscription,
         });
 
-        // Enhanced debugging for renewal date issues
-        console.log("=== RENEWAL DATE DEBUG ===");
-        console.log("Raw RevenueCat data:", {
-          productId,
-          allExpirationDates: purchaseInfo.customerInfo.allExpirationDates,
-          latestExpirationDate: purchaseInfo.customerInfo.latestExpirationDate,
-          activeSubscriptions: purchaseInfo.customerInfo.activeSubscriptions,
-          entitlements: purchaseInfo.customerInfo.entitlements,
-          firstSeen: purchaseInfo.customerInfo.firstSeen,
-          originalPurchaseDate: purchaseInfo.customerInfo.originalPurchaseDate,
-        });
+        // Find the correct subscription to use - prioritize the one we just purchased
+        let finalProductId = productId;
+        let finalExpirationDate = customerInfo.allExpirationDates?.[productId];
 
-        const processedExpirationDate = expirationDate
-          ? new Date(expirationDate)
+        // If we don't find the expected product, use the first active subscription
+        // This handles cases where RevenueCat processes the change differently
+        if (!finalExpirationDate && activeSubscriptions.length > 0) {
+          console.log(
+            "⚠️ Expected product not found in expiration dates, using first active subscription"
+          );
+          const sortedSubscriptions = activeSubscriptions.sort((a, b) => {
+            if (a.includes("annual") && !b.includes("annual")) return -1;
+            if (!a.includes("annual") && b.includes("annual")) return 1;
+            return 0;
+          });
+          finalProductId = sortedSubscriptions[0];
+          finalExpirationDate =
+            customerInfo.allExpirationDates?.[finalProductId];
+        }
+
+        const finalCredits = CREDIT_AMOUNTS[finalProductId] || monthlyCredits;
+        const processedExpirationDate = finalExpirationDate
+          ? new Date(finalExpirationDate)
           : new Date();
-        const now = new Date();
-        const daysDiff = expirationDate
-          ? Math.floor(
-              (processedExpirationDate.getTime() - now.getTime()) /
-                (1000 * 60 * 60 * 24)
-            )
-          : 0;
 
-        console.log("Processed expiration date details:", {
-          originalExpirationString: expirationDate,
-          parsedExpirationDate: processedExpirationDate,
-          expirationDateISO: processedExpirationDate.toISOString(),
-          currentDate: now.toISOString(),
-          daysDifference: daysDiff,
-        });
-        console.log("==========================");
-
-        console.log("About to call updateSubscription with:", {
-          userId: this.userId,
-          productId,
-          monthlyCredits,
-          processedExpirationDate,
+        console.log("🔄 FINAL SUBSCRIPTION UPDATE:", {
+          originalProductId: productId,
+          finalProductId,
+          finalCredits,
+          processedExpirationDate: processedExpirationDate.toISOString(),
+          wasProductChanged: finalProductId !== productId,
         });
 
         await creditsService.updateSubscription(
           this.userId,
-          productId,
-          monthlyCredits,
+          finalProductId, // Use the actual active product ID
+          finalCredits,
           processedExpirationDate,
           true // Add credits since this is a new purchase
         );
 
-        // Credits are now added by updateSubscription when addCredits=true
+        // Force a sync after purchase to ensure consistency
+        setTimeout(() => {
+          this.syncSubscriptionStatus();
+        }, 2000);
 
         return true;
       } catch (subscriptionError) {
@@ -498,6 +531,222 @@ class RevenueCatService {
     }
   }
 
+  async getCurrentActiveSubscription(): Promise<{
+    productId: string;
+    credits: number;
+    expirationDate: Date;
+  } | null> {
+    try {
+      const customerInfo = await this.getCustomerInfo();
+
+      if (customerInfo.activeSubscriptions.length === 0) {
+        return null;
+      }
+
+      // Use the same priority logic as the customer info handler
+      const sortedSubscriptions = customerInfo.activeSubscriptions.sort(
+        (a, b) => {
+          if (a.includes("annual") && !b.includes("annual")) return -1;
+          if (!a.includes("annual") && b.includes("annual")) return 1;
+          return 0;
+        }
+      );
+
+      const primarySubscription = sortedSubscriptions[0];
+      const credits = CREDIT_AMOUNTS[primarySubscription] || 0;
+      const expirationDate =
+        customerInfo.allExpirationDates?.[primarySubscription];
+
+      if (!expirationDate) {
+        console.warn("No expiration date found for active subscription");
+        return null;
+      }
+
+      return {
+        productId: primarySubscription,
+        credits,
+        expirationDate: new Date(expirationDate),
+      };
+    } catch (error) {
+      console.error("Error getting current active subscription:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Checks if a user can upgrade to a higher tier subscription
+   * @param targetProductId The product ID they want to upgrade to
+   * @returns Object indicating if upgrade is available and what type
+   */
+  async canUpgradeToSubscription(targetProductId: string): Promise<{
+    canUpgrade: boolean;
+    isUpgrade: boolean;
+    isDowngrade: boolean;
+    currentSubscription?: string;
+  }> {
+    try {
+      const current = await this.getCurrentActiveSubscription();
+
+      if (!current) {
+        return {
+          canUpgrade: true,
+          isUpgrade: false,
+          isDowngrade: false,
+        };
+      }
+
+      if (current.productId === targetProductId) {
+        return {
+          canUpgrade: false,
+          isUpgrade: false,
+          isDowngrade: false,
+          currentSubscription: current.productId,
+        };
+      }
+
+      const currentCredits = CREDIT_AMOUNTS[current.productId] || 0;
+      const targetCredits = CREDIT_AMOUNTS[targetProductId] || 0;
+
+      return {
+        canUpgrade: true,
+        isUpgrade: targetCredits > currentCredits,
+        isDowngrade: targetCredits < currentCredits,
+        currentSubscription: current.productId,
+      };
+    } catch (error) {
+      console.error("Error checking upgrade availability:", error);
+      return {
+        canUpgrade: false,
+        isUpgrade: false,
+        isDowngrade: false,
+      };
+    }
+  }
+
+  private getSubscriptionDisplayName(productId: string): string {
+    const displayNames: Record<string, string> = {
+      [PRODUCT_IDS.MONTHLY_BASIC]: "Monthly Storyteller",
+      [PRODUCT_IDS.MONTHLY_PRO]: "Monthly Story Master",
+      [PRODUCT_IDS.ANNUAL_BASIC]: "Annual Storyteller",
+      [PRODUCT_IDS.ANNUAL_PRO]: "Annual Story Master",
+    };
+    return displayNames[productId] || productId;
+  }
+
+  /**
+   * Check if purchasing a subscription would replace an existing one
+   * Returns null if no current subscription, or change info if there would be a change
+   */
+  async getSubscriptionChangeInfo(newProductId: string): Promise<{
+    currentName: string;
+    newName: string;
+    isUpgrade: boolean;
+    message: string;
+  } | null> {
+    const currentSubscription = await this.getCurrentActiveSubscription();
+
+    if (
+      !currentSubscription ||
+      currentSubscription.productId === newProductId
+    ) {
+      return null;
+    }
+
+    const currentName = this.getSubscriptionDisplayName(
+      currentSubscription.productId
+    );
+    const newName = this.getSubscriptionDisplayName(newProductId);
+    const currentCredits = CREDIT_AMOUNTS[currentSubscription.productId] || 0;
+    const newCredits = CREDIT_AMOUNTS[newProductId] || 0;
+    const isUpgrade = newCredits > currentCredits;
+
+    const message = `You currently have ${currentName} active. This will be replaced with ${newName}.\n\n${isUpgrade ? "You'll get more credits" : "You'll get fewer credits"} and your billing will be adjusted automatically.`;
+
+    return {
+      currentName,
+      newName,
+      isUpgrade,
+      message,
+    };
+  }
+
+  /**
+   * Debug method to see exactly what RevenueCat is reporting
+   */
+  async debugCustomerInfo(): Promise<void> {
+    if (!this.isConfigured || !this.userId) {
+      console.warn("RevenueCat not configured");
+      return;
+    }
+
+    try {
+      console.log("🐛 DEBUG: Fetching customer info from RevenueCat...");
+      const customerInfo = await this.getCustomerInfo();
+
+      console.log("🐛 DEBUG: Raw CustomerInfo:", {
+        activeSubscriptions: customerInfo.activeSubscriptions,
+        allPurchasedProductIdentifiers:
+          customerInfo.allPurchasedProductIdentifiers,
+        allExpirationDates: customerInfo.allExpirationDates,
+        entitlements: customerInfo.entitlements,
+        latestExpirationDate: customerInfo.latestExpirationDate,
+        originalPurchaseDate: customerInfo.originalPurchaseDate,
+        firstSeen: customerInfo.firstSeen,
+      });
+
+      // Analyze all subscription expirations to understand the timeline
+      console.log("🐛 SUBSCRIPTION TIMELINE ANALYSIS:");
+      const now = new Date();
+      const subscriptionTimeline = Object.entries(
+        customerInfo.allExpirationDates || {}
+      )
+        .filter(([productId]) => productId.includes("subscription"))
+        .map(([productId, expiration]) => {
+          if (!expiration) return null;
+          const expDate = new Date(expiration);
+          const isActive = expDate > now;
+          const minutesFromNow = Math.floor(
+            (expDate.getTime() - now.getTime()) / (1000 * 60)
+          );
+
+          return {
+            productId,
+            expiration: expDate.toISOString(),
+            isActive,
+            minutesFromNow,
+            credits: CREDIT_AMOUNTS[productId] || 0,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b!.minutesFromNow - a!.minutesFromNow);
+
+      subscriptionTimeline.forEach((sub, index) => {
+        const status = sub!.isActive ? "✅ ACTIVE" : "❌ EXPIRED";
+        const timeDesc = sub!.isActive
+          ? `expires in ${sub!.minutesFromNow} min`
+          : `expired ${Math.abs(sub!.minutesFromNow)} min ago`;
+        console.log(
+          `${index + 1}. ${sub!.productId} (${sub!.credits} credits) - ${status} - ${timeDesc}`
+        );
+      });
+
+      // Check what our current active subscription should be
+      const currentSub = await this.getCurrentActiveSubscription();
+      console.log("🐛 DEBUG: getCurrentActiveSubscription result:", currentSub);
+    } catch (error) {
+      console.error("🐛 DEBUG: Error fetching customer info:", error);
+    }
+  }
+
+  /**
+   * Force sync subscription status (public method for debugging)
+   */
+  async forceSyncSubscription(): Promise<void> {
+    console.log("🔧 FORCE SYNC: Starting manual subscription sync...");
+    await this.syncSubscriptionStatus();
+    console.log("🔧 FORCE SYNC: Manual subscription sync completed");
+  }
+
   async syncSubscriptionStatus(): Promise<void> {
     if (!this.isConfigured || !this.userId) {
       console.warn(
@@ -510,31 +759,74 @@ class RevenueCatService {
       console.log("Syncing subscription status with RevenueCat...");
       const customerInfo = await this.getCustomerInfo();
 
-      console.log("RevenueCat customer info:", {
+      console.log("🔄 SYNC: RevenueCat customer info:", {
         activeSubscriptions: customerInfo.activeSubscriptions,
         allExpirationDates: customerInfo.allExpirationDates,
       });
 
       if (customerInfo.activeSubscriptions.length > 0) {
-        // User has active subscriptions
-        const subscriptionId = customerInfo.activeSubscriptions[0];
-        const credits = CREDIT_AMOUNTS[subscriptionId] || 0;
-        const expirationDate =
-          customerInfo.allExpirationDates?.[subscriptionId];
-
-        await creditsService.updateSubscription(
-          this.userId,
-          subscriptionId,
-          credits,
-          expirationDate ? new Date(expirationDate) : new Date(),
-          false // Don't add credits during sync operations
+        // Use the same prioritization logic as other methods
+        const sortedSubscriptions = customerInfo.activeSubscriptions.sort(
+          (a, b) => {
+            if (a.includes("annual") && !b.includes("annual")) return -1;
+            if (!a.includes("annual") && b.includes("annual")) return 1;
+            return 0;
+          }
         );
 
-        console.log("Subscription status updated: active");
+        const primarySubscription = sortedSubscriptions[0];
+        const credits = CREDIT_AMOUNTS[primarySubscription] || 0;
+        const expirationDate =
+          customerInfo.allExpirationDates?.[primarySubscription];
+
+        console.log("🔄 SYNC: Primary subscription details:", {
+          primarySubscription,
+          credits,
+          expirationDate,
+          totalActiveSubscriptions: customerInfo.activeSubscriptions.length,
+        });
+
+        if (expirationDate) {
+          const expDate = new Date(expirationDate);
+          const now = new Date();
+          const isExpired = expDate <= now;
+
+          console.log("🔄 SYNC: Expiration check:", {
+            expirationDate: expDate.toISOString(),
+            currentDate: now.toISOString(),
+            isExpired,
+          });
+
+          if (!isExpired) {
+            await creditsService.updateSubscription(
+              this.userId,
+              primarySubscription,
+              credits,
+              expDate,
+              false // Don't add credits during sync operations
+            );
+            console.log("🔄 SYNC: Subscription status updated: active");
+          } else {
+            console.log("🔄 SYNC: Subscription expired, cancelling");
+            await creditsService.cancelSubscription(this.userId);
+          }
+        } else {
+          console.warn(
+            "🔄 SYNC: No expiration date found for active subscription"
+          );
+          // Still update the subscription but with a fallback date
+          await creditsService.updateSubscription(
+            this.userId,
+            primarySubscription,
+            credits,
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now as fallback
+            false
+          );
+        }
       } else {
         // No active subscriptions
+        console.log("🔄 SYNC: No active subscriptions, cancelling");
         await creditsService.cancelSubscription(this.userId);
-        console.log("Subscription status updated: cancelled");
       }
     } catch (error) {
       console.error("Error syncing subscription status:", error);
