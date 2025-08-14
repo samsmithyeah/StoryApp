@@ -3,6 +3,7 @@ import {
   BorderRadius,
   Colors,
   CommonStyles,
+  Shadows,
   Spacing,
   Typography,
 } from "@/constants/Theme";
@@ -630,6 +631,7 @@ export default function CreditsScreen({
           <TouchableOpacity
             style={[
               styles.purchaseButton,
+              !(purchasing || !selectedPackage) && styles.purchaseButtonEnabled,
               (purchasing || !selectedPackage) && styles.purchaseButtonDisabled,
             ]}
             onPress={() => {
@@ -1005,14 +1007,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 56,
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  },
+  purchaseButtonEnabled: {
+    ...Shadows.glow,
   },
   purchaseButtonDisabled: {
     opacity: 0.6,
