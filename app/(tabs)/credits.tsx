@@ -313,7 +313,7 @@ export default function CreditsScreen({
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "contain"}
       style={styles.container}
     >
       <LinearGradient

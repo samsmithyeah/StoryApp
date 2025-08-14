@@ -52,7 +52,13 @@ export interface PurchaseHistory {
   credits: number;
   platform: "ios" | "android";
   transactionId: string;
-  status: "pending" | "completed" | "failed" | "refunded";
+  status:
+    | "pending"
+    | "completed"
+    | "failed"
+    | "refunded"
+    | "pending_credits"
+    | "validation_failed";
 }
 
 export interface RevenueCatCustomerInfo {

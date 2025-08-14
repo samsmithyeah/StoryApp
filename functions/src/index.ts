@@ -15,3 +15,12 @@ export { getStory } from "./getStory";
 export { deleteUserData } from "./deleteUserData";
 export { deleteStory } from "./deleteStory";
 export { reportStory } from "./reportStory";
+
+// Credit and purchase management functions
+export { revenueCatWebhook } from "./revenueCatWebhook";
+export { validatePurchase } from "./validatePurchase";
+export {
+  useCreditsReliable,
+  checkCreditsAvailable,
+  repairUserCredits,
+} from "./creditOperations";

@@ -1,21 +1,22 @@
-import {
+import firestore, {
+  getFirestore,
   collection,
   doc,
   getDoc,
   setDoc,
   updateDoc,
   addDoc,
+  runTransaction,
   query,
   where,
   orderBy,
   limit,
   getDocs,
+  onSnapshot,
   serverTimestamp,
   increment,
-  runTransaction,
-  getFirestore,
+  deleteField,
 } from "@react-native-firebase/firestore";
-import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import type {
   UserCredits,
   CreditTransaction,
@@ -26,10 +27,67 @@ const INITIAL_FREE_CREDITS = 10;
 const db = getFirestore();
 
 export const creditsService = {
+  // Type validation helper - keeps security fix
+  validateUserCredits(data: any): UserCredits {
+    if (typeof data !== "object" || data === null) {
+      throw new Error("Invalid credits data structure");
+    }
+
+    const requiredFields = [
+      "balance",
+      "lifetimeUsed",
+      "subscriptionActive",
+      "freeCreditsGranted",
+    ];
+    for (const field of requiredFields) {
+      if (!(field in data)) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    if (typeof data.balance !== "number") {
+      throw new Error("Field balance must be a number");
+    }
+
+    if (data.balance < 0) {
+      throw new Error("Field balance cannot be negative");
+    }
+
+    if (typeof data.lifetimeUsed !== "number") {
+      throw new Error("Field lifetimeUsed must be a number");
+    }
+
+    if (data.lifetimeUsed < 0) {
+      throw new Error("Field lifetimeUsed cannot be negative");
+    }
+
+    if (typeof data.subscriptionActive !== "boolean") {
+      throw new Error("Field subscriptionActive must be a boolean");
+    }
+
+    if (typeof data.freeCreditsGranted !== "boolean") {
+      throw new Error("Field freeCreditsGranted must be a boolean");
+    }
+
+    // Check for unsafe integers - keeps security fix
+    if (!Number.isSafeInteger(data.balance)) {
+      throw new Error("Field balance exceeds maximum safe integer");
+    }
+
+    if (!Number.isSafeInteger(data.lifetimeUsed)) {
+      throw new Error("Field lifetimeUsed exceeds maximum safe integer");
+    }
+
+    return {
+      ...data,
+      subscriptionRenewsAt: data.subscriptionRenewsAt?.toDate?.(),
+      lastUpdated: data.lastUpdated?.toDate?.(),
+    } as UserCredits;
+  },
+
   async getUserCredits(userId: string): Promise<UserCredits | null> {
     try {
-      const creditsRef = doc(db, "userCredits", userId);
-      const creditsDoc = await getDoc(creditsRef);
+      const creditsDoc = await getDoc(doc(db, "userCredits", userId));
 
       if (!creditsDoc.exists()) {
         return null;
@@ -38,11 +96,7 @@ export const creditsService = {
       const data = creditsDoc.data();
       if (!data) return null;
 
-      return {
-        ...data,
-        subscriptionRenewsAt: data.subscriptionRenewsAt?.toDate(),
-        lastUpdated: data.lastUpdated?.toDate(),
-      } as UserCredits;
+      return this.validateUserCredits(data);
     } catch (error) {
       console.error("Error fetching user credits:", error);
       throw error;
@@ -51,17 +105,10 @@ export const creditsService = {
 
   async initializeUserCredits(userId: string): Promise<void> {
     try {
-      const creditsRef = doc(db, "userCredits", userId);
-      const creditsDoc = await getDoc(creditsRef);
+      const creditsDoc = await getDoc(doc(db, "userCredits", userId));
 
       if (!creditsDoc.exists()) {
-        const initialCredits: Omit<
-          UserCredits,
-          "subscriptionRenewsAt" | "lastUpdated"
-        > & {
-          subscriptionRenewsAt?: any;
-          lastUpdated: any;
-        } = {
+        const initialCredits = {
           userId,
           balance: INITIAL_FREE_CREDITS,
           lifetimeUsed: 0,
@@ -70,9 +117,10 @@ export const creditsService = {
           lastUpdated: serverTimestamp(),
         };
 
-        await setDoc(creditsRef, initialCredits);
+        await setDoc(doc(db, "userCredits", userId), initialCredits);
 
         await this.recordTransaction({
+          id: `${userId}_initial_${Date.now()}`,
           userId,
           amount: INITIAL_FREE_CREDITS,
           type: "initial",
@@ -85,145 +133,214 @@ export const creditsService = {
     }
   },
 
+  // Fixed race condition by keeping transaction atomic
   async useCredits(
     userId: string,
     amount: number,
     storyId?: string
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; remainingBalance: number; error?: string }> {
     try {
-      return await runTransaction(
-        db,
-        async (transaction: FirebaseFirestoreTypes.Transaction) => {
-          const creditsRef = doc(db, "userCredits", userId);
-          const creditsDoc = await transaction.get(creditsRef);
+      return await runTransaction(db, async (transaction) => {
+        const creditsRef = doc(db, "userCredits", userId);
+        const creditsDoc = await transaction.get(creditsRef);
 
-          if (!creditsDoc.exists()) {
-            throw new Error("User credits not found");
-          }
-
-          const credits = creditsDoc.data() as UserCredits;
-
-          if (credits.balance < amount) {
-            return false;
-          }
-
-          transaction.update(creditsRef, {
-            balance: increment(-amount),
-            lifetimeUsed: increment(amount),
-            lastUpdated: serverTimestamp(),
-          });
-
-          const transactionRef = doc(collection(db, "creditTransactions"));
-          transaction.set(transactionRef, {
-            userId,
-            amount: -amount,
-            type: "usage",
-            description: `Used ${amount} credit${amount > 1 ? "s" : ""} for story generation`,
-            createdAt: serverTimestamp(),
-            storyId,
-          });
-
-          return true;
+        if (!creditsDoc.exists) {
+          throw new Error("User credits not found");
         }
-      );
+
+        const creditsData = creditsDoc.data();
+        if (!creditsData) {
+          throw new Error("Invalid credits data");
+        }
+
+        const currentBalance = creditsData.balance || 0;
+
+        if (currentBalance < amount) {
+          throw new Error(
+            `Insufficient credits. Need ${amount}, have ${currentBalance}`
+          );
+        }
+
+        // Update credits atomically
+        transaction.update(creditsRef, {
+          balance: increment(-amount),
+          lifetimeUsed: increment(amount),
+          lastUpdated: serverTimestamp(),
+        });
+
+        // Record transaction
+        const transactionRef = doc(collection(db, "creditTransactions"));
+        transaction.set(transactionRef, {
+          userId,
+          amount: -amount,
+          type: "usage",
+          description: `Used ${amount} credit${amount > 1 ? "s" : ""} for story generation`,
+          createdAt: serverTimestamp(),
+          storyId,
+          metadata: {
+            previousBalance: currentBalance,
+            newBalance: currentBalance - amount,
+          },
+        });
+
+        return {
+          success: true,
+          remainingBalance: currentBalance - amount,
+        };
+      });
     } catch (error) {
       console.error("Error using credits:", error);
-      throw error;
+      return {
+        success: false,
+        remainingBalance: 0,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   },
 
+  // Atomic credit addition - keeps transaction fix
   async addCredits(
     userId: string,
     amount: number,
-    type: CreditTransaction["type"],
+    type: "purchase" | "subscription" | "bonus" | "refund",
     description: string,
-    purchaseId?: string
-  ): Promise<void> {
+    purchaseDate?: string
+  ): Promise<{ success: boolean; newBalance: number; error?: string }> {
     try {
-      await runTransaction(
-        db,
-        async (transaction: FirebaseFirestoreTypes.Transaction) => {
-          const creditsRef = doc(db, "userCredits", userId);
-          const creditsDoc = await transaction.get(creditsRef);
+      return await runTransaction(db, async (transaction) => {
+        const creditsRef = doc(db, "userCredits", userId);
+        const creditsDoc = await transaction.get(creditsRef);
 
-          if (!creditsDoc.exists()) {
-            await this.initializeUserCredits(userId);
-            const updatedDoc = await transaction.get(creditsRef);
-            if (!updatedDoc.exists()) {
-              throw new Error("Failed to initialize user credits");
-            }
-          }
+        let currentBalance = 0;
 
-          transaction.update(creditsRef, {
-            balance: increment(amount),
-            lastUpdated: serverTimestamp(),
-          });
-
-          const transactionRef = doc(collection(db, "creditTransactions"));
-          transaction.set(transactionRef, {
+        if (!creditsDoc.exists) {
+          // Initialize user credits if they don't exist
+          const initialCredits = {
             userId,
-            amount,
-            type,
-            description,
-            createdAt: serverTimestamp(),
-            purchaseId,
-          });
+            balance: 0,
+            lifetimeUsed: 0,
+            subscriptionActive: false,
+            freeCreditsGranted: false,
+            lastUpdated: serverTimestamp(),
+          };
+          transaction.set(creditsRef, initialCredits);
+        } else {
+          const creditsData = creditsDoc.data();
+          currentBalance = creditsData?.balance || 0;
         }
-      );
+
+        // Add credits atomically
+        transaction.update(creditsRef, {
+          balance: increment(amount),
+          lastUpdated: serverTimestamp(),
+        });
+
+        // Record transaction
+        const transactionRef = doc(collection(db, "creditTransactions"));
+
+        // Build metadata object, excluding undefined values
+        const metadata: any = {
+          previousBalance: currentBalance,
+          newBalance: currentBalance + amount,
+        };
+
+        // Only include purchaseDate if it's defined
+        if (purchaseDate !== undefined) {
+          metadata.purchaseDate = purchaseDate;
+        }
+
+        console.log("addCredits - About to save transaction:", {
+          userId,
+          amount,
+          type,
+          description,
+          metadata,
+        });
+
+        transaction.set(transactionRef, {
+          userId,
+          amount,
+          type,
+          description,
+          createdAt: serverTimestamp(),
+          metadata,
+        });
+
+        return {
+          success: true,
+          newBalance: currentBalance + amount,
+        };
+      });
     } catch (error) {
       console.error("Error adding credits:", error);
-      throw error;
+      return {
+        success: false,
+        newBalance: 0,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkCreditsAvailable(
+    userId: string,
+    requiredCredits: number
+  ): Promise<{ available: boolean; balance: number }> {
+    try {
+      const creditsDoc = await getDoc(doc(db, "userCredits", userId));
+
+      if (!creditsDoc.exists()) {
+        return { available: false, balance: 0 };
+      }
+
+      const data = creditsDoc.data();
+      const balance = data?.balance || 0;
+
+      return {
+        available: balance >= requiredCredits,
+        balance,
+      };
+    } catch (error) {
+      console.error("Error checking credits availability:", error);
+      return { available: false, balance: 0 };
     }
   },
 
   async recordTransaction(
-    transaction: Omit<CreditTransaction, "id" | "createdAt">
-  ): Promise<string> {
+    transaction: Omit<CreditTransaction, "createdAt">
+  ): Promise<void> {
     try {
-      const docRef = await addDoc(collection(db, "creditTransactions"), {
-        ...transaction,
+      // Filter out undefined values to prevent Firestore errors
+      const cleanTransaction = Object.fromEntries(
+        Object.entries(transaction).filter(([_, value]) => value !== undefined)
+      );
+
+      console.log("Recording transaction:", cleanTransaction);
+
+      await addDoc(collection(db, "creditTransactions"), {
+        ...cleanTransaction,
         createdAt: serverTimestamp(),
       });
-      return docRef.id;
     } catch (error) {
-      console.error("Error recording transaction:", error);
+      console.error("Error recording credit transaction:", error);
       throw error;
     }
   },
 
-  async getTransactionHistory(
-    userId: string,
-    limitCount: number = 20
-  ): Promise<CreditTransaction[]> {
+  async recordPurchase(
+    purchase: Omit<PurchaseHistory, "purchaseDate"> & { purchaseDate?: Date }
+  ): Promise<void> {
     try {
-      const q = query(
-        collection(db, "creditTransactions"),
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc"),
-        limit(limitCount)
+      // Filter out undefined values to prevent Firestore errors
+      const cleanPurchase = Object.fromEntries(
+        Object.entries(purchase).filter(([_, value]) => value !== undefined)
       );
-      const querySnapshot = await getDocs(q);
 
-      return querySnapshot.docs.map(
-        (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate(),
-        })
-      ) as CreditTransaction[];
-    } catch (error) {
-      console.error("Error fetching transaction history:", error);
-      throw error;
-    }
-  },
+      console.log("Recording purchase:", cleanPurchase);
 
-  async recordPurchase(purchase: Omit<PurchaseHistory, "id">): Promise<string> {
-    try {
-      const docRef = await addDoc(collection(db, "purchaseHistory"), {
-        ...purchase,
-        purchaseDate: serverTimestamp(),
+      await addDoc(collection(db, "purchaseHistory"), {
+        ...cleanPurchase,
+        purchaseDate: purchase.purchaseDate || serverTimestamp(),
       });
-      return docRef.id;
     } catch (error) {
       console.error("Error recording purchase:", error);
       throw error;
@@ -234,17 +351,41 @@ export const creditsService = {
     userId: string,
     subscriptionId: string,
     monthlyCredits: number,
-    renewsAt: Date
+    expiresAt: Date,
+    addCredits: boolean = false
   ): Promise<void> {
     try {
-      const creditsRef = doc(db, "userCredits", userId);
-      await updateDoc(creditsRef, {
+      const updateData = {
         subscriptionActive: true,
         subscriptionId,
-        subscriptionCreditsRemaining: monthlyCredits,
-        subscriptionRenewsAt: renewsAt,
+        subscriptionRenewsAt: expiresAt,
         lastUpdated: serverTimestamp(),
-      });
+      };
+
+      console.log(
+        "updateSubscription - About to update userCredits with:",
+        updateData
+      );
+      console.log("updateSubscription - addCredits flag:", addCredits);
+
+      await updateDoc(doc(db, "userCredits", userId), updateData);
+
+      // Only add credits when explicitly requested (e.g., during purchase, not sync)
+      if (addCredits) {
+        console.log(
+          "updateSubscription - Adding credits due to addCredits flag"
+        );
+        await this.addCredits(
+          userId,
+          monthlyCredits,
+          "subscription",
+          `Subscription credits: ${monthlyCredits}/month`
+        );
+      } else {
+        console.log(
+          "updateSubscription - Skipping credit addition (sync operation)"
+        );
+      }
     } catch (error) {
       console.error("Error updating subscription:", error);
       throw error;
@@ -253,17 +394,72 @@ export const creditsService = {
 
   async cancelSubscription(userId: string): Promise<void> {
     try {
-      const creditsRef = doc(db, "userCredits", userId);
-      await updateDoc(creditsRef, {
+      await updateDoc(doc(db, "userCredits", userId), {
         subscriptionActive: false,
-        subscriptionId: null,
-        subscriptionCreditsRemaining: null,
-        subscriptionRenewsAt: null,
+        subscriptionId: deleteField(),
+        subscriptionRenewsAt: deleteField(),
         lastUpdated: serverTimestamp(),
       });
     } catch (error) {
       console.error("Error canceling subscription:", error);
       throw error;
     }
+  },
+
+  async getCreditTransactions(
+    userId: string,
+    limitCount: number = 10
+  ): Promise<CreditTransaction[]> {
+    try {
+      const q = query(
+        collection(db, "creditTransactions"),
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc"),
+        limit(limitCount)
+      );
+      const querySnapshot = await getDocs(q);
+
+      return querySnapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+      })) as CreditTransaction[];
+    } catch (error) {
+      console.error("Error fetching credit transactions:", error);
+      throw error;
+    }
+  },
+
+  onCreditsChange(
+    userId: string,
+    callback: (credits: UserCredits | null) => void
+  ): () => void {
+    const unsubscribe = onSnapshot(
+      doc(db, "userCredits", userId),
+      (doc) => {
+        if (doc.exists()) {
+          try {
+            const data = doc.data();
+            if (data) {
+              const validatedCredits = creditsService.validateUserCredits(data);
+              callback(validatedCredits);
+            } else {
+              callback(null);
+            }
+          } catch (error) {
+            console.error("Error validating credits data:", error);
+            callback(null);
+          }
+        } else {
+          callback(null);
+        }
+      },
+      (error) => {
+        console.error("Error listening to credits changes:", error);
+        callback(null);
+      }
+    );
+
+    return unsubscribe;
   },
 };

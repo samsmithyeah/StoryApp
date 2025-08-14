@@ -10,8 +10,14 @@ import auth, {
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+} from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
+import { db } from "./config";
 import {
   GoogleSignin,
   SignInResponse,
@@ -32,10 +38,8 @@ const convertFirebaseUser = async (
   firebaseUser: FirebaseAuthTypes.User
 ): Promise<User> => {
   try {
-    const userDoc = await firestore()
-      .collection("users")
-      .doc(firebaseUser.uid)
-      .get();
+    const userRef = doc(db, "users", firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
     const userData = userDoc.data();
 
     return {
@@ -68,13 +72,11 @@ const convertFirebaseUser = async (
 // Create user document in Firestore
 const createUserDocument = async (user: FirebaseAuthTypes.User) => {
   try {
-    const userSnapshot = await firestore()
-      .collection("users")
-      .doc(user.uid)
-      .get();
+    const userRef = doc(db, "users", user.uid);
+    const userSnapshot = await getDoc(userRef);
 
-    if (!userSnapshot.exists) {
-      await firestore().collection("users").doc(user.uid).set({
+    if (!userSnapshot.exists()) {
+      await setDoc(userRef, {
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,

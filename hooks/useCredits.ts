@@ -24,6 +24,11 @@ export const useCredits = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Sync subscription status with RevenueCat first
+      const { revenueCatService } = await import("../services/revenuecat");
+      await revenueCatService.syncSubscriptionStatus();
+
       const userCredits = await creditsService.getUserCredits(user.uid);
 
       if (!userCredits) {

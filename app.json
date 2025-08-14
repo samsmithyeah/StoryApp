@@ -5,11 +5,6 @@
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icons/icon.png",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#0f1129"
-    },
     "scheme": "storyapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -38,6 +33,14 @@
     "plugins": [
       "expo-router",
       "@react-native-firebase/app",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#0f1129"
+        }
+      ],
       "@react-native-firebase/auth",
       [
         "@react-native-google-signin/google-signin",
