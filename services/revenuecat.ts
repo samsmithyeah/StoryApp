@@ -5,8 +5,6 @@ import Purchases, {
 } from "react-native-purchases";
 import { Platform } from "react-native";
 import { creditsService } from "./firebase/credits";
-import { httpsCallable } from "@react-native-firebase/functions";
-import { functionsService } from "./firebase/config";
 
 // Replace with your actual RevenueCat API keys
 const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
@@ -274,75 +272,11 @@ class RevenueCatService {
         },
       });
 
-      // Critical: Validate purchase server-side for security
-      try {
-        console.log("Calling validatePurchase function...");
-        const validatePurchase = httpsCallable(
-          functionsService,
-          "validatePurchase"
-        );
+      // Credits will be awarded by RevenueCat webhook automatically
+      console.log("🛒 CREDIT PACK PURCHASE COMPLETED!");
+      console.log("💡 Credits will be added by webhook within a few seconds");
 
-        const requestData = {
-          transactionId: this.getValidTransactionId(purchaseInfo.customerInfo),
-          productId,
-          platform: Platform.OS,
-          // Note: Receipt validation is handled server-side via RevenueCat webhook
-          // For additional security, you could implement direct StoreKit/Google Play integration
-        };
-
-        console.log("validatePurchase request data:", requestData);
-        const result = await validatePurchase(requestData);
-        console.log("validatePurchase response:", result);
-
-        const responseData = result.data as {
-          success?: boolean;
-          creditsAwarded?: number;
-          error?: string;
-        };
-        if (responseData.success) {
-          console.log(
-            `Successfully awarded ${responseData.creditsAwarded} credits`
-          );
-          return true;
-        } else {
-          throw new Error(
-            responseData.error || "Server-side validation failed"
-          );
-        }
-      } catch (validationError) {
-        // Critical: If server validation fails, still try client-side fallback
-        // but log it as needing manual review
-        console.error(
-          "CRITICAL: Server-side validation failed, attempting client fallback:",
-          validationError
-        );
-
-        // CRITICAL: Do not use client fallback - this can lead to credit fraud
-        // Instead, record the failure and require manual resolution
-        console.error("CRITICAL: Purchase completed but validation failed");
-
-        try {
-          await creditsService.recordPurchase({
-            id: `${this.userId}_${Date.now()}_failed`,
-            userId: this.userId,
-            productId,
-            purchaseDate: new Date(),
-            amount: packageToPurchase.product.price,
-            credits,
-            platform: Platform.OS as "ios" | "android",
-            transactionId: this.getValidTransactionId(
-              purchaseInfo.customerInfo
-            ),
-            status: "validation_failed", // Requires manual review
-          });
-        } catch (recordError) {
-          console.error("Could not record failed purchase:", recordError);
-        }
-
-        throw new Error(
-          "Your purchase was processed but we couldn't verify it automatically. Please contact support and we'll add your credits manually."
-        );
-      }
+      return true;
     } catch (error: any) {
       if (error.userCancelled) {
         return false;

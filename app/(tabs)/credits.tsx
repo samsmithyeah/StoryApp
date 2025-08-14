@@ -13,10 +13,11 @@ import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   ImageBackground,
   Platform,
@@ -57,15 +58,52 @@ export default function CreditsScreen({
   const [selectedPackage, setSelectedPackage] =
     useState<PurchasesPackage | null>(null);
 
+  // Animation refs for credit counter
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const previousBalance = useRef<number>(0);
+
+  // Animate credit counter when balance increases
+  const animateCreditsIncrease = useCallback(() => {
+    // Pulse animation - scale up and down with glow effect
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 1.3,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, fadeAnim]);
+
   const loadCreditsAndOfferings = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-
-      // Load user credits
-      const credits = await creditsService.getUserCredits(user.uid);
-      setUserCredits(credits);
 
       // Load offerings
       const offerings = await revenueCatService.getOfferings();
@@ -82,7 +120,7 @@ export default function CreditsScreen({
         console.log("Could not load customer info:", error);
       }
     } catch (error: any) {
-      console.error("Error loading credits/offerings:", error);
+      console.error("Error loading offerings:", error);
       if (!error.message?.includes("None of the products registered")) {
         Alert.alert("Error", "Failed to load store information");
       }
@@ -94,6 +132,52 @@ export default function CreditsScreen({
   useEffect(() => {
     loadCreditsAndOfferings();
   }, [loadCreditsAndOfferings]);
+
+  // Initialize previous balance when userCredits first loads
+  useEffect(() => {
+    if (userCredits && previousBalance.current === 0) {
+      previousBalance.current = userCredits.balance;
+    }
+  }, [userCredits]);
+
+  // Real-time subscription to credit updates
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    console.log("🔔 Setting up real-time credit subscription");
+
+    const unsubscribe = creditsService.onCreditsChange(
+      user.uid,
+      (updatedCredits) => {
+        if (updatedCredits) {
+          console.log(
+            "💰 Credits updated in real-time:",
+            updatedCredits.balance
+          );
+
+          // Check if credits increased to trigger animation
+          const newBalance = updatedCredits.balance;
+          const oldBalance = previousBalance.current;
+
+          if (oldBalance > 0 && newBalance > oldBalance) {
+            console.log(
+              `✨ Credits increased from ${oldBalance} to ${newBalance} - animating!`
+            );
+            animateCreditsIncrease();
+          }
+
+          // Update previous balance for next comparison
+          previousBalance.current = newBalance;
+          setUserCredits(updatedCredits);
+        }
+      }
+    );
+
+    return () => {
+      console.log("🔔 Cleaning up credit subscription");
+      unsubscribe();
+    };
+  }, [user?.uid, animateCreditsIncrease]);
 
   // Clear selected package when switching tabs
   useEffect(() => {
@@ -166,8 +250,15 @@ export default function CreditsScreen({
         : await revenueCatService.purchaseCreditPack(packageToPurchase);
 
       if (success) {
-        Alert.alert("Success", "Purchase completed successfully!");
-        await loadCreditsAndOfferings();
+        if (isSubscription) {
+          Alert.alert("Success", "Subscription updated successfully");
+          await loadCreditsAndOfferings();
+        } else {
+          Alert.alert(
+            "Purchase successful",
+            "Your credits have been added to your account"
+          );
+        }
       }
     } catch (error: any) {
       console.error("Purchase error:", error);
@@ -433,9 +524,18 @@ export default function CreditsScreen({
             <View style={styles.header}>
               <Text style={styles.title}>Credits</Text>
               <View style={styles.headerBalance}>
-                <Text style={styles.headerBalanceAmount}>
-                  {userCredits?.balance || 0}
-                </Text>
+                <Animated.View
+                  style={[
+                    {
+                      transform: [{ scale: scaleAnim }],
+                      opacity: fadeAnim,
+                    },
+                  ]}
+                >
+                  <Animated.Text style={styles.headerBalanceAmount}>
+                    {userCredits?.balance || 0}
+                  </Animated.Text>
+                </Animated.View>
                 <IconSymbol name="sparkles" size={16} color={Colors.primary} />
               </View>
             </View>

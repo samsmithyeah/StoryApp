@@ -37,14 +37,15 @@ interface RevenueCatEvent {
 }
 
 // Credit amounts for each product
+// IMPORTANT: These product IDs must match exactly with the client-side PRODUCT_IDS
 const CREDIT_AMOUNTS: Record<string, number> = {
-  // Credit packs
-  credits_10: 10,
-  credits_25: 25,
-  credits_50: 50,
-  credits_100: 100,
+  // Credit packs - FIXED to match client-side product IDs
+  "10_credit_pack": 10,
+  "25_credit_pack": 25,
+  "50_credit_pack": 50,
+  "100_credit_pack": 100,
 
-  // Subscriptions
+  // Subscriptions - these were already correct
   subscription_monthly_basic: 30,
   subscription_monthly_pro: 100,
   subscription_annual_basic: 360,
