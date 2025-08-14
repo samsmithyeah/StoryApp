@@ -771,7 +771,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.medium,
     marginBottom: Spacing.xl,
-    backdropFilter: "blur(10px)",
   },
   infoText: {
     fontSize: Typography.fontSize.small,
@@ -787,7 +786,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.round,
     padding: 4,
     marginBottom: Spacing.xl,
-    backdropFilter: "blur(10px)",
   },
   tab: {
     flex: 1,
@@ -835,7 +833,6 @@ const styles = StyleSheet.create({
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
-    backdropFilter: "blur(10px)",
     minHeight: 160,
   },
   subscriptionCardActive: {
@@ -865,7 +862,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    backdropFilter: "blur(10px)",
     borderWidth: 2,
     borderColor: "transparent",
     minHeight: 160,
