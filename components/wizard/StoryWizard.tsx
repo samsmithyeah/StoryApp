@@ -7,6 +7,7 @@ import {
 import { StoryConfiguration } from "@/types/story.types";
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -86,6 +87,47 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     }
   };
 
+  const hasProgress = () => {
+    // Check if user has progressed beyond the first step
+    if (currentStepIndex > 0) return true;
+
+    // Check if any meaningful data has been entered
+    const data = wizardData;
+    return !!(
+      (data.selectedChildren && data.selectedChildren.length > 0) ||
+      data.theme ||
+      data.mood ||
+      data.storyAbout ||
+      (data.characters && data.characters.length > 0) ||
+      data.pageCount !== 5 ||
+      data.shouldRhyme !== false ||
+      data.illustrationStyle !== "loose-ink-wash" ||
+      data.enableIllustrations !== true
+    );
+  };
+
+  const handleCancel = () => {
+    if (hasProgress()) {
+      Alert.alert(
+        "Discard story?",
+        "Your progress will be lost if you go back now.",
+        [
+          {
+            text: "Keep editing",
+            style: "cancel",
+          },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: onCancel,
+          },
+        ]
+      );
+    } else {
+      onCancel();
+    }
+  };
+
   const handleGeneration = async () => {
     try {
       // Clear any previous errors
@@ -154,7 +196,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             selectedChildren={wizardData.selectedChildren || []}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "theme":
@@ -165,7 +207,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onSelect={(theme) => updateWizardData({ theme })}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "mood":
@@ -175,7 +217,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onSelect={(mood) => updateWizardData({ mood })}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "about":
@@ -185,7 +227,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "characters":
@@ -197,7 +239,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "length":
@@ -208,7 +250,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "illustrations":
@@ -219,7 +261,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
-            onCancel={onCancel}
+            onCancel={handleCancel}
           />
         );
       case "generation":
@@ -227,7 +269,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
           <GenerationStep
             isGenerating={_isGenerating}
             error={generationError}
-            onCancel={onCancel}
+            onCancel={handleCancel}
             onStartOver={() => {
               setGenerationError(null);
               setIsGenerating(false);

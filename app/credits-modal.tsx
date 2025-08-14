@@ -19,6 +19,11 @@ export default function CreditsModal() {
     router.back();
   };
 
+  const handlePurchaseSuccess = () => {
+    console.log("Purchase successful, closing modal");
+    router.back();
+  };
+
   return (
     <View style={styles.container}>
       {/* Cancel Button - Floating at top right */}
@@ -33,7 +38,7 @@ export default function CreditsModal() {
       </View>
 
       {/* Credits Screen Content */}
-      <CreditsScreen isModal={true} />
+      <CreditsScreen isModal={true} onPurchaseSuccess={handlePurchaseSuccess} />
     </View>
   );
 }

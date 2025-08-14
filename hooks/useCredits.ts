@@ -10,13 +10,50 @@ export const useCredits = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     if (user) {
-      loadCredits();
+      unsubscribe = setupRealtimeCredits();
     } else {
       setCredits(null);
       setLoading(false);
     }
+
+    return () => {
+      if (unsubscribe) {
+        console.log("🔔 Cleaning up credit subscription in useCredits");
+        unsubscribe();
+      }
+    };
   }, [user]);
+
+  const setupRealtimeCredits = () => {
+    if (!user) return;
+
+    console.log("🔔 Setting up real-time credit subscription in useCredits");
+
+    // Set up real-time subscription to credits - same as credits.tsx
+    const unsubscribe = creditsService.onCreditsChange(
+      user.uid,
+      (updatedCredits) => {
+        if (updatedCredits) {
+          console.log(
+            "💰 Credits updated in useCredits hook:",
+            updatedCredits.balance
+          );
+          setCredits(updatedCredits);
+        } else {
+          // Initialize credits if they don't exist
+          creditsService.initializeUserCredits(user.uid).then(() => {
+            console.log("🔄 Initialized user credits");
+          });
+        }
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  };
 
   const loadCredits = async () => {
     if (!user) return;

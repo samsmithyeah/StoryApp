@@ -1,4 +1,6 @@
-import { Colors, Shadows } from "@/constants/Theme";
+import { Button } from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Colors, Shadows, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { useCredits } from "@/hooks/useCredits";
 import { Child } from "@/types/child.types";
@@ -16,9 +18,6 @@ import {
 } from "react-native";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Button } from "@/components/ui/Button";
-import { Typography, Spacing } from "@/constants/Theme";
 
 interface ChildSelectionProps {
   selectedChildren: string[];
@@ -37,7 +36,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
-  const { balance } = useCredits();
+  const { balance, loading } = useCredits();
 
   const handleChildSelect = (child: Child) => {
     if (selectedChildren.includes(child.id)) {
@@ -50,7 +49,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   };
 
   const isNextDisabled = selectedChildren.length === 0;
-  const isLowCredits = balance < 5; // Show warning if less than 5 credits
+  const isLowCredits = !loading && balance < 5; // Only show warning after credits have loaded
 
   const handleBuyCredits = () => {
     router.push("/credits-modal");
@@ -69,7 +68,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
         />
         <WizardStepHeader
           title="Audience selection"
-          subtitle={`Who's the story for? This will help us tailor the content to their age and interests. • ${balance} credits available`}
+          subtitle="Who's the story for? This will help us tailor the content to their age and interests."
           stepNumber={1}
           totalSteps={7}
           onBack={() => {}}
@@ -83,8 +82,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             <IconSymbol name="info.circle" size={20} color={Colors.primary} />
             <View style={styles.warningContent}>
               <Text style={styles.warningText}>
-                You have {balance} credits. Consider getting more credits for
-                longer stories.
+                You have {balance} credit{balance !== 1 ? "s" : ""} left.
+                Consider getting more credits for longer stories.
               </Text>
             </View>
             <Button

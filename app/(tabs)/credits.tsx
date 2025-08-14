@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -39,10 +40,12 @@ const isTablet = width >= 768;
 
 interface CreditsScreenProps {
   isModal?: boolean;
+  onPurchaseSuccess?: () => void;
 }
 
 export default function CreditsScreen({
   isModal: _isModal = false,
+  onPurchaseSuccess,
 }: CreditsScreenProps = {}) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -135,10 +138,16 @@ export default function CreditsScreen({
 
   // Initialize previous balance when userCredits first loads
   useEffect(() => {
-    if (userCredits && previousBalance.current === 0) {
-      previousBalance.current = userCredits.balance;
+    if (userCredits) {
+      // For modal mode, set the previous balance immediately when modal opens
+      if (previousBalance.current === 0) {
+        previousBalance.current = userCredits.balance;
+        console.log(
+          `🎯 Initial balance set to ${userCredits.balance} (modal: ${_isModal})`
+        );
+      }
     }
-  }, [userCredits]);
+  }, [userCredits, _isModal]);
 
   // Real-time subscription to credit updates
   useEffect(() => {
@@ -159,11 +168,28 @@ export default function CreditsScreen({
           const newBalance = updatedCredits.balance;
           const oldBalance = previousBalance.current;
 
-          if (oldBalance > 0 && newBalance > oldBalance) {
+          console.log(`🔍 Animation check:`, {
+            isModal: _isModal,
+            newBalance,
+            oldBalance,
+            difference: newBalance - oldBalance,
+            shouldCheckAnimation: true,
+          });
+
+          // In modal mode, be more liberal with animations to ensure they work
+          const shouldAnimate = _isModal
+            ? newBalance > oldBalance && oldBalance >= 0
+            : oldBalance > 0 && newBalance > oldBalance;
+
+          if (shouldAnimate) {
             console.log(
-              `✨ Credits increased from ${oldBalance} to ${newBalance} - animating!`
+              `✨ Credits increased from ${oldBalance} to ${newBalance} - animating! (modal: ${_isModal})`
             );
             animateCreditsIncrease();
+          } else {
+            console.log(
+              `❌ No animation: newBalance=${newBalance}, oldBalance=${oldBalance}, modal=${_isModal}`
+            );
           }
 
           // Update previous balance for next comparison
@@ -177,7 +203,7 @@ export default function CreditsScreen({
       console.log("🔔 Cleaning up credit subscription");
       unsubscribe();
     };
-  }, [user?.uid, animateCreditsIncrease]);
+  }, [user?.uid, animateCreditsIncrease, _isModal]);
 
   // Clear selected package when switching tabs
   useEffect(() => {
@@ -221,7 +247,17 @@ export default function CreditsScreen({
                     if (success) {
                       Alert.alert(
                         "Success",
-                        "Subscription updated successfully!"
+                        "Subscription updated successfully!",
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => {
+                              if (_isModal && onPurchaseSuccess) {
+                                onPurchaseSuccess();
+                              }
+                            },
+                          },
+                        ]
                       );
                       await loadCreditsAndOfferings();
                     }
@@ -251,12 +287,31 @@ export default function CreditsScreen({
 
       if (success) {
         if (isSubscription) {
-          Alert.alert("Success", "Subscription updated successfully");
+          Alert.alert("Success", "Subscription updated successfully", [
+            {
+              text: "OK",
+              onPress: () => {
+                if (_isModal && onPurchaseSuccess) {
+                  onPurchaseSuccess();
+                }
+              },
+            },
+          ]);
           await loadCreditsAndOfferings();
         } else {
           Alert.alert(
             "Purchase successful",
-            "Your credits have been added to your account"
+            "Your credits have been added to your account",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  if (_isModal && onPurchaseSuccess) {
+                    onPurchaseSuccess();
+                  }
+                },
+              },
+            ]
           );
         }
       }
@@ -383,7 +438,10 @@ export default function CreditsScreen({
     if (selectedTab === "subscriptions") {
       // Don't auto-select if user has an active subscription
       const hasActiveSubscription = activeSubscriptions.length > 0;
-      if (hasActiveSubscription) return;
+      if (hasActiveSubscription) {
+        setSelectedPackage(null); // Clear any selection when there's an active subscription
+        return;
+      }
 
       // Find popular subscription
       const popularSubscription = subscriptions.find(
@@ -416,6 +474,8 @@ export default function CreditsScreen({
     const info = getProductInfo(pkg.product.identifier);
     const isActive = isSubscriptionActive(pkg.product.identifier);
     const isSelected = selectedPackage?.identifier === pkg.identifier;
+    const hasAnyActiveSubscription = activeSubscriptions.length > 0;
+    const isDisabled = isActive || hasAnyActiveSubscription;
     const priceText =
       info.period === "month"
         ? `${pkg.product.priceString} / month`
@@ -428,32 +488,44 @@ export default function CreditsScreen({
           styles.subscriptionCard,
           isActive && styles.subscriptionCardActive,
           isSelected && styles.subscriptionCardSelected,
+          isDisabled && styles.subscriptionCardDisabled,
         ]}
-        onPress={() => setSelectedPackage(pkg)}
-        disabled={isActive}
+        onPress={() => !isDisabled && setSelectedPackage(pkg)}
+        disabled={isDisabled}
       >
-        {info.popular && !isActive && (
+        {info.popular && !isActive && !hasAnyActiveSubscription && (
           <View style={styles.popularBadge}>
             <Text style={styles.badgeText}>POPULAR</Text>
           </View>
         )}
-        {info.bestValue && !isActive && (
+        {info.bestValue && !isActive && !hasAnyActiveSubscription && (
           <View style={styles.bestValueBadge}>
             <Text style={styles.badgeText}>BEST VALUE</Text>
           </View>
         )}
         {isActive && (
           <View style={styles.currentBadge}>
-            <Text style={styles.badgeText}>CURRENT</Text>
+            <Text style={styles.badgeText}>ACTIVE</Text>
+          </View>
+        )}
+        {!isActive && hasAnyActiveSubscription && (
+          <View style={styles.unavailableBadge}>
+            <Text style={styles.badgeText}>UNAVAILABLE</Text>
           </View>
         )}
 
-        <Text style={styles.cardTitle}>{info.displayName}</Text>
-        <Text style={styles.cardCredits}>
-          {info.credits} credits
-          {info.period === "month" ? "\n/ month" : "\n/ year"}
-        </Text>
-        <Text style={styles.cardPrice}>{priceText}</Text>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>{info.displayName}</Text>
+          <Text style={styles.cardCredits}>
+            {info.credits} credits
+            {info.period === "month" ? "\n/ month" : "\n/ year"}
+          </Text>
+          <Text style={styles.cardPrice}>{priceText}</Text>
+        </View>
+
+        {!isActive && hasAnyActiveSubscription && (
+          <BlurView intensity={5} style={styles.blurOverlay} tint="light" />
+        )}
       </TouchableOpacity>
     );
   };
@@ -757,12 +829,16 @@ export default function CreditsScreen({
               <>
                 <Text style={styles.purchaseButtonText}>
                   {selectedTab === "subscriptions"
-                    ? "Start subscription"
+                    ? activeSubscriptions.length > 0
+                      ? "You have an active subscription"
+                      : "Start subscription"
                     : "Purchase credits"}
                 </Text>
                 <Text style={styles.purchaseButtonSubtext}>
                   {selectedTab === "subscriptions"
-                    ? "Choose your preferred plan above"
+                    ? activeSubscriptions.length > 0
+                      ? "Use credit packs for additional credits"
+                      : "Choose your preferred plan above"
                     : "Select your credit pack above"}
                 </Text>
               </>
@@ -953,6 +1029,27 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  subscriptionCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+
+  // Card content wrapper
+  cardContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Blur overlay for unavailable cards
+  blurOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: BorderRadius.large,
+  },
 
   // Credit pack cards
   creditPackCard: {
@@ -1034,6 +1131,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
+  },
+  unavailableBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: Colors.textSecondary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderTopRightRadius: BorderRadius.medium,
+    borderBottomLeftRadius: BorderRadius.medium,
+    zIndex: 10, // Ensure it stays above the blur
   },
   badgeText: {
     fontSize: Typography.fontSize.tiny,

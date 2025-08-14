@@ -117,6 +117,31 @@ class RevenueCatService {
           console.warn(
             "This may indicate an upgrade/downgrade in progress or a configuration issue"
           );
+
+          // Provide detailed analysis of each subscription
+          activeSubscriptions.forEach((subscriptionId, index) => {
+            const expirationDate =
+              customerInfo.allExpirationDates?.[subscriptionId];
+            const expDate = expirationDate ? new Date(expirationDate) : null;
+            const now = new Date();
+            const isStillActive = expDate ? expDate > now : false;
+            const minutesFromNow = expDate
+              ? Math.floor((expDate.getTime() - now.getTime()) / (1000 * 60))
+              : null;
+
+            console.warn(`📋 SUBSCRIPTION ${index + 1}:`, {
+              productId: subscriptionId,
+              expirationDate: expDate?.toISOString() || "unknown",
+              isStillActive,
+              minutesFromNow:
+                minutesFromNow !== null
+                  ? isStillActive
+                    ? `expires in ${minutesFromNow} min`
+                    : `expired ${Math.abs(minutesFromNow)} min ago`
+                  : "unknown",
+              credits: CREDIT_AMOUNTS[subscriptionId] || 0,
+            });
+          });
         }
 
         // Get the primary subscription (most recent/preferred)
@@ -334,20 +359,51 @@ class RevenueCatService {
         console.log("🔄 EXISTING SUBSCRIPTION DETECTED:", {
           current: currentSubscription.productId,
           new: productId,
+          platform: Platform.OS,
+          expirationDate: currentSubscription.expirationDate.toISOString(),
         });
 
         // Use RevenueCat's upgrade/downgrade functionality
         purchaseOptions.oldProductIdentifier = currentSubscription.productId;
-        console.log(
-          "🔄 WILL REPLACE SUBSCRIPTION:",
-          currentSubscription.productId,
-          "->",
-          productId
-        );
+
+        // Add platform-specific options for immediate replacement
+        if (Platform.OS === "ios") {
+          // iOS: For RevenueCat v7+, use the GooglePlayProductChangeOptions or standard upgrade flow
+          // The oldProductIdentifier should be sufficient for iOS upgrades
+          console.log(
+            "🍎 iOS: Using oldProductIdentifier for subscription replacement"
+          );
+          // Note: iOS handles subscription upgrades/downgrades automatically through oldProductIdentifier
+          // ProrationMode is primarily for Android - removing it for iOS
+        } else {
+          // Android: Use replace SKUs for immediate replacement
+          purchaseOptions.oldSkus = [currentSubscription.productId];
+          purchaseOptions.prorationMode = 1; // IMMEDIATE_WITHOUT_PRORATION
+          console.log(
+            "🤖 Android: Configuring subscription replacement with oldSkus"
+          );
+        }
+
+        console.log("🔄 SUBSCRIPTION REPLACEMENT CONFIG:", {
+          oldProductIdentifier: currentSubscription.productId,
+          newProductIdentifier: productId,
+          platform: Platform.OS,
+          purchaseOptions,
+        });
       }
 
       // Make the purchase (with upgrade/replace if applicable)
       console.log("🔔 SUBSCRIPTION PURCHASE STARTING...");
+      console.log(
+        "🔔 FINAL PURCHASE OPTIONS:",
+        JSON.stringify(purchaseOptions, null, 2)
+      );
+      console.log("🔔 PACKAGE TO PURCHASE:", {
+        identifier: packageToPurchase.identifier,
+        productId: packageToPurchase.product.identifier,
+        priceString: packageToPurchase.product.priceString,
+      });
+
       purchaseInfo = await Purchases.purchasePackage(
         packageToPurchase,
         purchaseOptions
@@ -362,10 +418,58 @@ class RevenueCatService {
 
         console.log("🔄 POST-PURCHASE SUBSCRIPTION DEBUG:", {
           requestedProductId: productId,
+          oldSubscription: currentSubscription?.productId,
           activeSubscriptions,
+          activeSubscriptionCount: activeSubscriptions.length,
           allExpirationDates: customerInfo.allExpirationDates,
           wasUpgrade: !!currentSubscription,
         });
+
+        // Validate subscription replacement worked
+        if (currentSubscription && activeSubscriptions.length > 1) {
+          console.warn("⚠️ MULTIPLE SUBSCRIPTIONS DETECTED AFTER UPGRADE:", {
+            oldSubscription: currentSubscription.productId,
+            newSubscription: productId,
+            allActiveSubscriptions: activeSubscriptions,
+            allExpirationDates: customerInfo.allExpirationDates,
+            platform: Platform.OS,
+            purchaseOptions,
+            message:
+              "Subscription replacement may not have worked properly - this indicates a platform-specific configuration issue",
+          });
+
+          // Check if the old subscription is still active with a future expiration
+          const oldExpirationDate =
+            customerInfo.allExpirationDates?.[currentSubscription.productId];
+          if (oldExpirationDate) {
+            const oldExpDate = new Date(oldExpirationDate);
+            const now = new Date();
+            const stillActive = oldExpDate > now;
+            const minutesUntilExpiration = Math.floor(
+              (oldExpDate.getTime() - now.getTime()) / (1000 * 60)
+            );
+
+            console.warn("⚠️ OLD SUBSCRIPTION STATUS:", {
+              productId: currentSubscription.productId,
+              expirationDate: oldExpDate.toISOString(),
+              stillActive,
+              minutesUntilExpiration: stillActive
+                ? minutesUntilExpiration
+                : `expired ${Math.abs(minutesUntilExpiration)} minutes ago`,
+              message: stillActive
+                ? "Old subscription is still active - replacement may not have worked immediately"
+                : "Old subscription has expired - replacement worked correctly",
+            });
+          }
+        } else if (currentSubscription && activeSubscriptions.length === 1) {
+          console.log("✅ SUBSCRIPTION REPLACEMENT SUCCESSFUL:", {
+            oldSubscription: currentSubscription.productId,
+            newSubscription: productId,
+            activeSubscription: activeSubscriptions[0],
+            replacementWorked: activeSubscriptions[0] === productId,
+            platform: Platform.OS,
+          });
+        }
 
         // Find the correct subscription to use - prioritize the one we just purchased
         let finalProductId = productId;
