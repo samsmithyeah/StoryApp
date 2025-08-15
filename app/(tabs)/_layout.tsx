@@ -6,6 +6,7 @@ import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors as ThemeColors } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
+import { revenueCatService } from "@/services/revenuecat";
 
 export default function TabLayout() {
   const { user } = useAuth();
@@ -22,6 +23,11 @@ export default function TabLayout() {
         "[TABS LAYOUT] No user detected in useEffect, navigating to login"
       );
       router.replace("/(auth)/login");
+    } else {
+      // Initialize RevenueCat when user is authenticated
+      revenueCatService.configure(user.uid).catch((error) => {
+        console.log("RevenueCat configuration failed (non-critical):", error);
+      });
     }
   }, [user, router]);
 
@@ -66,6 +72,15 @@ export default function TabLayout() {
           title: "Create",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="plus.circle.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="credits"
+        options={{
+          title: "Credits",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="sparkles" color={color} />
           ),
         }}
       />
