@@ -433,32 +433,38 @@ export default function CreditsScreen({
 
   // Auto-select popular options by default
   useEffect(() => {
-    if (!offerings?.availablePackages || selectedPackage) return;
+    if (!offerings?.availablePackages) return;
 
     if (selectedTab === "subscriptions") {
-      // Don't auto-select if user has an active subscription
+      // Always clear selection if user has an active subscription
       const hasActiveSubscription = activeSubscriptions.length > 0;
       if (hasActiveSubscription) {
-        setSelectedPackage(null); // Clear any selection when there's an active subscription
+        setSelectedPackage(null);
         return;
       }
 
-      // Find popular subscription
-      const popularSubscription = subscriptions.find(
-        (pkg) =>
-          getProductInfo(pkg.product.identifier).popular ||
-          getProductInfo(pkg.product.identifier).bestValue
-      );
-      if (popularSubscription) {
-        setSelectedPackage(popularSubscription);
+      // Only auto-select if nothing is currently selected
+      if (!selectedPackage) {
+        // Find popular subscription
+        const popularSubscription = subscriptions.find(
+          (pkg) =>
+            getProductInfo(pkg.product.identifier).popular ||
+            getProductInfo(pkg.product.identifier).bestValue
+        );
+        if (popularSubscription) {
+          setSelectedPackage(popularSubscription);
+        }
       }
     } else {
-      // Find popular credit pack
-      const popularCreditPack = creditPacks.find(
-        (pkg) => getProductInfo(pkg.product.identifier).popular
-      );
-      if (popularCreditPack) {
-        setSelectedPackage(popularCreditPack);
+      // Only auto-select credit pack if nothing is currently selected
+      if (!selectedPackage) {
+        // Find popular credit pack
+        const popularCreditPack = creditPacks.find(
+          (pkg) => getProductInfo(pkg.product.identifier).popular
+        );
+        if (popularCreditPack) {
+          setSelectedPackage(popularCreditPack);
+        }
       }
     }
   }, [
@@ -475,7 +481,7 @@ export default function CreditsScreen({
     const isActive = isSubscriptionActive(pkg.product.identifier);
     const isSelected = selectedPackage?.identifier === pkg.identifier;
     const hasAnyActiveSubscription = activeSubscriptions.length > 0;
-    const isDisabled = isActive || hasAnyActiveSubscription;
+    const isDisabled = hasAnyActiveSubscription && !isActive;
     const priceText =
       info.period === "month"
         ? `${pkg.product.priceString} / month`
@@ -490,8 +496,8 @@ export default function CreditsScreen({
           isSelected && styles.subscriptionCardSelected,
           isDisabled && styles.subscriptionCardDisabled,
         ]}
-        onPress={() => !isDisabled && setSelectedPackage(pkg)}
-        disabled={isDisabled}
+        onPress={() => !hasAnyActiveSubscription && setSelectedPackage(pkg)}
+        disabled={hasAnyActiveSubscription}
       >
         {info.popular && !isActive && !hasAnyActiveSubscription && (
           <View style={styles.popularBadge}>
@@ -506,11 +512,6 @@ export default function CreditsScreen({
         {isActive && (
           <View style={styles.currentBadge}>
             <Text style={styles.badgeText}>ACTIVE</Text>
-          </View>
-        )}
-        {!isActive && hasAnyActiveSubscription && (
-          <View style={styles.unavailableBadge}>
-            <Text style={styles.badgeText}>UNAVAILABLE</Text>
           </View>
         )}
 

@@ -18,7 +18,6 @@ export { reportStory } from "./reportStory";
 
 // Credit and purchase management functions
 export { revenueCatWebhook } from "./revenueCatWebhook";
-export { validatePurchase } from "./validatePurchase";
 export {
   useCreditsReliable,
   checkCreditsAvailable,
