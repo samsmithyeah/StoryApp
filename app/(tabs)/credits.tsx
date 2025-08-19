@@ -123,7 +123,6 @@ export default function CreditsScreen({
 
       // Add fake offerings for testing when RevenueCat fails (dev only)
       if (__DEV__) {
-        console.log("🧪 Adding fake offerings for testing...");
         const fakeOfferings = {
           current: {
             identifier: "fake_offering",
@@ -244,9 +243,6 @@ export default function CreditsScreen({
       // For modal mode, set the previous balance immediately when modal opens
       if (previousBalance.current === 0) {
         previousBalance.current = userCredits.balance;
-        console.log(
-          `🎯 Initial balance set to ${userCredits.balance} (modal: ${_isModal})`
-        );
       }
     }
   }, [userCredits, _isModal]);
@@ -255,28 +251,15 @@ export default function CreditsScreen({
   useEffect(() => {
     if (!user?.uid) return;
 
-    console.log("🔔 Setting up real-time credit subscription");
-
     const unsubscribe = creditsService.onCreditsChange(
       user.uid,
       (updatedCredits) => {
         if (updatedCredits) {
-          console.log(
-            "💰 Credits updated in real-time:",
-            updatedCredits.balance
-          );
+          console.log("Credits updated:", updatedCredits.balance);
 
           // Check if credits increased to trigger animation
           const newBalance = updatedCredits.balance;
           const oldBalance = previousBalance.current;
-
-          console.log(`🔍 Animation check:`, {
-            isModal: _isModal,
-            newBalance,
-            oldBalance,
-            difference: newBalance - oldBalance,
-            shouldCheckAnimation: true,
-          });
 
           // In modal mode, be more liberal with animations to ensure they work
           const shouldAnimate = _isModal
@@ -284,14 +267,7 @@ export default function CreditsScreen({
             : oldBalance > 0 && newBalance > oldBalance;
 
           if (shouldAnimate) {
-            console.log(
-              `✨ Credits increased from ${oldBalance} to ${newBalance} - animating! (modal: ${_isModal})`
-            );
             animateCreditsIncrease();
-          } else {
-            console.log(
-              `❌ No animation: newBalance=${newBalance}, oldBalance=${oldBalance}, modal=${_isModal}`
-            );
           }
 
           // Update previous balance for next comparison
@@ -302,7 +278,6 @@ export default function CreditsScreen({
     );
 
     return () => {
-      console.log("🔔 Cleaning up credit subscription");
       unsubscribe();
     };
   }, [user?.uid, animateCreditsIncrease, _isModal]);
@@ -690,50 +665,35 @@ export default function CreditsScreen({
                 <TouchableOpacity
                   style={styles.debugButton}
                   onPress={async () => {
-                    console.log("=== DEBUGGING SUBSCRIPTION ===");
                     try {
-                      // Check what RevenueCat is reporting
                       await revenueCatService.configure(user?.uid || "");
 
-                      console.log("🐛 DEBUG: Raw RevenueCat customer info:");
                       const customerInfo =
                         await revenueCatService.getCustomerInfo();
                       console.log(
-                        "🐛 Active subscriptions:",
+                        "Debug - Active subscriptions:",
                         customerInfo.activeSubscriptions
                       );
                       console.log(
-                        "🐛 All expiration dates:",
+                        "Debug - Expiration dates:",
                         customerInfo.allExpirationDates
                       );
-                      console.log(
-                        "🐛 All purchased products:",
-                        customerInfo.allPurchasedProductIdentifiers
-                      );
 
-                      // Get current active subscription
                       const currentSub =
                         await revenueCatService.getCurrentActiveSubscription();
-                      console.log(
-                        "🐛 getCurrentActiveSubscription result:",
-                        currentSub
-                      );
+                      console.log("Debug - Current subscription:", currentSub);
 
-                      // Force sync
                       await revenueCatService.syncSubscriptionStatus();
-
-                      // Reload this screen
                       await loadCreditsAndOfferings();
 
                       Alert.alert(
                         "Debug Complete",
-                        `Current subscription: ${currentSub?.productId || "None"}\nCheck console for details`
+                        `Current subscription: ${currentSub?.productId || "None"}`
                       );
                     } catch (error) {
-                      console.error("🐛 DEBUG ERROR:", error);
+                      console.error("Debug error:", error);
                       Alert.alert("Debug Error", String(error));
                     }
-                    console.log("=== DEBUG COMPLETE ===");
                   }}
                 >
                   <Text style={styles.debugText}>🐛 Debug Subscription</Text>
@@ -742,38 +702,27 @@ export default function CreditsScreen({
                 <TouchableOpacity
                   style={styles.forceRefreshButton}
                   onPress={async () => {
-                    console.log("=== FORCE REFRESH REVENUECAT ===");
                     try {
                       await revenueCatService.configure(user?.uid || "");
 
-                      // Force RevenueCat to refresh from server (not cache)
-                      console.log(
-                        "🔄 Calling restorePurchases to force refresh..."
-                      );
                       const freshCustomerInfo =
                         await revenueCatService.restorePurchases();
-                      console.log("🔄 Fresh customer info after restore:", {
-                        activeSubscriptions:
-                          freshCustomerInfo.activeSubscriptions,
-                        allExpirationDates:
-                          freshCustomerInfo.allExpirationDates,
-                      });
+                      console.log(
+                        "Refresh - Active subscriptions:",
+                        freshCustomerInfo.activeSubscriptions
+                      );
 
-                      // Now sync with fresh data
                       await revenueCatService.syncSubscriptionStatus();
-
-                      // Reload screen
                       await loadCreditsAndOfferings();
 
                       Alert.alert(
                         "Refresh Complete",
-                        `Active subs: ${freshCustomerInfo.activeSubscriptions.join(", ")}\nCheck console for details`
+                        `Active subs: ${freshCustomerInfo.activeSubscriptions.join(", ")}`
                       );
                     } catch (error) {
-                      console.error("🔄 REFRESH ERROR:", error);
+                      console.error("Refresh error:", error);
                       Alert.alert("Refresh Error", String(error));
                     }
-                    console.log("=== FORCE REFRESH COMPLETE ===");
                   }}
                 >
                   <Text style={styles.forceRefreshText}>
@@ -852,7 +801,7 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-  // Debug button - Temporary
+  // Debug button - Development only
   debugButton: {
     alignItems: "center",
     paddingVertical: Spacing.md,
@@ -868,7 +817,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
 
-  // Force refresh button - Temporary
+  // Force refresh button - Development only
   forceRefreshButton: {
     alignItems: "center",
     paddingVertical: Spacing.md,
