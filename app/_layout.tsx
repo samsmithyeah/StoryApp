@@ -15,23 +15,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import * as Sentry from "@sentry/react-native";
 
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+// Initialize Sentry with validation and error handling
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+let sentryInitialized = false;
 
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
+if (!SENTRY_DSN) {
+  console.warn(
+    "EXPO_PUBLIC_SENTRY_DSN environment variable is not set. Sentry will not be initialized."
+  );
+} else {
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      sendDefaultPii: true,
+    });
+    sentryInitialized = true;
 
-  // Configure Session Replay
-  // replaysSessionSampleRate: 0.1,
-  // replaysOnErrorSampleRate: 1,
-  // integrations: [Sentry.mobileReplayIntegration()],
+    console.log("Sentry initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Sentry:", error);
+  }
+}
 
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
-
-export default Sentry.wrap(function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   const { loading } = useAuth();
 
@@ -99,4 +105,6 @@ export default Sentry.wrap(function RootLayout() {
       </ThemeProvider>
     </GestureHandlerRootView>
   );
-});
+}
+
+export default sentryInitialized ? Sentry.wrap(RootLayout) : RootLayout;
