@@ -3,6 +3,8 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { AppStateService } from "@/services/appState";
+import { Story } from "@/types/story.types";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
@@ -11,12 +13,48 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface GenerationStepProps {
   isGenerating: boolean;
   error?: string | null;
+  storyData?: Story | null;
   onCancel: () => void;
+  onNavigateToStory?: () => void;
   onStartOver?: () => void;
+  // For testing - overrides story data checks
+  _debugForceStates?: {
+    textReady?: boolean;
+    coverReady?: boolean;
+    imagesReady?: boolean;
+  };
 }
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+
+interface ChecklistItemProps {
+  label: string;
+  isCompleted: boolean;
+  isLoading: boolean;
+}
+
+const ChecklistItem: React.FC<ChecklistItemProps> = ({
+  label,
+  isCompleted,
+}) => {
+  return (
+    <View style={styles.checklistItem}>
+      <View style={styles.checklistIcon}>
+        {isCompleted ? (
+          <IconSymbol
+            name="checkmark.circle.fill"
+            size={20}
+            color={Colors.success}
+          />
+        ) : (
+          <View style={styles.emptyCircle} />
+        )}
+      </View>
+      <Text style={styles.checklistLabel}>{label}</Text>
+    </View>
+  );
+};
 
 const GENERATION_MESSAGES = [
   "Crafting your magical story...",
@@ -29,12 +67,56 @@ const GENERATION_MESSAGES = [
 export const GenerationStep: React.FC<GenerationStepProps> = ({
   isGenerating,
   error,
+  storyData,
   onCancel,
+  onNavigateToStory,
   onStartOver,
+  _debugForceStates,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  // Helper functions to check generation status
+  const isStoryTextReady = (): boolean => {
+    if (_debugForceStates?.textReady !== undefined)
+      return _debugForceStates.textReady;
+    return !!(
+      storyData?.title &&
+      storyData?.storyContent &&
+      storyData?.storyContent.length > 0
+    );
+  };
+
+  const isCoverImageReady = (): boolean => {
+    if (_debugForceStates?.coverReady !== undefined)
+      return _debugForceStates.coverReady;
+    return !!storyData?.coverImageUrl;
+  };
+
+  const arePageImagesReady = (): boolean => {
+    if (_debugForceStates?.imagesReady !== undefined)
+      return _debugForceStates.imagesReady;
+    if (!storyData?.storyConfiguration?.enableIllustrations) return true;
+    const status = storyData?.imageGenerationStatus;
+    return status === "completed" || status === "not_requested";
+  };
+
+  const isStoryFullyComplete = (): boolean => {
+    return isStoryTextReady() && isCoverImageReady() && arePageImagesReady();
+  };
+
+  // Update last active time while user is viewing the generation step
+  useEffect(() => {
+    AppStateService.updateLastActive();
+
+    // Update periodically while on this screen
+    const interval = setInterval(() => {
+      AppStateService.updateLastActive();
+    }, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Use safe area bottom instead of tab bar height since we're outside tabs
   const tabBarHeight = insets.bottom + Spacing.lg;
@@ -136,23 +218,50 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             {GENERATION_MESSAGES[currentMessageIndex]}
           </Text>
 
+          {/* Generation Progress Checklist */}
+          <View style={styles.checklistContainer}>
+            <ChecklistItem
+              label="Story text"
+              isCompleted={isStoryTextReady()}
+              isLoading={isGenerating && !isStoryTextReady()}
+            />
+            <ChecklistItem
+              label="Cover image"
+              isCompleted={isCoverImageReady()}
+              isLoading={isGenerating && !isCoverImageReady()}
+            />
+            {storyData?.storyConfiguration?.enableIllustrations !== false && (
+              <ChecklistItem
+                label="Page images"
+                isCompleted={arePageImagesReady()}
+                isLoading={isGenerating && !arePageImagesReady()}
+              />
+            )}
+          </View>
+
+          {/* Push notification message */}
           <View style={styles.tipContainer}>
             <IconSymbol
-              name="lightbulb"
+              name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
               size={isTablet ? 18 : 16}
-              color={Colors.warning}
+              color={isStoryFullyComplete() ? Colors.success : Colors.warning}
             />
             <Text style={styles.tipText}>
-              Tip: Your story will be saved to your library for future bedtime
-              reading!
+              {isStoryFullyComplete()
+                ? "Your story is complete and ready for bedtime reading!"
+                : "We'll send you a notification when your story, complete with illustrations, is ready!"}
             </Text>
           </View>
         </View>
 
         <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
           <Button
-            title="Cancel"
-            onPress={onCancel}
+            title={isStoryTextReady() ? "View story" : "Cancel"}
+            onPress={
+              isStoryTextReady() && onNavigateToStory
+                ? onNavigateToStory
+                : onCancel
+            }
             variant="outline"
             size="large"
           />
@@ -261,6 +370,46 @@ const styles = StyleSheet.create({
   orText: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  checklistContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: BorderRadius.large,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+    maxWidth: isTablet ? 400 : 320,
+  },
+  checklistItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  checklistIcon: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.textSecondary,
+    opacity: 0.3,
+  },
+  checklistLabel: {
+    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    color: Colors.text,
+    lineHeight: isTablet ? 22 : 18,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  checklistLabelCompleted: {
+    color: Colors.success,
     fontWeight: Typography.fontWeight.medium,
   },
 });

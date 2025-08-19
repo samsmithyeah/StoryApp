@@ -4,8 +4,9 @@ import {
   generateStory,
   StoryGenerationRequest,
 } from "@/services/firebase/stories";
-import { StoryConfiguration } from "@/types/story.types";
-import React, { useState } from "react";
+import { Story, StoryConfiguration } from "@/types/story.types";
+import { doc, onSnapshot } from "@react-native-firebase/firestore";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,6 +15,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { db } from "@/services/firebase/config";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { ChildSelection } from "./steps/ChildSelection";
 import { GenerationStep } from "./steps/GenerationStep";
@@ -61,12 +63,62 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   });
   const [_isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generatedStoryId, setGeneratedStoryId] = useState<string | null>(null);
+  const [storyData, setStoryData] = useState<Story | null>(null);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
     setWizardData((prev) => ({ ...prev, ...data }));
   };
+
+  const isStoryTextReady = useCallback((story: Story | null): boolean => {
+    return !!(story?.title && story?.storyContent && story?.storyContent.length > 0);
+  }, []);
+
+  const isCoverImageReady = useCallback((story: Story | null): boolean => {
+    return !!(story?.coverImageUrl);
+  }, []);
+
+  const arePageImagesReady = useCallback((story: Story | null): boolean => {
+    if (!story?.storyConfiguration?.enableIllustrations) return true; // No images needed
+    const status = story?.imageGenerationStatus;
+    return status === "completed" || status === "not_requested";
+  }, []);
+
+  const isStoryFullyComplete = useCallback((story: Story | null): boolean => {
+    return isStoryTextReady(story) && isCoverImageReady(story) && arePageImagesReady(story);
+  }, [isStoryTextReady, isCoverImageReady, arePageImagesReady]);
+
+  // Listen to story updates to track generation progress
+  useEffect(() => {
+    if (!generatedStoryId) return;
+
+    const storyRef = doc(db, "stories", generatedStoryId);
+    const unsubscribe = onSnapshot(storyRef, (doc) => {
+      if (doc.exists()) {
+        const story = {
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data()?.createdAt?.toDate() || new Date(),
+        } as Story;
+        setStoryData(story);
+
+        // Check if everything is complete and auto-redirect
+        if (isStoryFullyComplete(story) && _isGenerating) {
+          // Story is fully complete - auto-redirect to story
+          console.log("Story fully complete - auto-redirecting");
+          setIsGenerating(false);
+          onComplete({
+            ...(wizardData as StoryConfiguration),
+            storyId: generatedStoryId,
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [generatedStoryId, _isGenerating, isStoryFullyComplete, onComplete, wizardData]);
 
   const goToNextStep = () => {
     const nextIndex = currentStepIndex + 1;
@@ -158,11 +210,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
       const result = await generateStory(generationRequest);
 
-      // Don't wait for images - story text is ready, navigate immediately
-      onComplete({
-        ...(wizardData as StoryConfiguration),
-        storyId: result.storyId,
-      });
+      // Store the story ID to monitor progress, but don't navigate yet
+      setGeneratedStoryId(result.storyId);
     } catch (error: any) {
       console.error("Error generating story:", error);
       setIsGenerating(false);
@@ -269,10 +318,21 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
           <GenerationStep
             isGenerating={_isGenerating}
             error={generationError}
+            storyData={storyData}
             onCancel={handleCancel}
+            onNavigateToStory={() => {
+              if (generatedStoryId) {
+                onComplete({
+                  ...(wizardData as StoryConfiguration),
+                  storyId: generatedStoryId,
+                });
+              }
+            }}
             onStartOver={() => {
               setGenerationError(null);
               setIsGenerating(false);
+              setGeneratedStoryId(null);
+              setStoryData(null);
               setCurrentStep("child");
             }}
           />

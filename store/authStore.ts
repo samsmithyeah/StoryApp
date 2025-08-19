@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { subscribeToAuthChanges } from "../services/firebase/auth";
 import { AuthState, User } from "../types/auth.types";
+import { AppStateService } from "../services/appState";
 
 interface AuthStore extends AuthState {
   initialize: () => void;
@@ -42,6 +43,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } else {
         // Keep error if auth fails or user logs out
         set({ user, loading: false });
+      }
+
+      // Start or stop app state tracking based on authentication
+      if (user && !currentState.user) {
+        // User just signed in - start tracking
+        AppStateService.startTracking();
+      } else if (!user && currentState.user) {
+        // User just signed out - stop tracking
+        AppStateService.stopTracking();
       }
     });
 

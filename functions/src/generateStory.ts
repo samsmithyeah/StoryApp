@@ -11,6 +11,7 @@ import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
+import { sendStoryCompleteNotification } from "./sendStoryCompleteNotification";
 
 const pubsub = new PubSub();
 const topicName = "generate-story-image";
@@ -525,7 +526,23 @@ Return the story in this JSON format:
         );
       }
 
-      // 8. Return the story ID to the client
+      // 8. If illustrations are disabled, the story is complete now - send notification
+      if (!data.enableIllustrations) {
+        console.log(
+          `[Orchestrator] Story complete (no illustrations needed). Sending notification.`
+        );
+        const finalStoryDoc = await storyRef.get();
+        if (finalStoryDoc.exists) {
+          const finalStoryData = finalStoryDoc.data();
+          await sendStoryCompleteNotification(userId, {
+            id: storyId,
+            title: finalStoryData?.title,
+            ...finalStoryData,
+          });
+        }
+      }
+
+      // 9. Return the story ID to the client
       console.log(
         `[Orchestrator] Process complete. Returning storyId: ${storyId}`
       );

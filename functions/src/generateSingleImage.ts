@@ -7,6 +7,7 @@ import { getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
+import { sendStoryCompleteNotification } from "./sendStoryCompleteNotification";
 
 interface ImageGenerationPayload {
   storyId: string;
@@ -250,10 +251,29 @@ REQUIREMENTS:
             `[Worker] This is the final image (${currentImagesGenerated + 1}/${totalImages}). Setting status to 'completed'.`
           );
           updateData.imageGenerationStatus = "completed";
+          
+          // Send notification when story is fully complete (after this transaction commits)
+          // We'll do this after the transaction to ensure the data is persisted
         }
 
         transaction.update(storyRef, updateData);
       });
+
+      // Check if this was the final image and send notification
+      const currentImagesGenerated = (await storyRef.get()).data()?.imagesGenerated || 0;
+      const totalImages = (await storyRef.get()).data()?.totalImages || 0;
+      
+      if (totalImages > 0 && currentImagesGenerated >= totalImages) {
+        // Story is fully complete - send notification
+        const finalStoryData = (await storyRef.get()).data();
+        if (finalStoryData) {
+          await sendStoryCompleteNotification(userId, {
+            id: storyId,
+            title: finalStoryData.title,
+            ...finalStoryData,
+          });
+        }
+      }
 
       console.log(
         `[Worker] Successfully and safely processed page ${pageIndex + 1} for story ${storyId}.`

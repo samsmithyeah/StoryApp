@@ -19,6 +19,7 @@ import { ChildrenSection } from "../../components/settings/ChildrenSection";
 import { SavedCharactersSection } from "../../components/settings/SavedCharactersSection";
 import { SettingsHeader } from "../../components/settings/SettingsHeader";
 import { SupportSection } from "../../components/settings/SupportSection";
+import { Button } from "../../components/ui/Button";
 import { Colors, Spacing } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { useChildren } from "../../hooks/useChildren";
@@ -208,6 +209,17 @@ export default function SettingsScreen() {
           />
 
           <SupportSection onNavigate={(route) => router.push(route as any)} />
+
+          {/* Debug Button - Remove in production */}
+          {__DEV__ && (
+            <Button
+              title="🐛 Debug Generation UI"
+              onPress={() => router.push('/debug-generation')}
+              variant="outline"
+              size="medium"
+              style={{ marginHorizontal: Spacing.screenPadding, marginVertical: Spacing.lg }}
+            />
+          )}
 
           <AccountSection
             user={user}
