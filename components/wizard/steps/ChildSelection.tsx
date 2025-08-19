@@ -1,5 +1,8 @@
-import { Colors, Shadows } from "@/constants/Theme";
+import { Button } from "@/components/ui/Button";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Colors, Shadows, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
+import { useCredits } from "@/hooks/useCredits";
 import { Child } from "@/types/child.types";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -33,6 +36,8 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
+  const { balance, loading } = useCredits();
+
   const handleChildSelect = (child: Child) => {
     if (selectedChildren.includes(child.id)) {
       onUpdate({
@@ -44,6 +49,11 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
   };
 
   const isNextDisabled = selectedChildren.length === 0;
+  const isLowCredits = !loading && balance < 5; // Only show warning after credits have loaded
+
+  const handleBuyCredits = () => {
+    router.push("/credits-modal");
+  };
 
   return (
     <View style={styles.container}>
@@ -65,6 +75,26 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           onCancel={onCancel}
           showBackButton={false}
         />
+
+        {/* Low credits warning */}
+        {isLowCredits && (
+          <View style={styles.warningBanner}>
+            <IconSymbol name="info.circle" size={20} color={Colors.primary} />
+            <View style={styles.warningContent}>
+              <Text style={styles.warningText}>
+                You have {balance} credit{balance !== 1 ? "s" : ""} left.
+                Consider getting more credits for longer stories.
+              </Text>
+            </View>
+            <Button
+              title="Get credits"
+              onPress={handleBuyCredits}
+              variant="outline"
+              size="small"
+              style={styles.warningButton}
+            />
+          </View>
+        )}
 
         {/* Children List */}
         <ScrollView
@@ -237,5 +267,29 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     textAlign: "center",
+  },
+  warningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginHorizontal: 24,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningText: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.text,
+    lineHeight: 18,
+  },
+  warningButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
 });

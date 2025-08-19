@@ -1,13 +1,16 @@
-import { getApp, getApps, initializeApp } from "@react-native-firebase/app";
+import { getApps, initializeApp } from "@react-native-firebase/app";
 import { getAuth } from "@react-native-firebase/auth";
 import { getFirestore } from "@react-native-firebase/firestore";
 import { getFunctions } from "@react-native-firebase/functions";
 import { getStorage } from "@react-native-firebase/storage";
+// import {
+//   ReactNativeFirebaseAppCheckProvider,
+//   initializeAppCheck
+// } from "@react-native-firebase/app-check"; // Disabled for production use
 
 // Initialize Firebase app if not already initialized
-let app;
 if (getApps().length === 0) {
-  app = initializeApp({
+  initializeApp({
     apiKey: "default",
     authDomain: "default",
     databaseURL: "default",
@@ -16,9 +19,10 @@ if (getApps().length === 0) {
     messagingSenderId: "default",
     appId: "default",
   });
-} else {
-  app = getApp();
 }
+
+// App Check disabled - purchase validation works reliably without it
+// Firebase Authentication still provides security for function calls
 
 // Get Firebase services using modular API
 export const authService = getAuth();
