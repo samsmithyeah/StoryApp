@@ -13,8 +13,31 @@ import "react-native-reanimated";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import * as Sentry from "@sentry/react-native";
 
-export default function RootLayout() {
+// Initialize Sentry with validation and error handling
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+let sentryInitialized = false;
+
+if (!SENTRY_DSN) {
+  console.warn(
+    "EXPO_PUBLIC_SENTRY_DSN environment variable is not set. Sentry will not be initialized."
+  );
+} else {
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      sendDefaultPii: true,
+    });
+    sentryInitialized = true;
+
+    console.log("Sentry initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Sentry:", error);
+  }
+}
+
+function RootLayout() {
   const colorScheme = useColorScheme();
   const { loading } = useAuth();
 
@@ -83,3 +106,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default sentryInitialized ? Sentry.wrap(RootLayout) : RootLayout;

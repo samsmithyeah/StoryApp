@@ -89,6 +89,14 @@
             "useFrameworks": "static"
           }
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "dreamweaver",
+          "organization": "samlovesit"
+        }
       ]
     ],
     "experiments": {
