@@ -8,6 +8,7 @@ import {
 import React from "react";
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -29,7 +30,12 @@ export function PurchaseButton({
       style={[
         styles.bottomSection,
         {
-          paddingBottom: insets.bottom + 37, // Account for tab bar
+          paddingBottom:
+            insets.bottom +
+            Platform.select({
+              android: 0,
+              ios: 37, // Keep original padding on iOS
+            }),
         },
       ]}
     >
@@ -97,7 +103,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.xxl,
+    marginBottom: Platform.select({
+      android: -12,
+      ios: Spacing.xxl,
+    }),
     alignItems: "center",
     justifyContent: "center",
     minHeight: 56,

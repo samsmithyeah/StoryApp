@@ -120,8 +120,114 @@ export default function CreditsScreen({
       }
     } catch (error: any) {
       console.error("Error loading offerings:", error);
-      if (!error.message?.includes("None of the products registered")) {
-        Alert.alert("Error", "Failed to load store information");
+
+      // Add fake offerings for testing when RevenueCat fails (dev only)
+      if (__DEV__) {
+        console.log("🧪 Adding fake offerings for testing...");
+        const fakeOfferings = {
+          current: {
+            identifier: "fake_offering",
+            serverDescription: "Fake offerings for testing",
+            availablePackages: [
+              // Fake subscriptions
+              {
+                identifier: "fake_monthly_basic",
+                product: {
+                  identifier: "com.dreamweaver.subscription.monthly.basic",
+                  price: 4.99,
+                  priceString: "$4.99",
+                  title: "Monthly Storyteller",
+                  description: "30 stories per month",
+                },
+              },
+              {
+                identifier: "fake_monthly_pro",
+                product: {
+                  identifier: "com.dreamweaver.subscription.monthly.pro",
+                  price: 12.99,
+                  priceString: "$12.99",
+                  title: "Monthly Story Master",
+                  description: "100 stories per month",
+                },
+              },
+              {
+                identifier: "fake_annual_basic",
+                product: {
+                  identifier: "com.dreamweaver.subscription.annual.basic",
+                  price: 49.99,
+                  priceString: "$49.99",
+                  title: "Annual Storyteller",
+                  description: "360 stories per year",
+                },
+              },
+              {
+                identifier: "fake_annual_pro",
+                product: {
+                  identifier: "com.dreamweaver.subscription.annual.pro",
+                  price: 119.99,
+                  priceString: "$119.99",
+                  title: "Annual Story Master",
+                  description: "1200 stories per year",
+                },
+              },
+              // Fake credit packs
+              {
+                identifier: "fake_credits_10",
+                product: {
+                  identifier: "com.dreamweaver.credits.10",
+                  price: 2.99,
+                  priceString: "$2.99",
+                  title: "Starter Pack",
+                  description: "10 credits",
+                },
+              },
+              {
+                identifier: "fake_credits_25",
+                product: {
+                  identifier: "com.dreamweaver.credits.25",
+                  price: 6.99,
+                  priceString: "$6.99",
+                  title: "Story Bundle",
+                  description: "25 credits",
+                },
+              },
+              {
+                identifier: "fake_credits_50",
+                product: {
+                  identifier: "com.dreamweaver.credits.50",
+                  price: 12.99,
+                  priceString: "$12.99",
+                  title: "Family Pack",
+                  description: "50 credits",
+                },
+              },
+              {
+                identifier: "fake_credits_100",
+                product: {
+                  identifier: "com.dreamweaver.credits.100",
+                  price: 24.99,
+                  priceString: "$24.99",
+                  title: "Story Master",
+                  description: "100 credits",
+                },
+              },
+            ],
+          },
+        };
+
+        setOfferings(fakeOfferings.current as any);
+
+        if (!error.message?.includes("None of the products registered")) {
+          Alert.alert(
+            "Error",
+            "Failed to load store information - using test data"
+          );
+        }
+      } else {
+        // In production, just show the error
+        if (!error.message?.includes("None of the products registered")) {
+          Alert.alert("Error", "Failed to load store information");
+        }
       }
     } finally {
       setLoading(false);
@@ -207,6 +313,16 @@ export default function CreditsScreen({
   }, [selectedTab]);
 
   const handlePurchase = async (packageToPurchase: PurchasesPackage) => {
+    // Check if this is a fake package for testing
+    if (packageToPurchase.identifier.startsWith("fake_")) {
+      Alert.alert(
+        "Test Purchase",
+        `This is a test purchase for: ${packageToPurchase.product.title}\nPrice: ${packageToPurchase.product.priceString}\n\nIn a real app, this would process the payment.`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     try {
       setPurchasing(true);
 
