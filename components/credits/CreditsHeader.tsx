@@ -1,12 +1,22 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { BorderRadius, Colors, CommonStyles, Spacing, Typography } from "@/constants/Theme";
+import {
+  BorderRadius,
+  Colors,
+  CommonStyles,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import React from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import type { CreditsHeaderProps } from "./types";
 
 const { width } = Dimensions.get("window");
 
-export function CreditsHeader({ userCredits, scaleAnim, fadeAnim }: CreditsHeaderProps) {
+export function CreditsHeader({
+  userCredits,
+  scaleAnim,
+  fadeAnim,
+}: CreditsHeaderProps) {
   return (
     <View style={styles.header}>
       <Text style={styles.title}>Credits</Text>

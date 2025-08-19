@@ -4,14 +4,10 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { InfoSectionProps } from "./types";
 
-export function InfoSection({}: InfoSectionProps) {
+export function InfoSection(_props: InfoSectionProps) {
   return (
     <View style={styles.infoContainer}>
-      <IconSymbol
-        name="info.circle"
-        size={16}
-        color={Colors.textSecondary}
-      />
+      <IconSymbol name="info.circle" size={16} color={Colors.textSecondary} />
       <Text style={styles.infoText}>
         Each credit enables you to generate 1 page of a story.
       </Text>

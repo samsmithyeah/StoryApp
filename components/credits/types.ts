@@ -1,5 +1,5 @@
 import type { UserCredits } from "@/types/monetization.types";
-import { PurchasesOffering, PurchasesPackage } from "react-native-purchases";
+import { PurchasesPackage } from "react-native-purchases";
 
 export interface CreditsScreenProps {
   isModal?: boolean;
@@ -12,6 +12,7 @@ export interface CreditsHeaderProps {
   fadeAnim: any;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InfoSectionProps {}
 
 export interface TabSelectorProps {
@@ -45,6 +46,7 @@ export interface PurchaseButtonProps {
   insets: any;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface DecorationsProps {}
 
 export interface ProductInfo {

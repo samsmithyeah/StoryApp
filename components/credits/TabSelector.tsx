@@ -23,10 +23,7 @@ export function TabSelector({ selectedTab, onTabChange }: TabSelectorProps) {
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.tab,
-          selectedTab === "packs" && styles.tabActive,
-        ]}
+        style={[styles.tab, selectedTab === "packs" && styles.tabActive]}
         onPress={() => onTabChange("packs")}
       >
         <Text

@@ -1,6 +1,12 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import type { CreditPackCardProps } from "./types";
 
 const { width } = Dimensions.get("window");

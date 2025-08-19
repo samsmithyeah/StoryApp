@@ -1,16 +1,17 @@
+import { CreditPackCard } from "@/components/credits/CreditPackCard";
 import { CreditsHeader } from "@/components/credits/CreditsHeader";
 import { InfoSection } from "@/components/credits/InfoSection";
-import { TabSelector } from "@/components/credits/TabSelector";
-import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
-import { CreditPackCard } from "@/components/credits/CreditPackCard";
 import { PurchaseButton } from "@/components/credits/PurchaseButton";
 import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
+import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,9 +19,7 @@ import {
   Animated,
   Dimensions,
   ImageBackground,
-  Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -31,7 +30,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -474,7 +472,6 @@ export default function CreditsScreen({
     selectedPackage,
   ]);
 
-
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
@@ -499,13 +496,7 @@ export default function CreditsScreen({
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingTop:
-                  insets.top +
-                  Spacing.screenPadding +
-                  (Platform.select({
-                    android: StatusBar.currentHeight || 0,
-                    ios: 0,
-                  }) || 0),
+                paddingTop: insets.top + Spacing.screenPadding,
               },
             ]}
             contentInsetAdjustmentBehavior="never"
@@ -536,9 +527,13 @@ export default function CreditsScreen({
                       <SubscriptionCard
                         key={pkg.identifier}
                         package={pkg}
-                        isSelected={selectedPackage?.identifier === pkg.identifier}
+                        isSelected={
+                          selectedPackage?.identifier === pkg.identifier
+                        }
                         isActive={isSubscriptionActive(pkg.product.identifier)}
-                        hasAnyActiveSubscription={activeSubscriptions.length > 0}
+                        hasAnyActiveSubscription={
+                          activeSubscriptions.length > 0
+                        }
                         onSelect={setSelectedPackage}
                         getProductInfo={getProductInfo}
                       />
@@ -553,7 +548,9 @@ export default function CreditsScreen({
                     <CreditPackCard
                       key={pkg.identifier}
                       package={pkg}
-                      isSelected={selectedPackage?.identifier === pkg.identifier}
+                      isSelected={
+                        selectedPackage?.identifier === pkg.identifier
+                      }
                       onSelect={setSelectedPackage}
                       getProductInfo={getProductInfo}
                     />
@@ -697,7 +694,6 @@ export default function CreditsScreen({
     </ImageBackground>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

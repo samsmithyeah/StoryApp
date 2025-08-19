@@ -1,6 +1,18 @@
-import { BorderRadius, Colors, Shadows, Spacing, Typography } from "@/constants/Theme";
+import {
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import type { PurchaseButtonProps } from "./types";
 
 export function PurchaseButton({
@@ -39,8 +51,7 @@ export function PurchaseButton({
         ) : selectedPackage ? (
           <>
             <Text style={styles.purchaseButtonText}>
-              Purchase{" "}
-              {getProductInfo(selectedPackage.product.identifier).name}
+              Purchase {getProductInfo(selectedPackage.product.identifier).name}
             </Text>
             <Text style={styles.purchaseButtonSubtext}>
               {selectedPackage.product.priceString}

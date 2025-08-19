@@ -1,7 +1,13 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { BlurView } from "expo-blur";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import type { SubscriptionCardProps } from "./types";
 
 const { width } = Dimensions.get("window");
