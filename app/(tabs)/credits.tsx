@@ -1,19 +1,16 @@
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import {
-  BorderRadius,
-  Colors,
-  CommonStyles,
-  Shadows,
-  Spacing,
-  Typography,
-} from "@/constants/Theme";
+import { CreditsHeader } from "@/components/credits/CreditsHeader";
+import { InfoSection } from "@/components/credits/InfoSection";
+import { TabSelector } from "@/components/credits/TabSelector";
+import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
+import { CreditPackCard } from "@/components/credits/CreditPackCard";
+import { PurchaseButton } from "@/components/credits/PurchaseButton";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import type { ProductInfo } from "@/components/credits/types";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -34,6 +31,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -339,19 +337,19 @@ export default function CreditsScreen({
     }
   };
 
-  const getProductInfo = (productId: string) => {
-    const products = {
+  const getProductInfo = (productId: string): ProductInfo => {
+    const products: Record<string, ProductInfo> = {
       // Subscriptions
       [PRODUCT_IDS.MONTHLY_BASIC]: {
         credits: 30,
-        type: "subscription",
+        type: "subscription" as const,
         name: "Monthly Storyteller",
         period: "month",
         displayName: "Monthly\nStoryteller",
       },
       [PRODUCT_IDS.MONTHLY_PRO]: {
         credits: 100,
-        type: "subscription",
+        type: "subscription" as const,
         name: "Monthly Story Master",
         period: "month",
         displayName: "Monthly\nStory Master",
@@ -359,14 +357,14 @@ export default function CreditsScreen({
       },
       [PRODUCT_IDS.ANNUAL_BASIC]: {
         credits: 360,
-        type: "subscription",
+        type: "subscription" as const,
         name: "Annual Storyteller",
         period: "year",
         displayName: "Annual\nStoryteller",
       },
       [PRODUCT_IDS.ANNUAL_PRO]: {
         credits: 1200,
-        type: "subscription",
+        type: "subscription" as const,
         name: "Annual Story Master",
         period: "year",
         displayName: "Annual\nStory Master",
@@ -375,21 +373,21 @@ export default function CreditsScreen({
       // Credit packs
       [PRODUCT_IDS.CREDITS_10]: {
         credits: 10,
-        type: "pack",
+        type: "pack" as const,
         name: "Starter Pack",
         period: null,
         displayName: "Starter\nPack",
       },
       [PRODUCT_IDS.CREDITS_25]: {
         credits: 25,
-        type: "pack",
+        type: "pack" as const,
         name: "Story Bundle",
         period: null,
         displayName: "Story\nBundle",
       },
       [PRODUCT_IDS.CREDITS_50]: {
         credits: 50,
-        type: "pack",
+        type: "pack" as const,
         name: "Family Pack",
         period: null,
         displayName: "Family\nPack",
@@ -397,7 +395,7 @@ export default function CreditsScreen({
       },
       [PRODUCT_IDS.CREDITS_100]: {
         credits: 100,
-        type: "pack",
+        type: "pack" as const,
         name: "Story Master",
         period: null,
         displayName: "Story\nMaster",
@@ -406,7 +404,7 @@ export default function CreditsScreen({
     return (
       products[productId] || {
         credits: 0,
-        type: "pack",
+        type: "pack" as const,
         name: "Unknown",
         period: null,
         displayName: "Unknown",
@@ -476,86 +474,6 @@ export default function CreditsScreen({
     selectedPackage,
   ]);
 
-  const renderSubscriptionCard = (pkg: PurchasesPackage) => {
-    const info = getProductInfo(pkg.product.identifier);
-    const isActive = isSubscriptionActive(pkg.product.identifier);
-    const isSelected = selectedPackage?.identifier === pkg.identifier;
-    const hasAnyActiveSubscription = activeSubscriptions.length > 0;
-    const isDisabled = hasAnyActiveSubscription && !isActive;
-    const priceText =
-      info.period === "month"
-        ? `${pkg.product.priceString} / month`
-        : `${pkg.product.priceString} / year`;
-
-    return (
-      <TouchableOpacity
-        key={pkg.identifier}
-        style={[
-          styles.subscriptionCard,
-          isActive && styles.subscriptionCardActive,
-          isSelected && styles.subscriptionCardSelected,
-          isDisabled && styles.subscriptionCardDisabled,
-        ]}
-        onPress={() => !hasAnyActiveSubscription && setSelectedPackage(pkg)}
-        disabled={hasAnyActiveSubscription}
-      >
-        {info.popular && !isActive && !hasAnyActiveSubscription && (
-          <View style={styles.popularBadge}>
-            <Text style={styles.badgeText}>POPULAR</Text>
-          </View>
-        )}
-        {info.bestValue && !isActive && !hasAnyActiveSubscription && (
-          <View style={styles.bestValueBadge}>
-            <Text style={styles.badgeText}>BEST VALUE</Text>
-          </View>
-        )}
-        {isActive && (
-          <View style={styles.currentBadge}>
-            <Text style={styles.badgeText}>ACTIVE</Text>
-          </View>
-        )}
-
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{info.displayName}</Text>
-          <Text style={styles.cardCredits}>
-            {info.credits} credits
-            {info.period === "month" ? "\n/ month" : "\n/ year"}
-          </Text>
-          <Text style={styles.cardPrice}>{priceText}</Text>
-        </View>
-
-        {!isActive && hasAnyActiveSubscription && (
-          <BlurView intensity={5} style={styles.blurOverlay} tint="light" />
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderCreditPackCard = (pkg: PurchasesPackage) => {
-    const info = getProductInfo(pkg.product.identifier);
-    const isSelected = selectedPackage?.identifier === pkg.identifier;
-
-    return (
-      <TouchableOpacity
-        key={pkg.identifier}
-        style={[
-          styles.creditPackCard,
-          isSelected && styles.creditPackCardSelected,
-        ]}
-        onPress={() => setSelectedPackage(pkg)}
-      >
-        {info.popular && (
-          <View style={styles.popularBadge}>
-            <Text style={styles.badgeText}>POPULAR</Text>
-          </View>
-        )}
-
-        <Text style={styles.cardTitle}>{info.displayName}</Text>
-        <Text style={styles.cardCredits}>{info.credits} credits</Text>
-        <Text style={styles.cardPrice}>{pkg.product.priceString}</Text>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <ImageBackground
@@ -568,7 +486,7 @@ export default function CreditsScreen({
         style={StyleSheet.absoluteFill}
       />
 
-      <Decorations />
+      <StarsDecorations />
 
       <SafeAreaView style={styles.safeArea}>
         {loading ? (
@@ -594,86 +512,52 @@ export default function CreditsScreen({
             showsVerticalScrollIndicator={false}
           >
             {/* Header with Credits title and balance */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Credits</Text>
-              <View style={styles.headerBalance}>
-                <Animated.View
-                  style={[
-                    {
-                      transform: [{ scale: scaleAnim }],
-                      opacity: fadeAnim,
-                    },
-                  ]}
-                >
-                  <Animated.Text style={styles.headerBalanceAmount}>
-                    {userCredits?.balance || 0}
-                  </Animated.Text>
-                </Animated.View>
-                <IconSymbol name="sparkles" size={16} color={Colors.primary} />
-              </View>
-            </View>
+            <CreditsHeader
+              userCredits={userCredits}
+              scaleAnim={scaleAnim}
+              fadeAnim={fadeAnim}
+            />
 
             {/* Info Message */}
-            <View style={styles.infoContainer}>
-              <IconSymbol
-                name="info.circle"
-                size={16}
-                color={Colors.textSecondary}
-              />
-              <Text style={styles.infoText}>
-                Each credit enables you to generate 1 page of a story.
-              </Text>
-            </View>
+            <InfoSection />
 
             {/* Tab Selector */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  selectedTab === "subscriptions" && styles.tabActive,
-                ]}
-                onPress={() => setSelectedTab("subscriptions")}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    selectedTab === "subscriptions" && styles.tabTextActive,
-                  ]}
-                >
-                  Subscriptions
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  selectedTab === "packs" && styles.tabActive,
-                ]}
-                onPress={() => setSelectedTab("packs")}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    selectedTab === "packs" && styles.tabTextActive,
-                  ]}
-                >
-                  Credit packs
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TabSelector
+              selectedTab={selectedTab}
+              onTabChange={setSelectedTab}
+            />
 
             {/* Content based on selected tab */}
             {selectedTab === "subscriptions" ? (
               <View>
                 {subscriptions.length > 0 && (
                   <View style={styles.planGrid}>
-                    {subscriptions.map(renderSubscriptionCard)}
+                    {subscriptions.map((pkg) => (
+                      <SubscriptionCard
+                        key={pkg.identifier}
+                        package={pkg}
+                        isSelected={selectedPackage?.identifier === pkg.identifier}
+                        isActive={isSubscriptionActive(pkg.product.identifier)}
+                        hasAnyActiveSubscription={activeSubscriptions.length > 0}
+                        onSelect={setSelectedPackage}
+                        getProductInfo={getProductInfo}
+                      />
+                    ))}
                   </View>
                 )}
               </View>
             ) : (
               <View>
                 <View style={styles.planGrid}>
-                  {creditPacks.map(renderCreditPackCard)}
+                  {creditPacks.map((pkg) => (
+                    <CreditPackCard
+                      key={pkg.identifier}
+                      package={pkg}
+                      isSelected={selectedPackage?.identifier === pkg.identifier}
+                      onSelect={setSelectedPackage}
+                      getProductInfo={getProductInfo}
+                    />
+                  ))}
                 </View>
               </View>
             )}
@@ -792,61 +676,17 @@ export default function CreditsScreen({
       </SafeAreaView>
 
       {/* Fixed Bottom Purchase Button Section */}
-      <View
-        style={[
-          styles.bottomSection,
-          {
-            paddingBottom: insets.bottom + 37, // Account for tab bar
-          },
-        ]}
-      >
-        {(offerings?.availablePackages?.length || 0) > 0 && (
-          <TouchableOpacity
-            style={[
-              styles.purchaseButton,
-              !(purchasing || !selectedPackage) && styles.purchaseButtonEnabled,
-              (purchasing || !selectedPackage) && styles.purchaseButtonDisabled,
-            ]}
-            onPress={() => {
-              if (selectedPackage) {
-                handlePurchase(selectedPackage);
-              }
-            }}
-            disabled={purchasing || !selectedPackage}
-          >
-            {purchasing ? (
-              <ActivityIndicator size="small" color={Colors.textDark} />
-            ) : selectedPackage ? (
-              <>
-                <Text style={styles.purchaseButtonText}>
-                  Purchase{" "}
-                  {getProductInfo(selectedPackage.product.identifier).name}
-                </Text>
-                <Text style={styles.purchaseButtonSubtext}>
-                  {selectedPackage.product.priceString}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.purchaseButtonText}>
-                  {selectedTab === "subscriptions"
-                    ? activeSubscriptions.length > 0
-                      ? "You have an active subscription"
-                      : "Start subscription"
-                    : "Purchase credits"}
-                </Text>
-                <Text style={styles.purchaseButtonSubtext}>
-                  {selectedTab === "subscriptions"
-                    ? activeSubscriptions.length > 0
-                      ? "Use credit packs for additional credits"
-                      : "Choose your preferred plan above"
-                    : "Select your credit pack above"}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
+      {(offerings?.availablePackages?.length || 0) > 0 && (
+        <PurchaseButton
+          selectedPackage={selectedPackage}
+          selectedTab={selectedTab}
+          purchasing={purchasing}
+          activeSubscriptions={activeSubscriptions}
+          onPurchase={handlePurchase}
+          getProductInfo={getProductInfo}
+          insets={insets}
+        />
+      )}
 
       {purchasing && (
         <View style={styles.purchasingOverlay}>
@@ -858,29 +698,6 @@ export default function CreditsScreen({
   );
 }
 
-// Decorations component for background elements
-function Decorations() {
-  return (
-    <>
-      {/* Stars */}
-      {STAR_POSITIONS.map((pos, i) => (
-        <Image
-          key={`star-${i}`}
-          source={require("../../assets/images/star.png")}
-          style={[styles.star, pos]}
-        />
-      ))}
-    </>
-  );
-}
-
-const STAR_POSITIONS = [
-  { top: 80, left: 40 },
-  { top: 120, right: 60 },
-  { top: 200, left: 100 },
-  { bottom: 150, left: 60 },
-  { bottom: 100, right: 80 },
-];
 
 const styles = StyleSheet.create({
   container: {
@@ -903,251 +720,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Header section
-  header: {
-    marginBottom: Spacing.lg,
-    alignItems: "center",
-    position: "relative",
-  },
-  title: {
-    ...CommonStyles.brandTitle,
-    fontSize:
-      width >= 768 ? Typography.fontSize.h1Tablet : Typography.fontSize.h1Phone,
-    textAlign: "center",
-  },
-  headerBalance: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderRadius: BorderRadius.small,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.3)",
-  },
-  star: {
-    position: "absolute",
-    width: 10,
-    height: 10,
-    opacity: 0.6,
-  },
-  headerBalanceAmount: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary,
-    marginRight: Spacing.xs,
-  },
-
-  // Info section
-  infoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.medium,
-    marginBottom: Spacing.xl,
-  },
-  infoText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    marginLeft: Spacing.sm,
-    lineHeight: 18,
-  },
-
-  // Tab section
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: BorderRadius.round,
-    padding: 4,
-    marginBottom: Spacing.xl,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: "center",
-    borderRadius: BorderRadius.round,
-  },
-  tabActive: {
-    backgroundColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  tabTextActive: {
-    color: Colors.textDark,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-
-  // Section
-  sectionTitle: {
-    fontSize: Typography.fontSize.h2,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text,
-    marginBottom: Spacing.xl,
-    textAlign: "center",
-  },
-
   // Plan grid
   planGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-
-  // Subscription cards
-  subscriptionCard: {
-    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    alignItems: "center",
-    position: "relative",
-    borderWidth: 2,
-    borderColor: "transparent",
-    minHeight: 160,
-  },
-  subscriptionCardActive: {
-    borderColor: Colors.success,
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
-  },
-  subscriptionCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  subscriptionCardDisabled: {
-    opacity: 0.5,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-  },
-
-  // Card content wrapper
-  cardContent: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Blur overlay for unavailable cards
-  blurOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BorderRadius.large,
-  },
-
-  // Credit pack cards
-  creditPackCard: {
-    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    borderWidth: 2,
-    borderColor: "transparent",
-    minHeight: 160,
-  },
-  creditPackCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-
-  // Card content
-  cardTitle: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 22,
-  },
-  cardCredits: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 18,
-  },
-  cardPrice: {
-    fontSize: Typography.fontSize.large,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary,
-    textAlign: "center",
-  },
-
-  // Badges
-  popularBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderTopRightRadius: BorderRadius.medium,
-    borderBottomLeftRadius: BorderRadius.medium,
-  },
-  bestValueBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderTopRightRadius: BorderRadius.medium,
-    borderBottomLeftRadius: BorderRadius.medium,
-  },
-  currentBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderTopRightRadius: BorderRadius.medium,
-    borderBottomLeftRadius: BorderRadius.medium,
-  },
-  unavailableBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.textSecondary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderTopRightRadius: BorderRadius.medium,
-    borderBottomLeftRadius: BorderRadius.medium,
-    zIndex: 10, // Ensure it stays above the blur
-  },
-  badgeText: {
-    fontSize: Typography.fontSize.tiny,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textDark,
   },
 
   // Restore button
@@ -1193,48 +770,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
     fontWeight: Typography.fontWeight.medium,
-  },
-
-  // Bottom section and purchase button
-  bottomSection: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(212, 175, 55, 0.2)",
-  },
-  purchaseButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.medium,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.xxl,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 56,
-  },
-  purchaseButtonEnabled: {
-    ...Shadows.glow,
-  },
-  purchaseButtonDisabled: {
-    opacity: 0.6,
-  },
-  purchaseButtonText: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textDark,
-    textAlign: "center",
-  },
-  purchaseButtonSubtext: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textDark,
-    textAlign: "center",
-    marginTop: 2,
-    opacity: 0.8,
   },
 
   // Purchasing overlay

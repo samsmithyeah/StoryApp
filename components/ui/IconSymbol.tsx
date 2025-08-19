@@ -42,6 +42,7 @@ const MAPPING = {
   shield: "security",
   "doc.text": "description",
   "questionmark.circle": "help",
+  "info.circle": "info",
 
   // UI Elements
   gear: "settings",
@@ -68,7 +69,7 @@ const MAPPING = {
 
   // Objects & Symbols
   "heart.fill": "favorite",
-  sparkles: "star",
+  sparkles: "auto-awesome",
   "star.fill": "star",
   "wand.and.stars": "auto-fix-high",
   "books.vertical.fill": "library-books",
