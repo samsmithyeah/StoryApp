@@ -251,7 +251,8 @@ REQUIREMENTS:
             `[Worker] This is the final image (${currentImagesGenerated + 1}/${totalImages}). Setting status to 'completed'.`
           );
           updateData.imageGenerationStatus = "completed";
-          
+          updateData.generationPhase = "all_complete";
+
           // Send notification when story is fully complete (after this transaction commits)
           // We'll do this after the transaction to ensure the data is persisted
         }
@@ -260,9 +261,10 @@ REQUIREMENTS:
       });
 
       // Check if this was the final image and send notification
-      const currentImagesGenerated = (await storyRef.get()).data()?.imagesGenerated || 0;
+      const currentImagesGenerated =
+        (await storyRef.get()).data()?.imagesGenerated || 0;
       const totalImages = (await storyRef.get()).data()?.totalImages || 0;
-      
+
       if (totalImages > 0 && currentImagesGenerated >= totalImages) {
         // Story is fully complete - send notification
         const finalStoryData = (await storyRef.get()).data();

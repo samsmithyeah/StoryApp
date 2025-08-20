@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { IconSymbol } from "../ui/IconSymbol";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { IconSymbol } from "../ui/IconSymbol";
 import type { AdvancedSettingsSectionProps } from "./types";
 
 export function AdvancedSettingsSection({
@@ -26,7 +26,7 @@ export function AdvancedSettingsSection({
         onPress={() => setShowAdvancedSettings(!showAdvancedSettings)}
       >
         <View>
-          <Text style={styles.sectionTitle}>Advanced Settings</Text>
+          <Text style={styles.sectionTitle}>Debug model settings</Text>
           <Text style={styles.sectionDescription}>
             Configure AI model preferences
           </Text>

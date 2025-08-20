@@ -2,8 +2,9 @@ import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   ImageBackground,
   Platform,
@@ -16,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
+import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { Button } from "../ui/Button";
 import { CloseButton } from "../ui/CloseButton";
 
@@ -31,7 +33,6 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
   onGoBack,
 }) => {
   const { width, height } = useWindowDimensions();
-  const coverImageUrl = useStorageUrl(story.coverImageUrl);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -42,8 +43,18 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
   const maxDim = Math.max(width, height);
   const isTablet = maxDim >= 768 && minDim >= 500;
 
-  const hasImage =
-    story.storyConfiguration?.enableIllustrations !== false && !!coverImageUrl;
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  const coverImageUrl = useStorageUrl(story.coverImageUrl);
+  const hasCoverImagePath = !!story.coverImageUrl;
+  const isGeneratingCover =
+    !story.coverImageUrl &&
+    story.generationPhase !== "cover_complete" &&
+    story.generationPhase !== "all_complete";
+  const shouldShowImage = hasCoverImagePath && !imageError && coverImageUrl;
+  const shouldShowSpinner =
+    (hasCoverImagePath && imageLoading && !imageError) || isGeneratingCover;
 
   useEffect(() => {
     Animated.parallel([
@@ -108,18 +119,38 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
                 <Text style={styles.title}>{story.title}</Text>
 
                 {/* PORTRAIT: image under title */}
-                {!isLandscape && hasImage && (
+                {!isLandscape && (hasCoverImagePath || isGeneratingCover) && (
                   <View style={styles.imagePortrait}>
-                    <Image
-                      source={{ uri: coverImageUrl }}
-                      style={styles.coverImage}
-                      contentFit="cover"
-                    />
+                    {shouldShowSpinner && (
+                      <View style={styles.imageLoader}>
+                        {isGeneratingCover ? (
+                          <LoadingSpinner size="medium" showGlow={false} />
+                        ) : (
+                          <ActivityIndicator
+                            size="large"
+                            color={Colors.primary}
+                          />
+                        )}
+                      </View>
+                    )}
+                    {shouldShowImage && (
+                      <Image
+                        source={{ uri: coverImageUrl }}
+                        style={styles.coverImage}
+                        contentFit="cover"
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => {
+                          setImageLoading(false);
+                          setImageError(true);
+                        }}
+                      />
+                    )}
                   </View>
                 )}
 
                 {/* Portrait or no-image fallback */}
-                {(!isLandscape || !hasImage) && (
+                {(!isLandscape ||
+                  (!hasCoverImagePath && !isGeneratingCover)) && (
                   <Text style={styles.detailsLine}>
                     {story.storyContent.length} pages
                   </Text>
@@ -134,14 +165,33 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
               </View>
 
               {/* LANDSCAPE: image right, bigger on phones, pages below */}
-              {isLandscape && hasImage && (
+              {isLandscape && (hasCoverImagePath || isGeneratingCover) && (
                 <View style={styles.imageColumn}>
                   <View style={styles.imageLandscape}>
-                    <Image
-                      source={{ uri: coverImageUrl }}
-                      style={styles.coverImage}
-                      contentFit="cover"
-                    />
+                    {shouldShowSpinner && (
+                      <View style={styles.imageLoader}>
+                        {isGeneratingCover ? (
+                          <LoadingSpinner size="medium" showGlow={false} />
+                        ) : (
+                          <ActivityIndicator
+                            size="large"
+                            color={Colors.primary}
+                          />
+                        )}
+                      </View>
+                    )}
+                    {shouldShowImage && (
+                      <Image
+                        source={{ uri: coverImageUrl }}
+                        style={styles.coverImage}
+                        contentFit="cover"
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => {
+                          setImageLoading(false);
+                          setImageError(true);
+                        }}
+                      />
+                    )}
                   </View>
                   <Text style={styles.detailsLineBelowImage}>
                     {story.storyContent.length} pages
@@ -278,6 +328,16 @@ const createStyles = ({
     coverImage: {
       width: "100%",
       height: "100%",
+    },
+    imageLoader: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1,
     },
     detailsLine: {
       fontSize: Typography.fontSize.medium,

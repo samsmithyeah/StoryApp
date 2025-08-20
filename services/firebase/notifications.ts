@@ -1,5 +1,5 @@
 import { doc, updateDoc } from "@react-native-firebase/firestore";
-import auth from "@react-native-firebase/auth";
+import auth, { getAuth } from "@react-native-firebase/auth";
 import { db } from "./config";
 
 /**
@@ -11,7 +11,8 @@ export class NotificationService {
    * This should be called when the user logs in and FCM token is obtained
    */
   static async registerFCMToken(fcmToken: string): Promise<void> {
-    const user = auth().currentUser;
+    const authInstance = getAuth();
+    const user = authInstance.currentUser;
 
     if (!user) {
       throw new Error("User must be authenticated to register FCM token");
@@ -37,7 +38,8 @@ export class NotificationService {
    * This should be called when the user logs out
    */
   static async removeFCMToken(): Promise<void> {
-    const user = auth().currentUser;
+    const authInstance = getAuth();
+    const user = authInstance.currentUser;
 
     if (!user) {
       return; // No user to remove token for

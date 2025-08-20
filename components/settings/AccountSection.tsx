@@ -6,9 +6,7 @@ import type { AccountSectionProps } from "./types";
 
 export function AccountSection({
   user,
-  isAdmin,
   isDeleting,
-  onShowWelcomeWizard,
   onSignOut,
   onDeleteAccount,
 }: AccountSectionProps) {
@@ -32,15 +30,6 @@ export function AccountSection({
           <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
       </View>
-
-      {isAdmin && (
-        <Button
-          title="Show welcome wizard"
-          onPress={onShowWelcomeWizard}
-          variant="outline"
-          style={styles.debugButton}
-        />
-      )}
 
       <Button
         title="Sign out"
@@ -117,11 +106,6 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
-  },
-  debugButton: {
-    marginBottom: Spacing.lg,
-    borderColor: Colors.primary,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
   },
   signOutButton: {
     borderColor: Colors.error,

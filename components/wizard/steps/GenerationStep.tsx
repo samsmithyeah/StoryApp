@@ -7,7 +7,13 @@ import { AppStateService } from "@/services/appState";
 import { Story } from "@/types/story.types";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface GenerationStepProps {
@@ -32,11 +38,13 @@ interface ChecklistItemProps {
   label: string;
   isCompleted: boolean;
   isLoading: boolean;
+  showSpinner?: boolean;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
   label,
   isCompleted,
+  showSpinner = false,
 }) => {
   return (
     <View style={styles.checklistItem}>
@@ -47,6 +55,8 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
             size={20}
             color={Colors.success}
           />
+        ) : showSpinner ? (
+          <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
           <View style={styles.emptyCircle} />
         )}
@@ -79,31 +89,58 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
   // Helper functions to check generation status
   const isStoryTextReady = (): boolean => {
-    if (_debugForceStates?.textReady !== undefined)
+    // Debug force state takes priority
+    if (_debugForceStates?.textReady !== undefined) {
       return _debugForceStates.textReady;
-    return !!(
+    }
+
+    // Check if we have actual story content data
+    const hasActualContent = !!(
       storyData?.title &&
-      storyData?.storyContent &&
+      Array.isArray(storyData?.storyContent) &&
       storyData?.storyContent.length > 0
     );
+
+    return hasActualContent;
   };
 
   const isCoverImageReady = (): boolean => {
     if (_debugForceStates?.coverReady !== undefined)
       return _debugForceStates.coverReady;
-    return !!storyData?.coverImageUrl;
+
+    // Check actual data
+    return !!(storyData?.coverImageUrl && storyData.coverImageUrl !== "");
   };
 
   const arePageImagesReady = (): boolean => {
     if (_debugForceStates?.imagesReady !== undefined)
       return _debugForceStates.imagesReady;
-    if (!storyData?.storyConfiguration?.enableIllustrations) return true;
+
+    // If we don't have story data yet, images are not ready
+    if (!storyData) return false;
+
     const status = storyData?.imageGenerationStatus;
-    return status === "completed" || status === "not_requested";
+    return status === "completed";
   };
 
   const isStoryFullyComplete = (): boolean => {
     return isStoryTextReady() && isCoverImageReady() && arePageImagesReady();
+  };
+
+  const getPageImageProgress = (): string => {
+
+    const imagesGenerated = storyData?.imagesGenerated || 0;
+    const totalImages =
+      storyData?.totalImages || storyData?.storyConfiguration?.pageCount || 0;
+
+    if (totalImages === 0) return "";
+
+    // Show progress once we have cover image ready (meaning page image generation should start)
+    if (isCoverImageReady() || imagesGenerated > 0 || arePageImagesReady()) {
+      return ` (${imagesGenerated}/${totalImages})`;
+    }
+
+    return "";
   };
 
   // Update last active time while user is viewing the generation step
@@ -220,37 +257,42 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
           {/* Generation Progress Checklist */}
           <View style={styles.checklistContainer}>
-            <ChecklistItem
-              label="Story text"
-              isCompleted={isStoryTextReady()}
-              isLoading={isGenerating && !isStoryTextReady()}
-            />
-            <ChecklistItem
-              label="Cover image"
-              isCompleted={isCoverImageReady()}
-              isLoading={isGenerating && !isCoverImageReady()}
-            />
-            {storyData?.storyConfiguration?.enableIllustrations !== false && (
               <ChecklistItem
-                label="Page images"
+                label="Story text"
+                isCompleted={isStoryTextReady()}
+                isLoading={isGenerating && !isStoryTextReady()}
+                showSpinner={isGenerating && !isStoryTextReady()}
+              />
+              <ChecklistItem
+                label="Cover illustration"
+                isCompleted={isCoverImageReady()}
+                isLoading={isGenerating && !isCoverImageReady()}
+                showSpinner={
+                  isGenerating && isStoryTextReady() && !isCoverImageReady()
+                }
+              />
+              <ChecklistItem
+                label={`Page illustrations${getPageImageProgress()}`}
                 isCompleted={arePageImagesReady()}
                 isLoading={isGenerating && !arePageImagesReady()}
+                showSpinner={
+                  isGenerating && isCoverImageReady() && !arePageImagesReady()
+                }
               />
-            )}
           </View>
 
           {/* Push notification message */}
           <View style={styles.tipContainer}>
-            <IconSymbol
-              name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
-              size={isTablet ? 18 : 16}
-              color={isStoryFullyComplete() ? Colors.success : Colors.warning}
-            />
-            <Text style={styles.tipText}>
-              {isStoryFullyComplete()
-                ? "Your story is complete and ready for bedtime reading!"
-                : "We'll send you a notification when your story, complete with illustrations, is ready!"}
-            </Text>
+              <IconSymbol
+                name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
+                size={isTablet ? 18 : 16}
+                color={isStoryFullyComplete() ? Colors.success : Colors.warning}
+              />
+              <Text style={styles.tipText}>
+                {isStoryFullyComplete()
+                  ? "Your story is complete and ready to read!"
+                  : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
+              </Text>
           </View>
         </View>
 
@@ -311,7 +353,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.large,
     gap: Spacing.sm,
-    maxWidth: isTablet ? 500 : 300,
+    width: isTablet ? 500 : 300,
+    alignSelf: "center",
   },
   tipText: {
     flex: 1,
@@ -346,7 +389,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: isTablet ? 28 : 24,
     marginBottom: Spacing.xxxl,
-    maxWidth: isTablet ? 600 : 320,
+    width: isTablet ? 500 : 300,
   },
   buttonRow: {
     flexDirection: "row",
@@ -380,7 +423,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
     gap: Spacing.md,
-    maxWidth: isTablet ? 400 : 320,
+    width: 240,
   },
   checklistItem: {
     flexDirection: "row",
@@ -407,6 +450,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: isTablet ? 22 : 18,
     fontWeight: Typography.fontWeight.medium,
+    flex: 1,
+    flexWrap: "wrap",
   },
   checklistLabelCompleted: {
     color: Colors.success,

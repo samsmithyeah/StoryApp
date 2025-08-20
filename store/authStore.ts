@@ -12,6 +12,8 @@ interface AuthStore extends AuthState {
   authLoading: boolean;
   setAuthLoading: (loading: boolean) => void;
   validateAuthState: () => boolean;
+  isInitialized: boolean;
+  unsubscribe: (() => void) | null;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -19,8 +21,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loading: true,
   error: null,
   authLoading: false,
+  isInitialized: false,
+  unsubscribe: null,
 
   initialize: () => {
+    // Prevent multiple initializations
+    if (get().isInitialized) {
+      return;
+    }
+
+    // Clean up any existing subscription
+    const existingUnsubscribe = get().unsubscribe;
+    if (existingUnsubscribe) {
+      existingUnsubscribe();
+    }
+
     const unsubscribe = subscribeToAuthChanges((user) => {
       const currentState = get();
       const { validateAuthState } = get();
@@ -55,8 +70,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     });
 
-    // Store the unsubscribe function for cleanup
-    (get() as any).unsubscribe = unsubscribe;
+    // Store the unsubscribe function for cleanup and mark as initialized
+    set({ unsubscribe, isInitialized: true });
   },
 
   setUser: (user) => set({ user }),
@@ -74,12 +89,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { signOutUser } = await import("../services/firebase/auth");
       await signOutUser();
       console.log("Sign out completed, clearing user state");
-      set({ user: null, loading: false });
+      set({ user: null, loading: false, authLoading: false });
     } catch (error) {
       console.error("Sign out error:", error);
       set({
         error: error instanceof Error ? error.message : "Sign out failed",
         loading: false,
+        authLoading: false,
       });
     }
   },

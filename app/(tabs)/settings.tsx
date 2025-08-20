@@ -16,10 +16,10 @@ import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding
 import { AccountSection } from "../../components/settings/AccountSection";
 import { AdvancedSettingsSection } from "../../components/settings/AdvancedSettingsSection";
 import { ChildrenSection } from "../../components/settings/ChildrenSection";
+import { DebugSection } from "../../components/settings/DebugSection";
 import { SavedCharactersSection } from "../../components/settings/SavedCharactersSection";
 import { SettingsHeader } from "../../components/settings/SettingsHeader";
 import { SupportSection } from "../../components/settings/SupportSection";
-import { Button } from "../../components/ui/Button";
 import { Colors, Spacing } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { useChildren } from "../../hooks/useChildren";
@@ -210,22 +210,15 @@ export default function SettingsScreen() {
 
           <SupportSection onNavigate={(route) => router.push(route as any)} />
 
-          {/* Debug Button - Remove in production */}
-          {__DEV__ && (
-            <Button
-              title="🐛 Debug Generation UI"
-              onPress={() => router.push('/debug-generation')}
-              variant="outline"
-              size="medium"
-              style={{ marginHorizontal: Spacing.screenPadding, marginVertical: Spacing.lg }}
-            />
-          )}
+          <DebugSection
+            isAdmin={isAdmin}
+            onShowWelcomeWizard={handleShowWelcomeWizard}
+            onNavigate={(route) => router.push(route as any)}
+          />
 
           <AccountSection
             user={user}
-            isAdmin={isAdmin}
             isDeleting={isDeleting}
-            onShowWelcomeWizard={handleShowWelcomeWizard}
             onSignOut={handleSignOut}
             onDeleteAccount={handleDeleteAccount}
           />

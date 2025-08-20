@@ -5,7 +5,7 @@ import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -46,7 +46,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     if (characters && characters.length > 0) {
       return characters;
     }
-    return selectedChildren
+
+    const childCharacters = selectedChildren
       .map((childId) => {
         const child = savedChildren.find((c) => c.id === childId);
         if (child) {
@@ -59,6 +60,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
         return null;
       })
       .filter((char): char is StoryCharacter => char !== null);
+
+    return childCharacters;
   };
 
   const initialCharacters = initializeCharacters();
@@ -69,39 +72,83 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   );
 
   // Single source of truth for what is currently selected
-  const [selectedCharacters, setSelectedCharacters] =
-    useState<StoryCharacter[]>(initialCharacters);
+  const [selectedCharacters, setSelectedCharacters] = useState<StoryCharacter[]>(
+    initialCharacters
+  );
 
   const [mode, setMode] = useState<"surprise" | "custom">(
     initialCharacters.length > 0 ? "custom" : "surprise"
   );
-  const [lastSavedCharactersLength, setLastSavedCharactersLength] = useState(
-    savedCharacters.length
-  );
+
+  // Track which character IDs existed when Firebase first loaded
+  // This way we can detect truly NEW characters added during this session
+  const initialCharacterIds = useRef<Set<string> | null>(null);
+  const hasFirebaseLoaded = useRef(false);
+  const lastKnownIds = useRef<Set<string>>(new Set());
+
 
   useEffect(() => {
-    if (savedCharacters.length > lastSavedCharactersLength) {
-      const newestCharacter = savedCharacters[0];
-      if (newestCharacter) {
-        const newStoryCharacter: StoryCharacter = {
-          name: newestCharacter.name,
-          description: newestCharacter.description,
-          isChild: false,
-        };
-        setSelectedCharacters((prev) => {
-          const isAlreadySelected = prev.some(
-            (char) => char.name === newStoryCharacter.name && !char.isChild
-          );
-          if (!isAlreadySelected) {
-            setMode("custom");
-            return [...prev, newStoryCharacter];
-          }
-          return prev;
-        });
+
+    const currentIds = new Set(savedCharacters.map((c) => c.id));
+
+    // Wait for Firebase to actually load - we know it has loaded when either:
+    // 1. We have characters, OR
+    // 2. We've seen the effect run at least twice (initial empty + Firebase response)
+    if (!hasFirebaseLoaded.current) {
+      if (savedCharacters.length > 0) {
+        // Firebase has loaded with characters
+        initialCharacterIds.current = new Set(savedCharacters.map((c) => c.id));
+        lastKnownIds.current = currentIds;
+        hasFirebaseLoaded.current = true;
+      } else if (lastKnownIds.current.size === 0) {
+        // First run with empty array - Firebase might still be loading
+        lastKnownIds.current = currentIds;
+      } else {
+        // Second run with empty array - Firebase has loaded but user has no saved characters
+        initialCharacterIds.current = new Set();
+        lastKnownIds.current = currentIds;
+        hasFirebaseLoaded.current = true;
       }
+      return;
     }
-    setLastSavedCharactersLength(savedCharacters.length);
-  }, [savedCharacters, lastSavedCharactersLength]);
+
+    // Check if there are any truly NEW characters (not in initial Firebase load)
+    const newCharacterIds = Array.from(currentIds).filter(
+      (id) => !initialCharacterIds.current?.has(id)
+    );
+
+
+    if (newCharacterIds.length > 0) {
+      // Find the actual character objects for the new IDs
+      const newCharacters = savedCharacters.filter((char) =>
+        newCharacterIds.includes(char.id)
+      );
+      const newestCharacter = newCharacters[0]; // They're sorted by creation date
+
+
+      const newStoryCharacter: StoryCharacter = {
+        name: newestCharacter.name,
+        description: newestCharacter.description,
+        isChild: false,
+      };
+
+      setSelectedCharacters((prev) => {
+        const isAlreadySelected = prev.some(
+          (char) => char.name === newStoryCharacter.name && !char.isChild
+        );
+        if (!isAlreadySelected) {
+          setMode("custom");
+          return [...prev, newStoryCharacter];
+        }
+        return prev;
+      });
+
+      // Update our tracking to include these new characters
+      newCharacterIds.forEach((id) => initialCharacterIds.current?.add(id));
+    }
+
+    lastKnownIds.current = currentIds;
+  }, [savedCharacters]);
 
   useEffect(() => {
     if (temporaryCharacter) {
@@ -240,7 +287,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   };
 
   const handleNext = () => {
-    onUpdate({ characters: mode === "surprise" ? [] : selectedCharacters });
+    const charactersToSend = mode === "surprise" ? [] : selectedCharacters;
+    onUpdate({ characters: charactersToSend });
     onNext();
   };
 

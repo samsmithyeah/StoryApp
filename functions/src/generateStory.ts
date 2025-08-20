@@ -10,11 +10,8 @@ import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
-import { uploadImageToStorage } from "./utils/storage";
-import { sendStoryCompleteNotification } from "./sendStoryCompleteNotification";
 
 const pubsub = new PubSub();
-const topicName = "generate-story-image";
 
 // Helper function to get art style descriptions in order of fallback preference
 function getArtStyleDescriptions(data: StoryGenerationRequest): string[] {
@@ -121,15 +118,25 @@ export const generateStory = onCall(
       const selectedTextModel = data.textModel || "gpt-4o";
       const temperature = data.temperature ?? 0.9; // Use user preference or default
 
-      // Debug logging for page image model
-      console.log(`[DEBUG] Received pageImageModel: ${data.pageImageModel}`);
-      console.log(
-        `[DEBUG] Final imageProvider will be: ${data.pageImageModel || "gpt-image-1"}`
-      );
-      const systemPrompt = `You are a creative children's story writer specializing in personalized bedtime stories. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
+      const systemPrompt = `You are a world-class creative children's story writer. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
 
       // Build character info from character selection screen
       const allCharacters = data.characters || [];
+
+      console.log(
+        "[generateStory] Full request data:",
+        JSON.stringify(
+          {
+            selectedChildren: data.selectedChildren,
+            characters: data.characters,
+            theme: data.theme,
+            mood: data.mood,
+            storyAbout: data.storyAbout,
+          },
+          null,
+          2
+        )
+      );
 
       // Get appearance details for children who are characters
       const characterDescriptions = await Promise.all(
@@ -188,6 +195,11 @@ export const generateStory = onCall(
 
       const characterInfo = characterDescriptions.join(", ");
 
+      console.log(
+        "[generateStory] Character descriptions built:",
+        characterDescriptions
+      );
+
       // Separate character names with ages from full appearance details
       const characterNamesWithAges = await Promise.all(
         allCharacters.map(async (char) => {
@@ -213,6 +225,15 @@ export const generateStory = onCall(
 
       const characterNamesString = characterNamesWithAges.join(", ");
 
+      console.log(
+        "[generateStory] Character names with ages:",
+        characterNamesWithAges
+      );
+      console.log(
+        "[generateStory] Final characterNamesString:",
+        characterNamesString
+      );
+
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
   characterNamesString
@@ -224,7 +245,7 @@ ${
 ${data.mood ? `- Mood: ${data.mood}` : ""}
 - Story length: ${pageCount} pages
 ${data.storyAbout ? `- Story concept: ${data.storyAbout}` : ""}
-${data.enableIllustrations ? `- Illustration art style: ${data.illustrationAiDescription || data.illustrationStyle}` : ""}
+- Illustration art style: ${data.illustrationAiDescription || data.illustrationStyle}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
@@ -232,17 +253,13 @@ Requirements:
 3. ${data.storyAbout ? `The story should incorporate the concept: ${data.storyAbout}` : "Feel free to create any engaging storyline within the theme."}
 4. ${data.mood ? `The story should have a ${data.mood} mood throughout.` : "Keep the mood appropriate for bedtime."}
 5. ${data.shouldRhyme ? "The story should rhyme like a poem or nursery rhyme. Make it flow nicely with a consistent rhyme scheme." : "Write in natural prose (no rhyming required)."}
-6. ${
-        data.enableIllustrations
-          ? `For each page, include an "imagePrompt" field with a detailed visual description of the scene. The image prompts should:
+6. For each page, include an "imagePrompt" field with a detailed visual description of the scene. The image prompts should:
    - Describe exactly who appears in the scene and what they are doing
    - Include all relevant character details: ${characterInfo || "create appropriate character descriptions"}
    - Describe the setting, objects, and visual elements in detail
    - Be written specifically for the "${data.illustrationAiDescription || data.illustrationStyle}" art style, although you should not mention the art style directly in the prompt.
    - Ensure visual consistency. Each image will be generated separately, so it is good to repeat visual details across pages.
-   - Focus on visual elements that work well with the chosen art style`
-          : "No image prompts needed."
-      }
+   - Focus on visual elements that work well with the chosen art style
 7. Make sure the story has a clear beginning, middle, and end.
 
 Return the story in this JSON format:
@@ -277,31 +294,85 @@ Return the story in this JSON format:
           chatResponse.choices[0].message.content || "{}"
         );
       } else if (selectedTextModel === "gemini-2.5-pro") {
-        const geminiClient = getGeminiClient();
-        const geminiResponse = await retryWithBackoff(() =>
-          geminiClient.generateText(
-            systemPrompt,
-            userPrompt +
-              "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
-            temperature,
-            data.geminiThinkingBudget
-          )
-        );
-
-        // Clean the response to extract JSON
-        let jsonText = geminiResponse;
-        if (jsonText.includes("```json")) {
-          const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
-          if (jsonMatch) {
-            jsonText = jsonMatch[1];
-          }
-        }
-
         try {
-          storyContent = JSON.parse(jsonText.trim());
-        } catch (error) {
-          console.error("Failed to parse Gemini response as JSON:", jsonText);
-          throw new HttpsError("internal", "Invalid JSON response from Gemini");
+          const geminiClient = getGeminiClient();
+          const geminiResponse = await retryWithBackoff(() =>
+            geminiClient.generateText(
+              systemPrompt,
+              userPrompt +
+                "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
+              temperature,
+              data.geminiThinkingBudget
+            )
+          );
+
+          // Clean the response to extract JSON
+          let jsonText = geminiResponse;
+          if (jsonText.includes("```json")) {
+            const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) {
+              jsonText = jsonMatch[1];
+            }
+          }
+
+          try {
+            storyContent = JSON.parse(jsonText.trim());
+          } catch (error) {
+            console.error("Failed to parse Gemini response as JSON:", jsonText);
+            throw new HttpsError(
+              "internal",
+              "Invalid JSON response from Gemini"
+            );
+          }
+        } catch (error: any) {
+          // Check if this is a Gemini safety filter error
+          if (error.message && error.message.includes("safety filter")) {
+            console.log(
+              "[Orchestrator] Gemini safety filter blocked content. Falling back to GPT-4o..."
+            );
+
+            // Fallback to GPT-4o (proven to work well for children's stories)
+            try {
+              const openai = getOpenAIClient();
+              const chatResponse = await retryWithBackoff(() =>
+                openai.chat.completions.create({
+                  model: "gpt-4o",
+                  messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                  ],
+                  temperature,
+                  response_format: { type: "json_object" },
+                })
+              );
+              storyContent = JSON.parse(
+                chatResponse.choices[0].message.content || "{}"
+              );
+
+              console.log(
+                "[Orchestrator] Successfully generated story using GPT-4o fallback"
+              );
+            } catch (fallbackError: any) {
+              // If GPT-4o also blocks content, show friendly error
+              if (
+                fallbackError.name === "BadRequestError" &&
+                fallbackError.message?.includes("safety system")
+              ) {
+                console.log(
+                  "[Orchestrator] Both Gemini and GPT-4o blocked content"
+                );
+                throw new HttpsError(
+                  "invalid-argument",
+                  "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
+                );
+              }
+              // Re-throw other GPT-4o errors
+              throw fallbackError;
+            }
+          } else {
+            // Re-throw non-safety filter errors
+            throw error;
+          }
         }
       }
       if (
@@ -319,114 +390,7 @@ Return the story in this JSON format:
       const storyRef = db.collection("stories").doc();
       const storyId = storyRef.id;
 
-      // 5. Generate and Upload Cover Image to its FINAL path
-      let coverImageStoragePath = "";
-      let coverImageUrlForWorkers = "";
-      let coverPrompt = "";
-
-      if (data.enableIllustrations) {
-        console.log(
-          `[Orchestrator] Generating cover image for final storyId: ${storyId}`
-        );
-        const selectedCoverImageModel =
-          data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
-
-        const artStyleDescriptions = getArtStyleDescriptions(data);
-        let currentStyleIndex = 0;
-        let coverImageGenerated = false;
-
-        // Try each art style description until one succeeds
-        while (
-          !coverImageGenerated &&
-          currentStyleIndex < artStyleDescriptions.length
-        ) {
-          const currentStyleDescription =
-            artStyleDescriptions[currentStyleIndex];
-          coverPrompt = `Aspect ratio: Square (1:1). ${storyContent.coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in 1:1 aspect ratio format. Add the book title "${storyContent.title}" to the image. Do not add the name of the author or any other text to the image.`;
-
-          try {
-            if (
-              selectedCoverImageModel ===
-              "gemini-2.0-flash-preview-image-generation"
-            ) {
-              const geminiClient = getGeminiClient();
-              coverImageUrlForWorkers = await retryWithBackoff(() =>
-                geminiClient.generateImage(coverPrompt)
-              );
-              coverImageGenerated = true;
-            } else if (
-              selectedCoverImageModel === "dall-e-3" ||
-              selectedCoverImageModel === "gpt-image-1"
-            ) {
-              const openai = getOpenAIClient();
-              const dalleResponse = await retryWithBackoff(() =>
-                openai.images.generate({
-                  model: selectedCoverImageModel,
-                  prompt: coverPrompt,
-                  size: "1024x1024",
-                  quality: "medium",
-                  n: 1,
-                  // Use base64 for both models for consistency
-                  ...(selectedCoverImageModel === "dall-e-3" && {
-                    response_format: "b64_json",
-                  }),
-                  // Use low moderation for gpt-image-1 to reduce false positives
-                  ...(selectedCoverImageModel === "gpt-image-1" && {
-                    moderation: "low",
-                  }),
-                })
-              );
-
-              // Both models now return base64 for consistency
-              const imageData = dalleResponse.data?.[0];
-              if (!imageData?.b64_json) {
-                throw new Error("No base64 image data returned from OpenAI");
-              }
-
-              // Convert base64 to data URL for both models
-              coverImageUrlForWorkers = `data:image/png;base64,${imageData.b64_json}`;
-              coverImageGenerated = true;
-            }
-          } catch (error: any) {
-            // Check if it's a safety system rejection from OpenAI
-            if (
-              error.status === 400 &&
-              error.message?.includes("safety system") &&
-              currentStyleIndex < artStyleDescriptions.length - 1
-            ) {
-              console.log(
-                `[Orchestrator] Safety system rejected cover with style "${currentStyleDescription}". Trying backup ${currentStyleIndex + 1}...`
-              );
-              currentStyleIndex++;
-              continue;
-            } else {
-              // If it's not a safety error or we're out of backups, re-throw
-              throw error;
-            }
-          }
-        }
-
-        if (!coverImageGenerated) {
-          throw new Error(
-            "Failed to generate cover image with all available art style descriptions"
-          );
-        }
-
-        console.log(
-          `[Orchestrator] Cover image generated. Uploading to final path...`
-        );
-        coverImageStoragePath = await uploadImageToStorage(
-          coverImageUrlForWorkers,
-          userId,
-          storyId,
-          "cover"
-        );
-        console.log(
-          `[Orchestrator] Cover image uploaded to: ${coverImageStoragePath}`
-        );
-      }
-
-      // 6. Create the Story Document in Firestore with the FINAL data
+      // 5. Create the Story Document with just text data first (for granular UI feedback)
       const storyPages: StoryPage[] = storyContent.pages.map((page: any) => ({
         page: page.page,
         text: page.text,
@@ -438,13 +402,12 @@ Return the story in this JSON format:
         title: storyContent.title,
         createdAt: FieldValue.serverTimestamp(),
         storyContent: storyPages,
-        coverImageUrl: coverImageStoragePath,
+        coverImageUrl: null as any, // Will be updated after cover generation - null instead of "" to avoid truthy check issues
         storyConfiguration: data,
-        imageGenerationStatus: data.enableIllustrations
-          ? "generating"
-          : "not_requested",
+        imageGenerationStatus: "generating",
+        generationPhase: "text_complete", // New field to track phases
         imagesGenerated: 0,
-        totalImages: data.enableIllustrations ? storyPages.length : 0,
+        totalImages: storyPages.length,
         // Store generation metadata
         generationMetadata: {
           // Text generation details
@@ -459,18 +422,13 @@ Return the story in this JSON format:
               ? data.geminiThinkingBudget
               : undefined,
           // Cover image generation details
-          coverImageModel: data.enableIllustrations
-            ? data.coverImageModel ||
-              "gemini-2.0-flash-preview-image-generation"
-            : null,
-          coverImagePrompt: data.enableIllustrations ? coverPrompt : null,
+          coverImageModel:
+            data.coverImageModel ||
+            "gemini-2.0-flash-preview-image-generation",
+          coverImagePrompt: "", // Will be updated after cover generation
           // Page image generation details
-          pageImageModel: data.enableIllustrations
-            ? data.pageImageModel || "gpt-image-1"
-            : null,
-          pageImagePrompts: data.enableIllustrations
-            ? storyContent.pages.map((p: any) => p.imagePrompt)
-            : null,
+          pageImageModel: data.pageImageModel || "gpt-image-1",
+          pageImagePrompts: storyContent.pages.map((p: any) => p.imagePrompt),
           pageImageGenerationData: {}, // Will be populated as individual pages are generated
           illustrationStyle: data.illustrationStyle,
           illustrationAiDescription: data.illustrationAiDescription,
@@ -484,7 +442,6 @@ Return the story in this JSON format:
             pageCount: data.pageCount,
             shouldRhyme: data.shouldRhyme,
             storyAbout: data.storyAbout,
-            enableIllustrations: data.enableIllustrations,
           },
           // Computed values
           averageChildAge: averageAge,
@@ -492,55 +449,58 @@ Return the story in this JSON format:
         },
       };
 
+      console.log(
+        `[Orchestrator] Creating story document with text data (storyId: ${storyId})`
+      );
+      console.log(`[Orchestrator] Document data being written:`, {
+        hasTitle: !!storyContent.title,
+        hasStoryContent: storyPages.length > 0,
+        coverImageUrl: storyDocData.coverImageUrl,
+        generationPhase: storyDocData.generationPhase,
+        timestamp: new Date().toISOString(),
+      });
       await storyRef.set(storyDocData);
+      console.log(
+        `[Orchestrator] Story document created successfully at ${new Date().toISOString()}`
+      );
 
-      // 7. Fan-out jobs for ALL pages
-      if (data.enableIllustrations && coverImageUrlForWorkers) {
-        const publishPromises = storyContent.pages.map(
-          (page: any, index: number) => {
-            const payload = {
-              storyId,
-              userId,
-              pageIndex: index,
-              imagePrompt: page.imagePrompt,
-              imageProvider: data.pageImageModel || "gpt-image-1",
-              consistencyInput: {
-                imageUrl: coverImageUrlForWorkers,
-                text: storyContent.coverImagePrompt,
-              },
-              characters: {
-                names: characterNamesString,
-                descriptions: characterInfo,
-              },
-              artStyle:
-                data.illustrationAiDescription || data.illustrationStyle,
-              artStyleBackup1: data.illustrationAiDescriptionBackup1,
-              artStyleBackup2: data.illustrationAiDescriptionBackup2,
-            };
-            return pubsub.topic(topicName).publishMessage({ json: payload });
-          }
-        );
-        await Promise.all(publishPromises);
-        console.log(
-          `[Orchestrator] Published jobs for all ${storyContent.pages.length} pages.`
-        );
-      }
+      // 6. Publish Cover Image Generation Task to Pub/Sub
+      console.log(
+        `[Orchestrator] Publishing cover image generation task for storyId: ${storyId}`
+      );
 
-      // 8. If illustrations are disabled, the story is complete now - send notification
-      if (!data.enableIllustrations) {
-        console.log(
-          `[Orchestrator] Story complete (no illustrations needed). Sending notification.`
-        );
-        const finalStoryDoc = await storyRef.get();
-        if (finalStoryDoc.exists) {
-          const finalStoryData = finalStoryDoc.data();
-          await sendStoryCompleteNotification(userId, {
-            id: storyId,
-            title: finalStoryData?.title,
-            ...finalStoryData,
-          });
-        }
-      }
+      const selectedCoverImageModel =
+        data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
+
+      const artStyleDescriptions = getArtStyleDescriptions(data);
+
+      // Publish cover generation task to Pub/Sub
+      const coverPayload = {
+        storyId,
+        userId,
+        title: storyContent.title,
+        coverImagePrompt: storyContent.coverImagePrompt,
+        coverImageModel: selectedCoverImageModel,
+        artStyle: artStyleDescriptions[0],
+        artStyleBackup1: artStyleDescriptions[1],
+        artStyleBackup2: artStyleDescriptions[2],
+        // Include data needed for page generation after cover completes
+        pageImageModel: data.pageImageModel,
+        pagePrompts: storyContent.pages.map((p: any) => p.imagePrompt),
+        characterNames: characterNamesString,
+        characterDescriptions: characterInfo,
+        enablePageIllustrations: true,
+      };
+
+      await pubsub
+        .topic("generate-cover-image")
+        .publishMessage({ json: coverPayload });
+      console.log(
+        `[Orchestrator] Cover image generation task published successfully`
+      );
+
+      // 7. Page image generation will be triggered by the cover generation function
+      // after the cover is successfully generated (to maintain consistency)
 
       // 9. Return the story ID to the client
       console.log(
@@ -555,12 +515,23 @@ Return the story in this JSON format:
         throw error;
       }
 
+      // Handle Gemini safety filter errors (fallback should have handled this, but just in case)
+      if (error.message && error.message.includes("safety filter")) {
+        console.error(
+          "[Orchestrator] Gemini safety filter error reached global handler - fallback may have failed"
+        );
+        throw new HttpsError(
+          "invalid-argument",
+          "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
+        );
+      }
+
       // Handle specific OpenAI API errors
       if (error.name === "BadRequestError" || error.status === 400) {
         if (error.message && error.message.includes("safety system")) {
           throw new HttpsError(
             "invalid-argument",
-            "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright."
+            "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
           );
         }
       }

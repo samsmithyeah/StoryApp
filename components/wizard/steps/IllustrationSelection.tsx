@@ -152,13 +152,11 @@ const ILLUSTRATION_STYLES: IllustrationStyle[] = [
 
 interface IllustrationSelectionProps {
   illustrationStyle: string;
-  enableIllustrations?: boolean;
   onUpdate: (data: {
     illustrationStyle?: string;
     illustrationAiDescription?: string;
     illustrationAiDescriptionBackup1?: string;
     illustrationAiDescriptionBackup2?: string;
-    enableIllustrations?: boolean;
   }) => void;
   onNext: () => void;
   onBack: () => void;
@@ -167,7 +165,6 @@ interface IllustrationSelectionProps {
 
 export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
   illustrationStyle,
-  enableIllustrations = true,
   onUpdate,
   onNext,
   onBack,
@@ -210,9 +207,6 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     }
   };
 
-  const handleIllustrationsToggle = (value: boolean) => {
-    onUpdate({ enableIllustrations: value });
-  };
 
   const handleCustomStyleChange = (text: string) => {
     setCustomStyle(text);
@@ -257,98 +251,72 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
-          <View style={styles.toggleSection}>
-            <View style={styles.toggleInfo}>
-              <Text style={styles.sectionTitle}>Add illustrations</Text>
-              <View style={styles.descriptionRow}>
-                <Text style={styles.toggleDescription}>
-                  Add beautiful AI-generated illustrations to your story
-                </Text>
-                <Switch
-                  value={enableIllustrations}
-                  onValueChange={handleIllustrationsToggle}
-                  trackColor={{
-                    false: "#374151",
-                    true: "rgba(212, 175, 55, 0.3)",
-                  }}
-                  thumbColor={
-                    enableIllustrations ? Colors.primary : Colors.textSecondary
-                  }
-                />
-              </View>
-            </View>
+          <Text style={styles.sectionTitle}>
+            Choose an illustration style
+          </Text>
+          <View
+            style={isTablet ? styles.stylesListTablet : styles.stylesList}
+          >
+            {ILLUSTRATION_STYLES.map((style) => {
+              const isSelected =
+                style.id === "custom"
+                  ? isCustomStyleSelected
+                  : style.id === illustrationStyle &&
+                    !isCustomStyleSelected;
+
+              return (
+                <TouchableOpacity
+                  key={style.id}
+                  style={[
+                    isTablet
+                      ? styles.styleListCardTablet
+                      : styles.styleListCard,
+                    isSelected && styles.selectedCard,
+                  ]}
+                  onPress={() => handleStyleSelect(style.id)}
+                >
+                  <View style={styles.styleInfo}>
+                    <Text
+                      style={[
+                        styles.styleName,
+                        isSelected && styles.selectedText,
+                      ]}
+                    >
+                      {style.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.styleDescription,
+                        isSelected && styles.selectedDescription,
+                      ]}
+                    >
+                      {style.description}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <View style={styles.checkmark}>
+                      <Text style={styles.checkmarkText}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {enableIllustrations && (
-            <>
-              <Text style={styles.subSectionTitle}>
-                Choose an illustration style
-              </Text>
-              <View
-                style={isTablet ? styles.stylesListTablet : styles.stylesList}
-              >
-                {ILLUSTRATION_STYLES.map((style) => {
-                  const isSelected =
-                    style.id === "custom"
-                      ? isCustomStyleSelected
-                      : style.id === illustrationStyle &&
-                        !isCustomStyleSelected;
-
-                  return (
-                    <TouchableOpacity
-                      key={style.id}
-                      style={[
-                        isTablet
-                          ? styles.styleListCardTablet
-                          : styles.styleListCard,
-                        isSelected && styles.selectedCard,
-                      ]}
-                      onPress={() => handleStyleSelect(style.id)}
-                    >
-                      <View style={styles.styleInfo}>
-                        <Text
-                          style={[
-                            styles.styleName,
-                            isSelected && styles.selectedText,
-                          ]}
-                        >
-                          {style.name}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.styleDescription,
-                            isSelected && styles.selectedDescription,
-                          ]}
-                        >
-                          {style.description}
-                        </Text>
-                      </View>
-                      {isSelected && (
-                        <View style={styles.checkmark}>
-                          <Text style={styles.checkmarkText}>✓</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {isCustomStyleSelected && (
-                <View style={styles.customInputContainer}>
-                  <TextInput
-                    style={styles.customInput}
-                    placeholder="E.g. vintage comic book style, hand-drawn sketches..."
-                    placeholderTextColor={Colors.textSecondary}
-                    value={customStyle}
-                    onChangeText={handleCustomStyleChange}
-                    returnKeyType="done"
-                    autoFocus={!customStyle}
-                    multiline
-                    maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
-                  />
-                </View>
-              )}
-            </>
+          {isCustomStyleSelected && (
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customInput}
+                placeholder="E.g. vintage comic book style, hand-drawn sketches..."
+                placeholderTextColor={Colors.textSecondary}
+                value={customStyle}
+                onChangeText={handleCustomStyleChange}
+                returnKeyType="done"
+                autoFocus={!customStyle}
+                multiline
+                maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
+              />
+            </View>
           )}
         </View>
       </ScrollView>
@@ -439,31 +407,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 14,
     fontWeight: "bold",
-  },
-  toggleSection: {
-    marginBottom: 24,
-    paddingVertical: 8,
-  },
-  toggleInfo: {
-    flex: 1,
-  },
-  descriptionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  toggleDescription: {
-    fontSize: isTablet ? 16 : 14,
-    color: Colors.textSecondary,
-    flex: 1,
-    paddingRight: 16,
-  },
-  subSectionTitle: {
-    fontSize: isTablet ? 18 : 16,
-    fontWeight: "600",
-    color: Colors.primary,
-    marginBottom: 12,
-    marginTop: 8,
   },
   customInputContainer: {
     marginTop: 12,

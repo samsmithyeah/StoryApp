@@ -21,23 +21,24 @@ export const useChildren = () => {
   useEffect(() => {
     // Clear children when user changes (including logout)
     if (user?.uid !== lastUserIdRef.current) {
-      console.log(
-        "[USE_CHILDREN] User changed from",
-        lastUserIdRef.current,
-        "to",
-        user?.uid
-      );
+      const previousUserId = lastUserIdRef.current;
       lastUserIdRef.current = user?.uid || null;
 
       if (!user) {
         // User logged out, clear children
-        console.log("[USE_CHILDREN] User logged out, clearing children");
+        if (previousUserId) {
+          // Only log if there was a previous user
+          console.log("[USE_CHILDREN] User logged out, clearing children");
+        }
         clearChildren();
+      } else if (!previousUserId) {
+        // Fresh login (no previous user)
+        console.log("[USE_CHILDREN] User logged in, loading children");
+        clearChildren();
+        loadChildren();
       } else {
-        // User logged in or switched accounts, clear and reload
-        console.log(
-          "[USE_CHILDREN] User logged in, clearing and reloading children"
-        );
+        // User switch (shouldn't happen in normal flow)
+        console.log("[USE_CHILDREN] User switched, reloading children");
         clearChildren();
         loadChildren();
       }

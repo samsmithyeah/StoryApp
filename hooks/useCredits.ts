@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "./useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import type { UserCredits } from "@/types/monetization.types";
+import { useEffect, useState } from "react";
+import { useAuth } from "./useAuth";
 
 export const useCredits = () => {
   const { user } = useAuth();
@@ -21,7 +21,6 @@ export const useCredits = () => {
 
     return () => {
       if (unsubscribe) {
-        console.log("🔔 Cleaning up credit subscription in useCredits");
         unsubscribe();
       }
     };
@@ -30,17 +29,11 @@ export const useCredits = () => {
   const setupRealtimeCredits = () => {
     if (!user) return;
 
-    console.log("🔔 Setting up real-time credit subscription in useCredits");
-
     // Set up real-time subscription to credits - same as credits.tsx
     const unsubscribe = creditsService.onCreditsChange(
       user.uid,
       (updatedCredits) => {
         if (updatedCredits) {
-          console.log(
-            "💰 Credits updated in useCredits hook:",
-            updatedCredits.balance
-          );
           setCredits(updatedCredits);
         } else {
           // Initialize credits if they don't exist

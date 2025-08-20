@@ -4,7 +4,6 @@ import { authService, functionsService } from "./config";
 import { creditsService } from "./credits";
 
 export interface StoryGenerationRequest extends StoryConfiguration {
-  enableIllustrations: boolean;
 }
 
 export const generateStory = async (config: StoryGenerationRequest) => {

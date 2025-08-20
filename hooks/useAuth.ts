@@ -56,6 +56,9 @@ const getAuthErrorMessage = (error: any): string => {
   }
 };
 
+// Global initialization flag
+let globalAuthInitialized = false;
+
 export const useAuth = () => {
   const {
     user,
@@ -66,18 +69,24 @@ export const useAuth = () => {
     signOut,
     authLoading,
     setAuthLoading,
+    isInitialized,
   } = useAuthStore();
 
   useEffect(() => {
-    // Configure Google Sign-In
-    const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (webClientId) {
-      configureGoogleSignIn(webClientId);
+    // Only configure Google Sign-In once globally
+    if (!globalAuthInitialized) {
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      if (webClientId) {
+        configureGoogleSignIn(webClientId);
+        globalAuthInitialized = true;
+      }
     }
 
-    // Initialize auth state listener
-    initialize();
-  }, [initialize]);
+    // Initialize auth state listener only if not already initialized
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [initialize, isInitialized]);
 
   const emailSignIn = async (credentials: LoginCredentials) => {
     try {

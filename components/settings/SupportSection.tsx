@@ -1,13 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { SettingsLinkItem } from "../ui/SettingsLinkItem";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { SettingsLinkItem } from "../ui/SettingsLinkItem";
 import type { SupportSectionProps } from "./types";
 
 export function SupportSection({ onNavigate }: SupportSectionProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Support & Legal</Text>
+      <Text style={styles.sectionTitle}>Support & legal</Text>
       <Text style={styles.sectionDescription}>
         Access help resources and legal information
       </Text>

@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   ImageBackground,
   Platform,
@@ -64,7 +65,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
 
   const imagePaths = story.storyContent?.map((p) => p.imageUrl) || [];
   const imageUrls = useStorageUrls(imagePaths);
-  const hasImages = story.storyConfiguration?.enableIllustrations !== false;
+  const hasImages = true;
 
   const headerHeight = isTablet ? 72 : 56;
   const cardChrome = 10 + 6;
@@ -180,7 +181,16 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                 <View style={[styles.imageContainer, styles.imageFlex]}>
                   {imageLoading[index] && !imageErrors[index] && (
                     <View style={styles.imageLoader}>
-                      <LoadingSpinner size="medium" showGlow={false} />
+                      {!page.imageUrl &&
+                      (story.imageGenerationStatus === "generating" ||
+                        story.imageGenerationStatus === "pending") ? (
+                        <LoadingSpinner size="medium" showGlow={false} />
+                      ) : (
+                        <ActivityIndicator
+                          size="large"
+                          color={Colors.primary}
+                        />
+                      )}
                     </View>
                   )}
                   {imageErrors[index] ? (
@@ -213,11 +223,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                       />
                       <Text style={styles.errorText}>No image available</Text>
                     </View>
-                  ) : (
-                    <View style={styles.placeholderImage}>
-                      <LoadingSpinner size="medium" showGlow={false} />
-                    </View>
-                  )}
+                  ) : null}
                 </View>
               )}
 

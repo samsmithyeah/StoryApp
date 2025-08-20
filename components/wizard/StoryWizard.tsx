@@ -1,5 +1,6 @@
 import { useChildren } from "@/hooks/useChildren";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { db } from "@/services/firebase/config";
 import {
   generateStory,
   StoryGenerationRequest,
@@ -15,7 +16,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { db } from "@/services/firebase/config";
 import { CharacterSelection } from "./steps/CharacterSelection";
 import { ChildSelection } from "./steps/ChildSelection";
 import { GenerationStep } from "./steps/GenerationStep";
@@ -57,10 +57,10 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     illustrationStyle: "loose-ink-wash",
     illustrationAiDescription:
       "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
-    enableIllustrations: true,
     storyAbout: "",
     characters: [],
   });
+
   const [_isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [generatedStoryId, setGeneratedStoryId] = useState<string | null>(null);
@@ -72,23 +72,18 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     setWizardData((prev) => ({ ...prev, ...data }));
   };
 
-  const isStoryTextReady = useCallback((story: Story | null): boolean => {
-    return !!(story?.title && story?.storyContent && story?.storyContent.length > 0);
-  }, []);
-
-  const isCoverImageReady = useCallback((story: Story | null): boolean => {
-    return !!(story?.coverImageUrl);
-  }, []);
-
-  const arePageImagesReady = useCallback((story: Story | null): boolean => {
-    if (!story?.storyConfiguration?.enableIllustrations) return true; // No images needed
-    const status = story?.imageGenerationStatus;
-    return status === "completed" || status === "not_requested";
-  }, []);
-
   const isStoryFullyComplete = useCallback((story: Story | null): boolean => {
-    return isStoryTextReady(story) && isCoverImageReady(story) && arePageImagesReady(story);
-  }, [isStoryTextReady, isCoverImageReady, arePageImagesReady]);
+    // Story is complete when we have text, cover, and all page images (if enabled)
+    const hasText = !!(
+      story?.title &&
+      story?.storyContent &&
+      story?.storyContent.length > 0
+    );
+    const hasCover = !!(story?.coverImageUrl && story.coverImageUrl !== "");
+    const hasPageImages = story?.imageGenerationStatus === "completed";
+
+    return hasText && hasCover && hasPageImages;
+  }, []);
 
   // Listen to story updates to track generation progress
   useEffect(() => {
@@ -102,12 +97,12 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
           ...doc.data(),
           createdAt: doc.data()?.createdAt?.toDate() || new Date(),
         } as Story;
+
         setStoryData(story);
 
         // Check if everything is complete and auto-redirect
         if (isStoryFullyComplete(story) && _isGenerating) {
           // Story is fully complete - auto-redirect to story
-          console.log("Story fully complete - auto-redirecting");
           setIsGenerating(false);
           onComplete({
             ...(wizardData as StoryConfiguration),
@@ -118,7 +113,13 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     });
 
     return () => unsubscribe();
-  }, [generatedStoryId, _isGenerating, isStoryFullyComplete, onComplete, wizardData]);
+  }, [
+    generatedStoryId,
+    _isGenerating,
+    isStoryFullyComplete,
+    onComplete,
+    wizardData,
+  ]);
 
   const goToNextStep = () => {
     const nextIndex = currentStepIndex + 1;
@@ -153,8 +154,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       (data.characters && data.characters.length > 0) ||
       data.pageCount !== 5 ||
       data.shouldRhyme !== false ||
-      data.illustrationStyle !== "loose-ink-wash" ||
-      data.enableIllustrations !== true
+      data.illustrationStyle !== "loose-ink-wash"
     );
   };
 
@@ -190,9 +190,9 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return;
       }
 
+
       const generationRequest: StoryGenerationRequest = {
         ...wizardData,
-        enableIllustrations: wizardData.enableIllustrations ?? true,
         // Add preferences from user settings
         textModel: preferences.textModel,
         coverImageModel: preferences.coverImageModel,
@@ -201,12 +201,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         geminiThinkingBudget: preferences.geminiThinkingBudget,
       } as StoryGenerationRequest;
 
-      // Debug logging
-      console.log("[DEBUG] Frontend preferences:", preferences);
-      console.log(
-        "[DEBUG] Generation request pageImageModel:",
-        generationRequest.pageImageModel
-      );
 
       const result = await generateStory(generationRequest);
 
@@ -306,7 +300,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return (
           <IllustrationSelection
             illustrationStyle={wizardData.illustrationStyle || "loose-ink-wash"}
-            enableIllustrations={wizardData.enableIllustrations}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}

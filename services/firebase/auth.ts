@@ -11,7 +11,6 @@ import auth, {
   updateProfile,
 } from "@react-native-firebase/auth";
 import {
-  collection,
   doc,
   getDoc,
   setDoc,
@@ -107,13 +106,18 @@ const createUserDocument = async (user: FirebaseAuthTypes.User) => {
 };
 
 // Initialize Google Sign-In (call this once in your app)
+let googleSignInConfigured = false;
 export const configureGoogleSignIn = (webClientId: string) => {
-  console.log("Configuring Google Sign-In with webClientId:", webClientId);
+  if (googleSignInConfigured) {
+    return; // Already configured, skip
+  }
+  console.log("Configuring Google Sign-In");
   GoogleSignin.configure({
     webClientId,
     offlineAccess: true,
     scopes: ["openid", "profile", "email"],
   });
+  googleSignInConfigured = true;
 };
 
 // Email/Password Authentication
@@ -405,50 +409,70 @@ export const deleteAccount = async (): Promise<void> => {
 
 // Cache to prevent excessive Firestore reads during auth state changes
 let userCache: { [uid: string]: { user: User; timestamp: number } } = {};
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 60000; // Increased to 60 seconds to reduce cache misses
+
+// Debounce mechanism for auth state changes
+let authDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let lastAuthState: { uid: string | null; emailVerified: boolean } | null = null;
 
 // Auth State Observer
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
 ) => {
   return onAuthStateChanged(authService, async (firebaseUser) => {
-    console.log(
-      "Auth state changed:",
-      firebaseUser ? "User logged in" : "User logged out"
-    );
-    if (firebaseUser) {
-      console.log(
-        "Firebase user:",
-        firebaseUser.uid,
-        "Verified:",
-        firebaseUser.emailVerified
-      );
+    // Check if this is a duplicate auth state change
+    const currentAuthState = {
+      uid: firebaseUser?.uid || null,
+      emailVerified: firebaseUser?.emailVerified || false,
+    };
 
-      // Check cache first to avoid excessive Firestore reads
-      const cached = userCache[firebaseUser.uid];
-      const now = Date.now();
+    // Skip if auth state hasn't actually changed
+    if (
+      lastAuthState &&
+      lastAuthState.uid === currentAuthState.uid &&
+      lastAuthState.emailVerified === currentAuthState.emailVerified
+    ) {
+      return; // Skip duplicate auth state changes
+    }
 
-      if (cached && now - cached.timestamp < CACHE_DURATION) {
-        console.log("Using cached user data");
-        // Update the cached user with latest auth info (like emailVerified)
-        const updatedUser = {
-          ...cached.user,
-          emailVerified: firebaseUser.emailVerified,
-        };
-        callback(updatedUser);
-      } else {
-        console.log("Converting Firebase user (cache miss or expired)");
-        const user = await convertFirebaseUser(firebaseUser);
-        // Cache the user data
-        userCache[firebaseUser.uid] = { user, timestamp: now };
-        console.log("Converted user:", user);
-        callback(user);
-      }
-    } else {
-      console.log("No user - showing login screen");
-      // Clear cache on logout
+    lastAuthState = currentAuthState;
+
+    // Clear any existing debounce timer
+    if (authDebounceTimer) {
+      clearTimeout(authDebounceTimer);
+    }
+
+    // Debounce auth state changes (except for logout)
+    if (!firebaseUser) {
+      // Process logout immediately
+      console.log("User logged out");
       userCache = {};
       callback(null);
+      return;
     }
+
+    // For login/auth state updates, use a small debounce
+    authDebounceTimer = setTimeout(async () => {
+      if (firebaseUser) {
+        // Check cache first to avoid excessive Firestore reads
+        const cached = userCache[firebaseUser.uid];
+        const now = Date.now();
+
+        if (cached && now - cached.timestamp < CACHE_DURATION) {
+          // Update the cached user with latest auth info (like emailVerified)
+          const updatedUser = {
+            ...cached.user,
+            emailVerified: firebaseUser.emailVerified,
+          };
+          callback(updatedUser);
+        } else {
+          console.log("Loading user data for:", firebaseUser.uid);
+          const user = await convertFirebaseUser(firebaseUser);
+          // Cache the user data
+          userCache[firebaseUser.uid] = { user, timestamp: now };
+          callback(user);
+        }
+      }
+    }, 100); // 100ms debounce to group rapid auth state changes
   });
 };

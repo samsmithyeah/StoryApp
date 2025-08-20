@@ -4,13 +4,16 @@ import * as admin from "firebase-admin";
  * Send push notification to user when their story is fully complete
  * Only sends if the app is not currently active
  */
-export async function sendStoryCompleteNotification(userId: string, storyData: any) {
+export async function sendStoryCompleteNotification(
+  userId: string,
+  storyData: any
+) {
   try {
     const db = admin.firestore();
-    
+
     // Get user's FCM/Expo push token and app state
     const userDoc = await db.collection("users").doc(userId).get();
-    
+
     if (!userDoc.exists) {
       console.warn(`User document not found: ${userId}`);
       return;
@@ -34,7 +37,7 @@ export async function sendStoryCompleteNotification(userId: string, storyData: a
       const lastUpdateTime = lastStateUpdate ? new Date(lastStateUpdate) : null;
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-      
+
       if (lastUpdateTime && lastUpdateTime > fiveMinutesAgo) {
         console.log(
           `Skipping notification for user ${userId} - app is currently active (state: ${appState}, updated: ${lastStateUpdate})`
@@ -49,7 +52,7 @@ export async function sendStoryCompleteNotification(userId: string, storyData: a
 
     // Create Expo push notification payload
     console.log(
-      `Sending story complete notification to user ${userId} (app state: ${appState || 'unknown'}) for story "${storyData.title}"`
+      `Sending story complete notification to user ${userId} (app state: ${appState || "unknown"}) for story "${storyData.title}"`
     );
 
     const message = {
@@ -69,7 +72,7 @@ export async function sendStoryCompleteNotification(userId: string, storyData: a
     const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         "Accept-encoding": "gzip, deflate",
         "Content-Type": "application/json",
       },

@@ -29,19 +29,20 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
     // Prevent concurrent loading calls
     const currentState = get();
     if (currentState.loading) {
-      console.log("[CHILDREN_STORE] Already loading children, skipping...");
-      return;
+      return; // Skip without logging to reduce noise
     }
 
     try {
-      console.log("[CHILDREN_STORE] Starting to load children...");
       set({ loading: true, error: null });
       const children = await getChildren();
-      console.log(
-        "[CHILDREN_STORE] Children loaded:",
-        children.length,
-        "children"
-      );
+      // Only log if there's something meaningful to report
+      if (children.length > 0) {
+        console.log(
+          "[CHILDREN_STORE] Loaded",
+          children.length,
+          children.length === 1 ? "child" : "children"
+        );
+      }
       set({ children, loading: false });
     } catch (error) {
       console.log("[CHILDREN_STORE] Error loading children:", error);
@@ -115,7 +116,7 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearChildren: () => {
-    console.log("[CHILDREN_STORE] Clearing children data");
+    // Silent clear - no need to log this operation
     set({ children: [], loading: false, error: null });
   },
 }));

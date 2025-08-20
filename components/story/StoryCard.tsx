@@ -1,12 +1,12 @@
 // components/story/StoryCard.tsx
 import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   Platform,
   StyleSheet,
   Text,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { Colors, Shadows } from "../../constants/Theme";
+import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { IconSymbol } from "../ui/IconSymbol";
 import { StoryCardMenu } from "./StoryCardMenu";
 
@@ -34,12 +35,23 @@ interface StoryCardProps {
 }
 
 export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
-  const [imageError, setImageError] = React.useState(false);
-  const [menuVisible, setMenuVisible] = React.useState(false);
-  const [isReporting, setIsReporting] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
-  const storagePath = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const storagePath = useMemo(() => 
+    story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
+    [story.coverImageUrl, story.storyContent]
+  );
   const imageUrl = useStorageUrl(storagePath);
+  
+  const isGeneratingCover = !story.coverImageUrl && 
+    story.generationPhase !== "cover_complete" && 
+    story.generationPhase !== "all_complete";
+  const hasCoverPath = !!storagePath;
+  const shouldShowSpinner = (hasCoverPath && imageLoading && !imageError) || isGeneratingCover;
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString("en-GB", {
@@ -67,12 +79,27 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
           <Image
             source={{ uri: imageUrl }}
             style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            onLoad={() => setImageLoading(false)}
+            onError={() => {
+              setImageLoading(false);
+              setImageError(true);
+            }}
           />
         ) : (
           <View style={styles.placeholder}>
-            <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
+            {shouldShowSpinner ? (
+              <View style={styles.spinnerContainer}>
+                {isGeneratingCover ? (
+                  <LoadingSpinner size="small" showGlow={false} />
+                ) : (
+                  <ActivityIndicator size="large" color="#D4AF37" />
+                )}
+              </View>
+            ) : (
+              <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
+            )}
           </View>
         )}
       </TouchableOpacity>
@@ -143,6 +170,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
         isDeleting={isDeleting}
         setIsDeleting={setIsDeleting}
       />
+      
+      {/* Deletion overlay */}
+      {isDeleting && (
+        <View style={styles.deletionOverlay}>
+          <ActivityIndicator size="large" color="#D4AF37" />
+        </View>
+      )}
     </View>
   );
 };
@@ -165,6 +199,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(26,27,58,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  
+  spinnerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  
+  deletionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
   },
 
   /* menu button */
