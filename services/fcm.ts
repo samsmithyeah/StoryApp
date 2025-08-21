@@ -38,7 +38,7 @@ export class FCMService {
     // Skip if already initialized
     if (this.isInitialized) {
       // Return existing cleanup function if available, otherwise undefined
-      return this.cleanupFunction !== null ? this.cleanupFunction : undefined;
+      return this.cleanupFunction || undefined;
     }
 
     try {
