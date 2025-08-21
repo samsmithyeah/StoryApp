@@ -28,7 +28,9 @@ const MAPPING = {
   // Actions
   xmark: "close",
   "xmark.circle": "cancel",
+  "xmark.circle.fill": "cancel",
   checkmark: "check",
+  "checkmark.circle.fill": "check-circle",
   plus: "add",
   "plus.circle.fill": "add-circle",
   pencil: "edit",
@@ -47,6 +49,7 @@ const MAPPING = {
   // UI Elements
   gear: "settings",
   calendar: "calendar-today",
+  bell: "notifications",
   "paintbrush.fill": "brush",
   "exclamationmark.circle.fill": "error",
   "exclamationmark.triangle.fill": "warning",

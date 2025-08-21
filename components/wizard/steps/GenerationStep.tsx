@@ -9,6 +9,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -148,8 +149,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     arePageImagesReady,
   ]);
 
-  // Use safe area bottom instead of tab bar height since we're outside tabs
-  const tabBarHeight = insets.bottom + Spacing.lg;
+  // Use same padding logic as WizardFooter
+  const bottomPadding = Platform.select({
+    ios: 0,
+    android: insets.bottom + Spacing.sm,
+  });
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -220,7 +224,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             </View>
           </View>
 
-          <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
+          <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
             {!isInsufficientCreditsError && onStartOver && (
               <Button
                 title="Try a different story"
@@ -289,7 +293,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           </View>
         </View>
 
-        <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
+        <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
           <Button
             title={isStoryTextReady ? "View story" : "Cancel"}
             onPress={

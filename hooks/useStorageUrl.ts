@@ -24,14 +24,6 @@ export function useStorageUrl(
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Debug logging for navigation behavior
-  useEffect(() => {
-    console.log(`[useStorageUrl] Hook initialized for path: ${storagePath}`);
-    return () => {
-      console.log(`[useStorageUrl] Hook cleanup for path: ${storagePath}`);
-    };
-  }, []);
-
   useEffect(() => {
     if (!storagePath) {
       setUrl(null);
@@ -42,9 +34,6 @@ export function useStorageUrl(
     // Check if we already have a resolved URL cached
     const cachedResolvedUrl = resolvedUrlCache.get(storagePath);
     if (cachedResolvedUrl !== undefined) {
-      console.log(
-        `[useStorageUrl] Using globally cached resolved URL for ${storagePath}`
-      );
       setUrl(cachedResolvedUrl);
       setLoading(false);
       return;
@@ -58,9 +47,6 @@ export function useStorageUrl(
           // Try to get from local cache first
           const cachedUrl = await imageCache.getImageUrl(storagePath);
           if (!cancelled && cachedUrl) {
-            console.log(
-              `[useStorageUrl] Using local file cache for ${storagePath}`
-            );
             resolvedUrlCache.set(storagePath, cachedUrl);
             setUrl(cachedUrl);
             setLoading(false);
@@ -74,9 +60,6 @@ export function useStorageUrl(
           // Check if cached URL is still valid (not expired)
           const isExpired = Date.now() - cached.timestamp > URL_CACHE_TTL;
           if (!isExpired) {
-            console.log(
-              `[useStorageUrl] Using memory cached URL for ${storagePath}`
-            );
             if (!cancelled) {
               resolvedUrlCache.set(storagePath, cached.url);
               setUrl(cached.url);
@@ -90,9 +73,6 @@ export function useStorageUrl(
         }
 
         // Fetch the authenticated URL as final fallback
-        console.log(
-          `[useStorageUrl] Fetching new authenticated URL for ${storagePath}`
-        );
         const downloadUrl = await getAuthenticatedUrl(storagePath);
         if (!cancelled && downloadUrl) {
           urlCache.set(storagePath, {
