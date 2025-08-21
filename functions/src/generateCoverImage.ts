@@ -5,6 +5,7 @@ import { getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
+import { TIMEOUTS, IMAGE_SETTINGS } from "./constants";
 
 const pubsub = new PubSub();
 
@@ -32,7 +33,7 @@ export const generateCoverImage = onMessagePublished(
   {
     topic: "generate-cover-image",
     secrets: ["GEMINI_API_KEY", "OPENAI_API_KEY"],
-    timeoutSeconds: 300,
+    timeoutSeconds: TIMEOUTS.COVER_GENERATION,
     memory: "1GiB",
   },
   async (event) => {
@@ -47,10 +48,6 @@ export const generateCoverImage = onMessagePublished(
       artStyleBackup1,
       artStyleBackup2,
     } = payload;
-
-    console.log(
-      `[CoverWorker] Received job for story ${storyId}, cover image generation`
-    );
 
     const db = getFirestore();
     const storyRef = db.collection("stories").doc(storyId);
@@ -72,7 +69,7 @@ export const generateCoverImage = onMessagePublished(
         currentStyleIndex < artStyleDescriptions.length
       ) {
         const currentStyleDescription = artStyleDescriptions[currentStyleIndex];
-        finalCoverPrompt = `Aspect ratio: Square (1:1). ${coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in 1:1 aspect ratio format. Add the book title "${title}" to the image. Do not add the name of the author or any other text to the image.`;
+        finalCoverPrompt = `Aspect ratio: ${IMAGE_SETTINGS.COVER_ASPECT_RATIO}. ${coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in ${IMAGE_SETTINGS.COVER_ASPECT_RATIO} aspect ratio format. Add the book title "${title}" to the image. Do not add the name of the author or any other text to the image.`;
 
         try {
           if (coverImageModel === "gemini-2.0-flash-preview-image-generation") {
@@ -90,7 +87,7 @@ export const generateCoverImage = onMessagePublished(
               openai.images.generate({
                 model: coverImageModel,
                 prompt: finalCoverPrompt,
-                size: "1024x1024",
+                size: IMAGE_SETTINGS.COVER_IMAGE_SIZE,
                 quality: "medium",
                 n: 1,
                 // Use base64 for both models for consistency
@@ -121,9 +118,6 @@ export const generateCoverImage = onMessagePublished(
             error.message?.includes("safety system") &&
             currentStyleIndex < artStyleDescriptions.length - 1
           ) {
-            console.log(
-              `[CoverWorker] Safety system rejected cover with style "${currentStyleDescription}". Trying backup ${currentStyleIndex + 1}...`
-            );
             currentStyleIndex++;
             continue;
           } else {
@@ -139,10 +133,6 @@ export const generateCoverImage = onMessagePublished(
         );
       }
 
-      console.log(
-        `[CoverWorker] Cover image generated. Uploading to final path...`
-      );
-
       const coverImageStoragePath = await uploadImageToStorage(
         coverImageUrl,
         userId,
@@ -150,23 +140,12 @@ export const generateCoverImage = onMessagePublished(
         "cover"
       );
 
-      console.log(
-        `[CoverWorker] Cover image uploaded to: ${coverImageStoragePath}`
-      );
-
       // Update the story document with the cover image URL
-      console.log(
-        `[CoverWorker] Updating story document with cover image URL at ${new Date().toISOString()}`
-      );
       await storyRef.update({
         coverImageUrl: coverImageStoragePath,
         generationPhase: "cover_complete",
         "generationMetadata.coverImagePrompt": finalCoverPrompt,
       });
-
-      console.log(
-        `[CoverWorker] Cover image URL updated successfully at ${new Date().toISOString()}`
-      );
 
       // Trigger page image generation if needed
       if (
@@ -174,10 +153,6 @@ export const generateCoverImage = onMessagePublished(
         payload.pagePrompts &&
         payload.pagePrompts.length > 0
       ) {
-        console.log(
-          `[CoverWorker] Triggering page image generation for ${payload.pagePrompts.length} pages`
-        );
-
         const publishPromises = payload.pagePrompts.map(
           (imagePrompt, index) => {
             const pagePayload = {
@@ -205,14 +180,8 @@ export const generateCoverImage = onMessagePublished(
         );
 
         await Promise.all(publishPromises);
-        console.log(
-          `[CoverWorker] Published jobs for all ${payload.pagePrompts.length} pages.`
-        );
       } else {
         // No page illustrations needed, story is complete
-        console.log(
-          `[CoverWorker] No page illustrations needed. Updating phase to all_complete.`
-        );
         await storyRef.update({
           generationPhase: "all_complete",
         });

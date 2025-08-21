@@ -25,8 +25,6 @@ export class NotificationService {
         fcmTokenUpdated: new Date().toISOString(),
         lastActive: new Date().toISOString(),
       });
-
-      console.log("FCM token registered successfully");
     } catch (error) {
       console.error("Failed to register FCM token:", error);
       throw error;
@@ -51,8 +49,6 @@ export class NotificationService {
         fcmToken: null,
         fcmTokenUpdated: new Date().toISOString(),
       });
-
-      console.log("FCM token removed successfully");
     } catch (error) {
       console.error("Failed to remove FCM token:", error);
       throw error;

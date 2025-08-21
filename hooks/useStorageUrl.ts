@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { getAuthenticatedUrl } from "../services/firebase/storage";
 import { imageCache } from "../services/imageCache";
 
-// Cache for download URLs to avoid repeated calls (fallback for non-cached images)
-const urlCache = new Map<string, string>();
+// Global cache for download URLs to avoid repeated calls (fallback for non-cached images)
+// This cache persists across component remounts and navigation
+const urlCache = new Map<string, { url: string; timestamp: number }>();
+const URL_CACHE_TTL = 60 * 60 * 1000; // 1 hour TTL for authenticated URLs
+
+// Global cache for resolved URLs (including local cache results)
+// This prevents re-running the entire resolution process on remount
+const resolvedUrlCache = new Map<string, string | null>();
 
 /**
  * Hook to get a cached local URL or authenticated download URL for a Firebase Storage path
@@ -18,9 +24,28 @@ export function useStorageUrl(
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Debug logging for navigation behavior
+  useEffect(() => {
+    console.log(`[useStorageUrl] Hook initialized for path: ${storagePath}`);
+    return () => {
+      console.log(`[useStorageUrl] Hook cleanup for path: ${storagePath}`);
+    };
+  }, []);
+
   useEffect(() => {
     if (!storagePath) {
       setUrl(null);
+      setLoading(false);
+      return;
+    }
+
+    // Check if we already have a resolved URL cached
+    const cachedResolvedUrl = resolvedUrlCache.get(storagePath);
+    if (cachedResolvedUrl !== undefined) {
+      console.log(
+        `[useStorageUrl] Using globally cached resolved URL for ${storagePath}`
+      );
+      setUrl(cachedResolvedUrl);
       setLoading(false);
       return;
     }
@@ -33,6 +58,10 @@ export function useStorageUrl(
           // Try to get from local cache first
           const cachedUrl = await imageCache.getImageUrl(storagePath);
           if (!cancelled && cachedUrl) {
+            console.log(
+              `[useStorageUrl] Using local file cache for ${storagePath}`
+            );
+            resolvedUrlCache.set(storagePath, cachedUrl);
             setUrl(cachedUrl);
             setLoading(false);
             return;
@@ -42,19 +71,38 @@ export function useStorageUrl(
         // Fallback to memory cache and direct URL
         const cached = urlCache.get(storagePath);
         if (cached) {
-          if (!cancelled) {
-            setUrl(cached);
-            setLoading(false);
+          // Check if cached URL is still valid (not expired)
+          const isExpired = Date.now() - cached.timestamp > URL_CACHE_TTL;
+          if (!isExpired) {
+            console.log(
+              `[useStorageUrl] Using memory cached URL for ${storagePath}`
+            );
+            if (!cancelled) {
+              resolvedUrlCache.set(storagePath, cached.url);
+              setUrl(cached.url);
+              setLoading(false);
+            }
+            return;
+          } else {
+            // Remove expired entry
+            urlCache.delete(storagePath);
           }
-          return;
         }
 
         // Fetch the authenticated URL as final fallback
+        console.log(
+          `[useStorageUrl] Fetching new authenticated URL for ${storagePath}`
+        );
         const downloadUrl = await getAuthenticatedUrl(storagePath);
         if (!cancelled && downloadUrl) {
-          urlCache.set(storagePath, downloadUrl);
+          urlCache.set(storagePath, {
+            url: downloadUrl,
+            timestamp: Date.now(),
+          });
+          resolvedUrlCache.set(storagePath, downloadUrl);
           setUrl(downloadUrl);
         } else if (!cancelled) {
+          resolvedUrlCache.set(storagePath, null);
           setUrl(null);
         }
       } catch (error) {
@@ -113,11 +161,18 @@ export function useStorageUrls(
 
             // Fallback to memory cache
             const cached = urlCache.get(path);
-            if (cached) return cached;
+            if (cached) {
+              const isExpired = Date.now() - cached.timestamp > URL_CACHE_TTL;
+              if (!isExpired) {
+                return cached.url;
+              } else {
+                urlCache.delete(path);
+              }
+            }
 
             // Fetch the authenticated URL as final fallback
             const url = await getAuthenticatedUrl(path);
-            if (url) urlCache.set(path, url);
+            if (url) urlCache.set(path, { url, timestamp: Date.now() });
             return url;
           })
         );

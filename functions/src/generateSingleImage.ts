@@ -8,6 +8,7 @@ import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
 import { sendStoryCompleteNotification } from "./sendStoryCompleteNotification";
+import { TIMEOUTS } from "./constants";
 
 interface ImageGenerationPayload {
   storyId: string;
@@ -32,7 +33,7 @@ export const generateSingleImage = onMessagePublished(
   {
     topic: "generate-story-image",
     secrets: ["FLUX_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"],
-    timeoutSeconds: 300,
+    timeoutSeconds: TIMEOUTS.SINGLE_IMAGE_GENERATION,
     memory: "1GiB",
   },
   async (event) => {
@@ -50,9 +51,6 @@ export const generateSingleImage = onMessagePublished(
       artStyleBackup2,
     } = payload;
 
-    console.log(
-      `[Worker] Received job for story ${storyId}, page ${pageIndex + 1}`
-    );
     const db = getFirestore();
     const storyRef = db.collection("stories").doc(storyId);
 
@@ -80,10 +78,6 @@ REQUIREMENTS:
       };
 
       const subsequentPrompt = createPrompt(artStyle);
-
-      console.log(
-        `[Worker] Generating image for page ${pageIndex + 1} with new scene prompt.`
-      );
 
       let finalImageUrl: string = "";
       if (imageProvider === "flux") {
@@ -128,10 +122,6 @@ REQUIREMENTS:
           const currentPrompt = createPrompt(currentStyle);
 
           try {
-            console.log(
-              `[Worker] Attempting generation with art style ${currentStyleIndex + 1} for page ${pageIndex + 1}`
-            );
-
             const response = await retryWithBackoff(() =>
               openai.images.edit({
                 model: "gpt-image-1",
@@ -152,9 +142,6 @@ REQUIREMENTS:
             imageGenerated = true;
 
             if (currentStyleIndex > 0) {
-              console.log(
-                `[Worker] Successfully generated image for page ${pageIndex + 1} using backup art style ${currentStyleIndex + 1}`
-              );
             }
           } catch (error: any) {
             // Check if it's a safety system rejection and we have more styles to try
@@ -163,9 +150,6 @@ REQUIREMENTS:
               error.message?.includes("safety system") &&
               currentStyleIndex < artStyleOptions.length - 1
             ) {
-              console.log(
-                `[Worker] Safety system rejected style "${currentStyle || "default"}" for page ${pageIndex + 1}. Trying backup ${currentStyleIndex + 2}...`
-              );
               currentStyleIndex++;
               continue;
             } else {
@@ -199,15 +183,12 @@ REQUIREMENTS:
         );
       }
 
-      console.log(`[Worker] Page ${pageIndex + 1}: Generated new image.`);
-
       const storagePath = await uploadImageToStorage(
         finalImageUrl,
         userId,
         storyId,
         `page-${pageIndex + 1}`
       );
-      console.log(`[Worker] Uploaded to ${storagePath}.`);
 
       // Atomic update and completion check
       await db.runTransaction(async (transaction) => {
@@ -247,9 +228,6 @@ REQUIREMENTS:
         const totalImages = storyData.totalImages || 0;
 
         if (totalImages > 0 && currentImagesGenerated + 1 >= totalImages) {
-          console.log(
-            `[Worker] This is the final image (${currentImagesGenerated + 1}/${totalImages}). Setting status to 'completed'.`
-          );
           updateData.imageGenerationStatus = "completed";
           updateData.generationPhase = "all_complete";
 
@@ -276,10 +254,6 @@ REQUIREMENTS:
           });
         }
       }
-
-      console.log(
-        `[Worker] Successfully and safely processed page ${pageIndex + 1} for story ${storyId}.`
-      );
     } catch (error) {
       console.error(
         `[Worker] Failed to process page ${pageIndex + 1} for story ${storyId}:`,

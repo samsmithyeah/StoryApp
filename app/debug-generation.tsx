@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Redirect } from "expo-router";
 import { GenerationStep } from "../components/wizard/steps/GenerationStep";
 import { IconSymbol } from "../components/ui/IconSymbol";
 import { Colors, Spacing, Typography } from "../constants/Theme";
 import { Story } from "../types/story.types";
+import { useAuth } from "../hooks/useAuth";
 
 // Mock story data for testing different states
 const createMockStory = (
@@ -67,6 +68,7 @@ const createMockStory = (
 
 export default function DebugGenerationScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [testState, setTestState] = useState<
     | "empty"
     | "text-only"
@@ -77,6 +79,11 @@ export default function DebugGenerationScreen() {
   >("empty");
   const [isGenerating, setIsGenerating] = useState(true);
   const [showError, setShowError] = useState(false);
+
+  // Security check: Only allow in development mode and for admin users
+  if (!__DEV__ || !user?.isAdmin) {
+    return <Redirect href="/settings" />;
+  }
 
   const mockStory = createMockStory(testState);
 

@@ -23,7 +23,6 @@ export class FCMService {
         finalStatus = status;
       }
 
-      console.log("Notification permission status:", finalStatus);
       return finalStatus === "granted";
     } catch (error) {
       console.error("Failed to request notification permissions:", error);
@@ -38,8 +37,8 @@ export class FCMService {
   static async initializeFCM(): Promise<(() => void) | undefined> {
     // Skip if already initialized
     if (this.isInitialized) {
-      console.log("FCM already initialized, skipping");
-      return this.cleanupFunction || undefined;
+      // Return existing cleanup function if available, otherwise undefined
+      return this.cleanupFunction !== null ? this.cleanupFunction : undefined;
     }
 
     try {
@@ -56,7 +55,6 @@ export class FCMService {
       });
 
       const expoPushToken = tokenData.data;
-      console.log("Expo Push Token obtained:", expoPushToken);
 
       if (expoPushToken) {
         // Register token with our backend
@@ -72,7 +70,6 @@ export class FCMService {
       // Mark as initialized and store cleanup function
       this.isInitialized = true;
       this.cleanupFunction = cleanup;
-      console.log("FCM initialization complete");
 
       return cleanup;
     } catch (error) {
@@ -94,10 +91,6 @@ export class FCMService {
 
         // Navigate to story if it's a story complete notification
         if (data?.type === "story_complete" && data?.storyId) {
-          console.log(
-            "App opened from story complete notification, navigating to story:",
-            data.storyId
-          );
           // Small delay to ensure navigation is ready
           setTimeout(() => {
             router.push({
@@ -130,8 +123,6 @@ export class FCMService {
     // Handle notifications received while the app is foregrounded
     const foregroundSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("Notification received in foreground:", notification);
-
         const { title, body, data } = notification.request.content;
 
         // Show toast notification (this listener only fires when app is in foreground)
@@ -146,50 +137,32 @@ export class FCMService {
           onPress: () => {
             // Handle toast tap - navigate to story if it's a story complete notification
             if (data?.type === "story_complete" && data?.storyId) {
-              console.log(
-                "User tapped story complete toast, navigating to story:",
-                data.storyId
-              );
               router.push({
                 pathname: "/story/[id]",
                 params: { id: String(data.storyId) },
               });
             } else if (data?.type === "story_report") {
-              console.log("User tapped story report toast notification");
             }
           },
         });
 
         // Handle story report notifications
         if (data?.type === "story_report") {
-          console.log(
-            "Story report notification:",
-            notification.request.content.title
-          );
-          console.log("Report ID:", data.reportId);
-          console.log("Story ID:", data.storyId);
         }
       });
 
     // Handle notification responses (when user taps notification from background/lock screen)
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification response:", response);
-
         const data = response.notification.request.content.data;
 
         // Navigate to story when user taps a story complete notification
         if (data?.type === "story_complete" && data?.storyId) {
-          console.log(
-            "User tapped story complete notification, navigating to story:",
-            data.storyId
-          );
           router.push({
             pathname: "/story/[id]",
             params: { id: String(data.storyId) },
           });
         } else if (data?.type === "story_report") {
-          console.log("User tapped story report notification");
           // Navigate to report details or admin panel if needed
         }
       });
@@ -217,8 +190,6 @@ export class FCMService {
 
       // Reset initialization flag
       this.isInitialized = false;
-
-      console.log("Push notification cleanup completed");
     } catch (error) {
       console.error("Failed to cleanup push notifications:", error);
     }
@@ -233,7 +204,7 @@ export class FCMService {
       const { status } = await Notifications.getPermissionsAsync();
       return status !== "undetermined" && status !== "denied";
     } catch (error) {
-      console.log("Push notification support check failed:", error);
+      console.error("Push notification support check failed:", error);
       return false;
     }
   }

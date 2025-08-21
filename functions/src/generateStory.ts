@@ -10,8 +10,20 @@ import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
+import { TIMEOUTS } from "./constants";
 
 const pubsub = new PubSub();
+
+// Helper function to calculate age from birthdate
+function calculateAge(birthDateSeconds: number): number {
+  const today = new Date();
+  const birthDate = new Date(birthDateSeconds * 1000);
+  const age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  // For month/year dates, we only check if the birth month has passed this year
+  return monthDiff < 0 ? age - 1 : age;
+}
 
 // Helper function to get art style descriptions in order of fallback preference
 function getArtStyleDescriptions(data: StoryGenerationRequest): string[] {
@@ -33,7 +45,7 @@ function getArtStyleDescriptions(data: StoryGenerationRequest): string[] {
 export const generateStory = onCall(
   {
     secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
-    timeoutSeconds: 540, // 9-minute timeout to allow for cover generation
+    timeoutSeconds: TIMEOUTS.STORY_GENERATION,
     memory: "1GiB",
   },
   // Added the correct type for the request object
@@ -82,15 +94,7 @@ export const generateStory = onCall(
       // Calculate age range based on AUDIENCE children only
       const audienceAges = audienceChildren
         .filter((child: any) => child.dateOfBirth)
-        .map((child: any) => {
-          const today = new Date();
-          const birthDate = new Date(child.dateOfBirth.seconds * 1000);
-          const age = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-
-          // For month/year dates, we only check if the birth month has passed this year
-          return monthDiff < 0 ? age - 1 : age;
-        });
+        .map((child: any) => calculateAge(child.dateOfBirth.seconds));
 
       // Create age range string
       let ageRangeStr: string;
@@ -152,16 +156,7 @@ export const generateStory = onCall(
 
               // Calculate age if dateOfBirth is available
               if (childData.dateOfBirth) {
-                const today = new Date();
-                const birthDate = new Date(
-                  childData.dateOfBirth.seconds * 1000
-                );
-                const age = today.getFullYear() - birthDate.getFullYear();
-                const monthDiff = today.getMonth() - birthDate.getMonth();
-
-                // For month/year dates, we only check if the birth month has passed this year
-                const adjustedAge = monthDiff < 0 ? age - 1 : age;
-
+                const adjustedAge = calculateAge(childData.dateOfBirth.seconds);
                 characterDetails.push(`${adjustedAge} years old`);
               }
 
@@ -208,14 +203,7 @@ export const generateStory = onCall(
               (c: any) => c.id === char.childId
             );
             if (childData && childData.dateOfBirth) {
-              const today = new Date();
-              const birthDate = new Date(childData.dateOfBirth.seconds * 1000);
-              const age = today.getFullYear() - birthDate.getFullYear();
-              const monthDiff = today.getMonth() - birthDate.getMonth();
-
-              // For month/year dates, we only check if the birth month has passed this year
-              const adjustedAge = monthDiff < 0 ? age - 1 : age;
-
+              const adjustedAge = calculateAge(childData.dateOfBirth.seconds);
               return `${char.name} (${adjustedAge} years old)`;
             }
           }

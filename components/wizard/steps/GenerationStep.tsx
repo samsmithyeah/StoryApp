@@ -5,7 +5,7 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { Story } from "@/types/story.types";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -87,7 +87,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const router = useRouter();
 
   // Helper functions to check generation status
-  const isStoryTextReady = (): boolean => {
+  // Memoize story status calculations to prevent unnecessary re-renders
+  const isStoryTextReady = useMemo(() => {
     // Debug force state takes priority
     if (_debugForceStates?.textReady !== undefined) {
       return _debugForceStates.textReady;
@@ -101,17 +102,17 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     );
 
     return hasActualContent;
-  };
+  }, [_debugForceStates?.textReady, storyData?.title, storyData?.storyContent]);
 
-  const isCoverImageReady = (): boolean => {
+  const isCoverImageReady = useMemo(() => {
     if (_debugForceStates?.coverReady !== undefined)
       return _debugForceStates.coverReady;
 
     // Check actual data
     return !!(storyData?.coverImageUrl && storyData.coverImageUrl !== "");
-  };
+  }, [_debugForceStates?.coverReady, storyData?.coverImageUrl]);
 
-  const arePageImagesReady = (): boolean => {
+  const arePageImagesReady = useMemo(() => {
     if (_debugForceStates?.imagesReady !== undefined)
       return _debugForceStates.imagesReady;
 
@@ -120,13 +121,13 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
     const status = storyData?.imageGenerationStatus;
     return status === "completed";
-  };
+  }, [_debugForceStates?.imagesReady, storyData]);
 
-  const isStoryFullyComplete = (): boolean => {
-    return isStoryTextReady() && isCoverImageReady() && arePageImagesReady();
-  };
+  const isStoryFullyComplete = useMemo(() => {
+    return isStoryTextReady && isCoverImageReady && arePageImagesReady;
+  }, [isStoryTextReady, isCoverImageReady, arePageImagesReady]);
 
-  const getPageImageProgress = (): string => {
+  const pageImageProgress = useMemo(() => {
     const imagesGenerated = storyData?.imagesGenerated || 0;
     const totalImages =
       storyData?.totalImages || storyData?.storyConfiguration?.pageCount || 0;
@@ -134,12 +135,18 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     if (totalImages === 0) return "";
 
     // Show progress once we have cover image ready (meaning page image generation should start)
-    if (isCoverImageReady() || imagesGenerated > 0 || arePageImagesReady()) {
+    if (isCoverImageReady || imagesGenerated > 0 || arePageImagesReady) {
       return ` (${imagesGenerated}/${totalImages})`;
     }
 
     return "";
-  };
+  }, [
+    storyData?.imagesGenerated,
+    storyData?.totalImages,
+    storyData?.storyConfiguration?.pageCount,
+    isCoverImageReady,
+    arePageImagesReady,
+  ]);
 
   // Use safe area bottom instead of tab bar height since we're outside tabs
   const tabBarHeight = insets.bottom + Spacing.lg;
@@ -149,7 +156,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
     const messageInterval = setInterval(() => {
       setCurrentMessageIndex((prev) => (prev + 1) % GENERATION_MESSAGES.length);
-    }, 3000);
+    }, 3000); // 3 seconds
 
     return () => {
       clearInterval(messageInterval);
@@ -245,24 +252,24 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           <View style={styles.checklistContainer}>
             <ChecklistItem
               label="Story text"
-              isCompleted={isStoryTextReady()}
-              isLoading={isGenerating && !isStoryTextReady()}
-              showSpinner={isGenerating && !isStoryTextReady()}
+              isCompleted={isStoryTextReady}
+              isLoading={isGenerating && !isStoryTextReady}
+              showSpinner={isGenerating && !isStoryTextReady}
             />
             <ChecklistItem
               label="Cover illustration"
-              isCompleted={isCoverImageReady()}
-              isLoading={isGenerating && !isCoverImageReady()}
+              isCompleted={isCoverImageReady}
+              isLoading={isGenerating && !isCoverImageReady}
               showSpinner={
-                isGenerating && isStoryTextReady() && !isCoverImageReady()
+                isGenerating && isStoryTextReady && !isCoverImageReady
               }
             />
             <ChecklistItem
-              label={`Page illustrations${getPageImageProgress()}`}
-              isCompleted={arePageImagesReady()}
-              isLoading={isGenerating && !arePageImagesReady()}
+              label={`Page illustrations${pageImageProgress}`}
+              isCompleted={arePageImagesReady}
+              isLoading={isGenerating && !arePageImagesReady}
               showSpinner={
-                isGenerating && isCoverImageReady() && !arePageImagesReady()
+                isGenerating && isCoverImageReady && !arePageImagesReady
               }
             />
           </View>
@@ -270,12 +277,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           {/* Push notification message */}
           <View style={styles.tipContainer}>
             <IconSymbol
-              name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
+              name={isStoryFullyComplete ? "checkmark.circle" : "bell"}
               size={isTablet ? 18 : 16}
-              color={isStoryFullyComplete() ? Colors.success : Colors.warning}
+              color={isStoryFullyComplete ? Colors.success : Colors.warning}
             />
             <Text style={styles.tipText}>
-              {isStoryFullyComplete()
+              {isStoryFullyComplete
                 ? "Your story is complete and ready to read!"
                 : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
             </Text>
@@ -284,9 +291,9 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
         <View style={[styles.footer, { paddingBottom: tabBarHeight }]}>
           <Button
-            title={isStoryTextReady() ? "View story" : "Cancel"}
+            title={isStoryTextReady ? "View story" : "Cancel"}
             onPress={
-              isStoryTextReady() && onNavigateToStory
+              isStoryTextReady && onNavigateToStory
                 ? onNavigateToStory
                 : onCancel
             }

@@ -27,18 +27,29 @@ export const generateStory = async (config: StoryGenerationRequest) => {
     });
     const result = await generateStoryFn(config);
 
-    if ((result.data as any).success) {
+    // Add null check for result data
+    if (!result?.data) {
+      throw new Error("No data returned from story generation");
+    }
+
+    const data = result.data as any;
+    if (data.success) {
+      // Validate required fields
+      if (!data.storyId) {
+        throw new Error("Story generation succeeded but no story ID returned");
+      }
+
       // Deduct credits after successful generation
-      const storyId = (result.data as any).storyId;
+      const storyId = data.storyId;
       await creditsService.useCredits(userId, creditsNeeded, storyId);
 
       return {
         storyId,
-        story: (result.data as any).story,
-        imageGenerationStatus: (result.data as any).imageGenerationStatus,
+        story: data.story || null,
+        imageGenerationStatus: data.imageGenerationStatus || "pending",
       };
     } else {
-      throw new Error("Story generation failed");
+      throw new Error(data.error || "Story generation failed");
     }
   } catch (error) {
     console.error("Error calling generateStory function:", error);
@@ -83,8 +94,6 @@ export const generateThemeSuggestions = async (
     if (!currentUser) {
       throw new Error("User must be authenticated to generate themes");
     }
-
-    console.log("Current user ID:", currentUser.uid);
 
     const generateThemesFn = httpsCallable(
       functionsService,

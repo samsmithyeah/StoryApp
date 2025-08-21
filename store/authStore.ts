@@ -12,6 +12,7 @@ interface AuthStore extends AuthState {
   setAuthLoading: (loading: boolean) => void;
   validateAuthState: () => boolean;
   isInitialized: boolean;
+  isInitializing: boolean;
   unsubscribe: (() => void) | null;
 }
 
@@ -21,13 +22,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   error: null,
   authLoading: false,
   isInitialized: false,
+  isInitializing: false,
   unsubscribe: null,
 
   initialize: () => {
-    // Prevent multiple initializations
-    if (get().isInitialized) {
+    // Prevent concurrent initialization
+    if (get().isInitializing || get().isInitialized) {
       return;
     }
+
+    // Mark as initializing
+    set({ isInitializing: true });
 
     // Clean up any existing subscription
     const existingUnsubscribe = get().unsubscribe;
@@ -61,7 +66,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
 
     // Store the unsubscribe function for cleanup and mark as initialized
-    set({ unsubscribe, isInitialized: true });
+    set({ unsubscribe, isInitialized: true, isInitializing: false });
   },
 
   setUser: (user) => set({ user }),
