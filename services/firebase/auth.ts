@@ -10,12 +10,7 @@ import auth, {
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
-import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-} from "@react-native-firebase/firestore";
+import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { db } from "./config";
 import {
@@ -83,18 +78,14 @@ const createUserDocument = async (user: FirebaseAuthTypes.User) => {
         createdAt: new Date(),
         children: [],
       });
-      console.log("User document created in Firestore");
 
       // Initialize free credits for new users
       await creditsService.initializeUserCredits(user.uid);
-      console.log("Initial free credits granted");
     } else {
-      console.log("User document already exists");
       // Check if user has credits initialized (for existing users before credits system)
       const userCredits = await creditsService.getUserCredits(user.uid);
       if (!userCredits) {
         await creditsService.initializeUserCredits(user.uid);
-        console.log("Credits initialized for existing user");
       }
     }
   } catch (error) {
@@ -107,13 +98,17 @@ const createUserDocument = async (user: FirebaseAuthTypes.User) => {
 };
 
 // Initialize Google Sign-In (call this once in your app)
+let googleSignInConfigured = false;
 export const configureGoogleSignIn = (webClientId: string) => {
-  console.log("Configuring Google Sign-In with webClientId:", webClientId);
+  if (googleSignInConfigured) {
+    return; // Already configured, skip
+  }
   GoogleSignin.configure({
     webClientId,
     offlineAccess: true,
     scopes: ["openid", "profile", "email"],
   });
+  googleSignInConfigured = true;
 };
 
 // Email/Password Authentication
@@ -139,7 +134,6 @@ export const signUpWithEmail = async ({
     // Send email verification for real accounts
     try {
       await sendEmailVerification(userCredential.user);
-      console.log("Email verification sent successfully");
     } catch (verificationError) {
       console.error("Failed to send email verification:", verificationError);
       Alert.alert(
@@ -149,7 +143,6 @@ export const signUpWithEmail = async ({
       );
     }
   } else {
-    console.log("Test account detected - skipping email verification");
   }
 
   await createUserDocument(userCredential.user);
@@ -157,9 +150,7 @@ export const signUpWithEmail = async ({
   // Initialize FCM for push notifications
   try {
     await FCMService.initializeFCM();
-  } catch (error) {
-    console.log("FCM initialization failed (non-critical):", error);
-  }
+  } catch (error) {}
 
   return convertFirebaseUser(userCredential.user);
 };
@@ -177,9 +168,7 @@ export const signInWithEmail = async ({
   // Initialize FCM for push notifications
   try {
     await FCMService.initializeFCM();
-  } catch (error) {
-    console.log("FCM initialization failed (non-critical):", error);
-  }
+  } catch (error) {}
 
   return convertFirebaseUser(userCredential.user);
 };
@@ -187,16 +176,11 @@ export const signInWithEmail = async ({
 // Google Sign-In
 export const signInWithGoogle = async (): Promise<User> => {
   try {
-    console.log("Starting Google Sign-In...");
-
     // Check if your device supports Google Play
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    console.log("Google Play services available");
 
     // Get the users ID token
-    console.log("Attempting to sign in with Google...");
     const result: SignInResponse = await GoogleSignin.signIn();
-    console.log("Google Sign-In result:", result);
 
     // Check if sign-in was successful and extract idToken
     if (result.type !== "success") {
@@ -208,26 +192,21 @@ export const signInWithGoogle = async (): Promise<User> => {
       throw new Error("No ID token received from Google Sign-In");
     }
 
-    console.log("Got ID token, creating Firebase credential...");
     // Create a Google credential with the token
     const googleCredential = GoogleAuthProvider.credential(idToken);
-    console.log("Created Google credential");
 
     // Sign-in the user with the credential
     const userCredential = await signInWithCredential(
       authService,
       googleCredential
     );
-    console.log("Firebase sign-in successful");
 
     await createUserDocument(userCredential.user);
 
     // Initialize FCM for push notifications
     try {
       await FCMService.initializeFCM();
-    } catch (error) {
-      console.log("FCM initialization failed (non-critical):", error);
-    }
+    } catch (error) {}
 
     return convertFirebaseUser(userCredential.user);
   } catch (error) {
@@ -243,8 +222,6 @@ export const signInWithApple = async (): Promise<User> => {
   }
 
   try {
-    console.log("Starting Apple Sign-In...");
-
     // Check if Apple Sign-In is available
     const isAvailable = await AppleAuthentication.isAvailableAsync();
     if (!isAvailable) {
@@ -259,26 +236,26 @@ export const signInWithApple = async (): Promise<User> => {
       ],
     });
 
-    console.log("Apple authentication successful:", credential);
-
     if (!credential.identityToken) {
       throw new Error("Apple Sign-In did not return an identity token");
     }
 
     // Create Firebase credential for Apple Sign-In
+    // Apple credential may include nonce but it's not in the type definition
+    const appleCredential =
+      credential as AppleAuthentication.AppleAuthenticationCredential & {
+        nonce?: string;
+      };
     const firebaseCredential = auth.AppleAuthProvider.credential(
       credential.identityToken,
-      (credential as any).nonce || undefined
+      appleCredential.nonce || undefined
     );
-
-    console.log("Created Firebase credential for Apple");
 
     // Sign in to Firebase
     const userCredential = await signInWithCredential(
       authService,
       firebaseCredential
     );
-    console.log("Firebase Apple sign-in successful");
 
     // Update profile with Apple data if available
     if (
@@ -294,7 +271,6 @@ export const signInWithApple = async (): Promise<User> => {
 
       if (displayName && !userCredential.user.displayName) {
         await updateProfile(userCredential.user, { displayName });
-        console.log("Updated user profile with Apple name:", displayName);
       }
     }
 
@@ -303,9 +279,7 @@ export const signInWithApple = async (): Promise<User> => {
     // Initialize FCM for push notifications
     try {
       await FCMService.initializeFCM();
-    } catch (error) {
-      console.log("FCM initialization failed (non-critical):", error);
-    }
+    } catch (error) {}
 
     return convertFirebaseUser(userCredential.user);
   } catch (error: any) {
@@ -338,7 +312,6 @@ export const resendVerificationEmail = async (): Promise<void> => {
 
   if (currentUser && !currentUser.emailVerified) {
     await sendEmailVerification(currentUser);
-    console.log("Resend email verification sent successfully");
   } else if (!currentUser) {
     throw new Error("No user is currently signed in");
   } else {
@@ -361,9 +334,7 @@ export const signOutUser = async (): Promise<void> => {
   // Cleanup FCM token before sign out
   try {
     await FCMService.cleanup();
-  } catch (error) {
-    console.log("FCM cleanup failed (non-critical):", error);
-  }
+  } catch (error) {}
 
   await GoogleSignin.signOut();
   await signOut(authService);
@@ -382,14 +353,10 @@ export const deleteAccount = async (): Promise<void> => {
       "deleteUserData"
     );
 
-    console.log("About to call function...");
-    const result = await deleteUserDataFunction({});
-
-    console.log("Cloud function completed:", result.data);
+    await deleteUserDataFunction({});
 
     // Explicitly sign out to ensure auth state updates
     try {
-      console.log("Signing out after account deletion...");
       await signOut(authService);
     } catch (signOutError) {
       console.log(
@@ -405,50 +372,73 @@ export const deleteAccount = async (): Promise<void> => {
 
 // Cache to prevent excessive Firestore reads during auth state changes
 let userCache: { [uid: string]: { user: User; timestamp: number } } = {};
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 60000; // Increased to 60 seconds to reduce cache misses
+
+// Debounce mechanism for auth state changes
+let authDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let lastAuthState: { uid: string | null; emailVerified: boolean } | null = null;
 
 // Auth State Observer
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
 ) => {
   return onAuthStateChanged(authService, async (firebaseUser) => {
-    console.log(
-      "Auth state changed:",
-      firebaseUser ? "User logged in" : "User logged out"
-    );
-    if (firebaseUser) {
-      console.log(
-        "Firebase user:",
-        firebaseUser.uid,
-        "Verified:",
-        firebaseUser.emailVerified
-      );
+    // Check if this is a duplicate auth state change
+    const currentAuthState = {
+      uid: firebaseUser?.uid || null,
+      emailVerified: firebaseUser?.emailVerified || false,
+    };
 
-      // Check cache first to avoid excessive Firestore reads
-      const cached = userCache[firebaseUser.uid];
-      const now = Date.now();
+    // Skip if auth state hasn't actually changed
+    if (
+      lastAuthState &&
+      lastAuthState.uid === currentAuthState.uid &&
+      lastAuthState.emailVerified === currentAuthState.emailVerified
+    ) {
+      return; // Skip duplicate auth state changes
+    }
 
-      if (cached && now - cached.timestamp < CACHE_DURATION) {
-        console.log("Using cached user data");
-        // Update the cached user with latest auth info (like emailVerified)
-        const updatedUser = {
-          ...cached.user,
-          emailVerified: firebaseUser.emailVerified,
-        };
-        callback(updatedUser);
-      } else {
-        console.log("Converting Firebase user (cache miss or expired)");
-        const user = await convertFirebaseUser(firebaseUser);
-        // Cache the user data
-        userCache[firebaseUser.uid] = { user, timestamp: now };
-        console.log("Converted user:", user);
-        callback(user);
-      }
-    } else {
-      console.log("No user - showing login screen");
-      // Clear cache on logout
+    lastAuthState = currentAuthState;
+
+    // Clear any existing debounce timer
+    if (authDebounceTimer) {
+      clearTimeout(authDebounceTimer);
+    }
+
+    // Debounce auth state changes (except for logout)
+    if (!firebaseUser) {
+      // Process logout immediately
       userCache = {};
       callback(null);
+      return;
     }
+
+    // For login/auth state updates, use a small debounce
+    authDebounceTimer = setTimeout(async () => {
+      if (firebaseUser) {
+        // Check cache first to avoid excessive Firestore reads
+        const cached = userCache[firebaseUser.uid];
+        const now = Date.now();
+
+        if (cached && now - cached.timestamp < CACHE_DURATION) {
+          // Update the cached user with latest auth info (like emailVerified)
+          const updatedUser = {
+            ...cached.user,
+            emailVerified: firebaseUser.emailVerified,
+          };
+          callback(updatedUser);
+        } else {
+          const user = await convertFirebaseUser(firebaseUser);
+          // Cache the user data
+          userCache[firebaseUser.uid] = { user, timestamp: now };
+          callback(user);
+
+          // Initialize FCM for existing authenticated users
+          try {
+            await FCMService.initializeFCM();
+          } catch (error) {}
+        }
+      }
+    }, 100); // 100ms debounce to group rapid auth state changes
   });
 };

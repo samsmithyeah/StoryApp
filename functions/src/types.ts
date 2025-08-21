@@ -16,7 +16,6 @@ export interface StoryGenerationRequest {
   illustrationAiDescription?: string;
   illustrationAiDescriptionBackup1?: string;
   illustrationAiDescriptionBackup2?: string;
-  enableIllustrations: boolean;
   pageImageModel?: "flux" | "gemini" | "gpt-image-1"; // Optional, defaults to gpt-image-1
   textModel?: "gpt-4o" | "gemini-2.5-pro";
   coverImageModel?:
@@ -27,6 +26,7 @@ export interface StoryGenerationRequest {
   characters?: StoryCharacter[];
   temperature?: number; // 0.0 to 2.0, controls randomness/creativity
   geminiThinkingBudget?: number; // -1 for dynamic, 128-32768 for fixed budget
+  storyId?: string; // Optional pre-generated story ID for early listener setup
 }
 
 export interface StoryPage {

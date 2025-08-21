@@ -40,9 +40,7 @@ export interface SupportSectionProps {
 
 export interface AccountSectionProps {
   user: any;
-  isAdmin: boolean;
   isDeleting: boolean;
-  onShowWelcomeWizard: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
 }

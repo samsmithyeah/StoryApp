@@ -10,12 +10,14 @@ import {
   StatusBar,
   StyleSheet,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StarsDecorations } from "../../components/credits/StarsDecorations";
 import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding";
 import { AccountSection } from "../../components/settings/AccountSection";
 import { AdvancedSettingsSection } from "../../components/settings/AdvancedSettingsSection";
 import { ChildrenSection } from "../../components/settings/ChildrenSection";
+import { DebugSection } from "../../components/settings/DebugSection";
 import { SavedCharactersSection } from "../../components/settings/SavedCharactersSection";
 import { SettingsHeader } from "../../components/settings/SettingsHeader";
 import { SupportSection } from "../../components/settings/SupportSection";
@@ -67,7 +69,12 @@ export default function SettingsScreen() {
     try {
       await deleteChild(childId);
     } catch (error) {
-      Alert.alert("Error", "Failed to delete child profile");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete child profile",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -83,7 +90,12 @@ export default function SettingsScreen() {
     try {
       await deleteSavedCharacter(characterId);
     } catch (error) {
-      Alert.alert("Error", "Failed to delete saved character");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete saved character",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -209,11 +221,15 @@ export default function SettingsScreen() {
 
           <SupportSection onNavigate={(route) => router.push(route as any)} />
 
+          <DebugSection
+            isAdmin={isAdmin}
+            onShowWelcomeWizard={handleShowWelcomeWizard}
+            onNavigate={(route) => router.push(route as any)}
+          />
+
           <AccountSection
             user={user}
-            isAdmin={isAdmin}
             isDeleting={isDeleting}
-            onShowWelcomeWizard={handleShowWelcomeWizard}
             onSignOut={handleSignOut}
             onDeleteAccount={handleDeleteAccount}
           />

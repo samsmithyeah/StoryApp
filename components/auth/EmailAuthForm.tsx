@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.xxl,
   },
   toggleContainer: {
     flexDirection: "row",

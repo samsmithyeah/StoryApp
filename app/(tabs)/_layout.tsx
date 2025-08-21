@@ -12,11 +12,6 @@ export default function TabLayout() {
   const { user } = useAuth();
   const router = useRouter();
 
-  console.log(
-    "[TABS LAYOUT] User state:",
-    user ? `${user.email} (${user.uid})` : "null"
-  );
-
   useEffect(() => {
     if (!user) {
       console.log(

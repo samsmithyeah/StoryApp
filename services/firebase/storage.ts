@@ -2,18 +2,7 @@ import {
   getDownloadURL as rnGetDownloadURL,
   ref as rnRef,
 } from "@react-native-firebase/storage";
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
-import { Platform } from "react-native";
 import { storageService } from "./config";
-import { webStorage } from "./webConfig";
-
-// Get the appropriate storage instance based on platform
-const storage = Platform.OS === "web" ? webStorage : storageService;
 
 /**
  * Upload an image to Firebase Storage
@@ -34,20 +23,11 @@ export async function uploadImageFromUrl(
 
     const blob = await response.blob();
 
-    // Upload to Firebase Storage
-    if (Platform.OS === "web") {
-      // Web SDK approach
-      const storageRef = ref(storage as any, path);
-      await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(storageRef);
-      return downloadUrl;
-    } else {
-      // React Native Firebase approach
-      const reference = rnRef(storageService, path);
-      await reference.put(blob);
-      const downloadUrl = await rnGetDownloadURL(reference);
-      return downloadUrl;
-    }
+    // Upload to Firebase Storage using React Native Firebase
+    const reference = rnRef(storageService, path);
+    await reference.put(blob);
+    const downloadUrl = await rnGetDownloadURL(reference);
+    return downloadUrl;
   } catch (error) {
     console.error("Error uploading image to Firebase Storage:", error);
     throw error;
@@ -60,13 +40,8 @@ export async function uploadImageFromUrl(
  */
 export async function deleteImage(path: string): Promise<void> {
   try {
-    if (Platform.OS === "web") {
-      const storageRef = ref(storage as any, path);
-      await deleteObject(storageRef);
-    } else {
-      const reference = rnRef(storageService, path);
-      await reference.delete();
-    }
+    const reference = rnRef(storageService, path);
+    await reference.delete();
   } catch (error) {
     console.error("Error deleting image from Firebase Storage:", error);
     throw error;
@@ -120,13 +95,8 @@ export async function getAuthenticatedUrl(
     }
 
     // Get authenticated download URL for storage path
-    if (Platform.OS === "web") {
-      const storageRef = ref(storage as any, storagePath);
-      return await getDownloadURL(storageRef);
-    } else {
-      const reference = rnRef(storageService, storagePath);
-      return await rnGetDownloadURL(reference);
-    }
+    const reference = rnRef(storageService, storagePath);
+    return await rnGetDownloadURL(reference);
   } catch (error) {
     console.error(
       "Error getting authenticated URL for path:",

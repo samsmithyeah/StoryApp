@@ -90,8 +90,11 @@ export default function LibraryScreen() {
     }
   }, []);
 
-  const openStory = (s: Story) =>
-    router.push({ pathname: "/story/[id]", params: { id: s.id } });
+  const openStory = useCallback(
+    (storyId: string) =>
+      router.push({ pathname: "/story/[id]", params: { id: storyId } }),
+    []
+  );
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -211,11 +214,7 @@ export default function LibraryScreen() {
 
               <View style={styles.grid}>
                 {stories.map((s) => (
-                  <StoryCard
-                    key={s.id}
-                    story={s}
-                    onPress={() => openStory(s)}
-                  />
+                  <StoryCard key={s.id} story={s} onPress={openStory} />
                 ))}
               </View>
             </>

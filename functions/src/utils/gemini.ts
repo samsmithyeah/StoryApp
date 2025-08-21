@@ -52,6 +52,12 @@ export class GeminiClient {
     console.log(
       `[GeminiClient] Generating text with prompt: ${userPrompt.substring(0, 100)}...`
     );
+    console.log(
+      `[GeminiClient] System prompt: ${systemPrompt.substring(0, 200)}...`
+    );
+    console.log(
+      `[GeminiClient] Temperature: ${temperature}, thinkingBudget: ${thinkingBudget}`
+    );
 
     const request = {
       contents: [
@@ -79,7 +85,30 @@ export class GeminiClient {
           },
         }),
       },
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_ONLY_HIGH",
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH",
+          threshold: "BLOCK_ONLY_HIGH",
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_ONLY_HIGH",
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_ONLY_HIGH",
+        },
+      ],
     };
+
+    console.log(
+      `[GeminiClient] Sending request to ${this.textModel}:`,
+      JSON.stringify(request, null, 2)
+    );
 
     const response = await fetch(
       `${this.baseUrl}/models/${this.textModel}:generateContent?key=${this.apiKey}`,
@@ -103,12 +132,38 @@ export class GeminiClient {
     }
 
     const responseData = (await response.json()) as GeminiResponse;
+
+    // Enhanced logging to debug the "No candidates" issue
     console.log(
       `[GeminiClient] Text response received with ${responseData.candidates?.length || 0} candidates`
     );
+    console.log(
+      `[GeminiClient] Full response data:`,
+      JSON.stringify(responseData, null, 2)
+    );
+
+    // Check for content blocked by safety filters
+    if ((responseData as any).promptFeedback?.blockReason) {
+      const blockReason = (responseData as any).promptFeedback.blockReason;
+      console.error(
+        `[GeminiClient] Content blocked by safety filter. Block reason: ${blockReason}`
+      );
+      throw new Error(
+        `Gemini blocked content due to safety filter: ${blockReason}`
+      );
+    }
 
     const candidate = responseData.candidates?.[0];
     if (!candidate) {
+      console.error(
+        `[GeminiClient] No candidates found in response. Response structure:`,
+        {
+          hasCandidates: !!responseData.candidates,
+          candidatesLength: responseData.candidates?.length,
+          responseKeys: Object.keys(responseData),
+          fullResponse: responseData,
+        }
+      );
       throw new Error("No candidates in Gemini text response");
     }
 

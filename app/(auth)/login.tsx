@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
 import { EmailAuthForm } from "../../components/auth/EmailAuthForm";
 import { GoogleSignInButton } from "../../components/auth/GoogleSignInButton";
@@ -29,6 +31,7 @@ import { useAuthStore } from "../../store/authStore";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+const isPhoneSmall = width < 380; // iPhone SE / 13 mini
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -61,10 +64,12 @@ export default function LoginScreen() {
     try {
       await googleSignIn();
     } catch (error) {
-      Alert.alert(
-        "Sign In Failed",
-        "There was an error signing in with Google. Please try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Sign In Failed",
+        text2: "There was an error signing in with Google. Please try again.",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -76,10 +81,12 @@ export default function LoginScreen() {
     try {
       await appleSignIn();
     } catch (error) {
-      Alert.alert(
-        "Sign In Failed",
-        "There was an error signing in with Apple. Please try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Sign In Failed",
+        text2: "There was an error signing in with Apple. Please try again.",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -131,6 +138,7 @@ export default function LoginScreen() {
       resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
+      <StatusBar style="light" />
       <LinearGradient
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={StyleSheet.absoluteFill}
@@ -149,9 +157,7 @@ export default function LoginScreen() {
           >
             <View style={styles.header}>
               <Text style={styles.appName}>DreamWeaver</Text>
-              <Text style={styles.tagline}>
-                Magical bedtime stories, created just for your little ones
-              </Text>
+              <Text style={styles.tagline}>Your bedtime adventures</Text>
             </View>
 
             <View style={styles.authContainer}>
@@ -274,12 +280,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   tagline: {
-    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
-    color: Colors.text,
-    textAlign: "center",
-    lineHeight: isTablet ? 28 : 24,
-    maxWidth: isTablet ? 400 : 300,
-    opacity: 0.9,
+    fontSize: isTablet ? 24 : isPhoneSmall ? 14 : 18,
+    color: "#B8B8B8",
   },
   authContainer: {
     width: "100%",

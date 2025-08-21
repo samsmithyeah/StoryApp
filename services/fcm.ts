@@ -1,10 +1,14 @@
 import * as Notifications from "expo-notifications";
+import Toast from "react-native-toast-message";
+import { router } from "expo-router";
 import { NotificationService } from "./firebase/notifications";
 
 /**
  * Push notification service using Expo Notifications
  */
 export class FCMService {
+  private static isInitialized = false;
+  private static cleanupFunction: (() => void) | null = null;
   /**
    * Request notification permissions (required for iOS)
    */
@@ -19,7 +23,6 @@ export class FCMService {
         finalStatus = status;
       }
 
-      console.log("Notification permission status:", finalStatus);
       return finalStatus === "granted";
     } catch (error) {
       console.error("Failed to request notification permissions:", error);
@@ -32,6 +35,12 @@ export class FCMService {
    * This should be called after successful authentication
    */
   static async initializeFCM(): Promise<(() => void) | undefined> {
+    // Skip if already initialized
+    if (this.isInitialized) {
+      // Return existing cleanup function if available, otherwise undefined
+      return this.cleanupFunction || undefined;
+    }
+
     try {
       // Request permissions first
       const hasPermission = await this.requestPermissions();
@@ -46,18 +55,53 @@ export class FCMService {
       });
 
       const expoPushToken = tokenData.data;
-      console.log("Expo Push Token obtained:", expoPushToken);
 
       if (expoPushToken) {
         // Register token with our backend
         await NotificationService.registerFCMToken(expoPushToken);
       }
 
+      // Check if app was opened from a notification
+      this.handleInitialNotification();
+
       // Set up notification handling
-      return this.setupMessageHandling();
+      const cleanup = this.setupMessageHandling();
+
+      // Mark as initialized and store cleanup function
+      this.isInitialized = true;
+      this.cleanupFunction = cleanup;
+
+      return cleanup;
     } catch (error) {
       console.error("Failed to initialize push notifications:", error);
       return undefined;
+    }
+  }
+
+  /**
+   * Handle initial notification when app is opened from terminated state
+   */
+  static async handleInitialNotification(): Promise<void> {
+    try {
+      const lastNotificationResponse =
+        await Notifications.getLastNotificationResponseAsync();
+
+      if (lastNotificationResponse) {
+        const data = lastNotificationResponse.notification.request.content.data;
+
+        // Navigate to story if it's a story complete notification
+        if (data?.type === "story_complete" && data?.storyId) {
+          // Small delay to ensure navigation is ready
+          setTimeout(() => {
+            router.push({
+              pathname: "/story/[id]",
+              params: { id: String(data.storyId) },
+            });
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error("Error handling initial notification:", error);
     }
   }
 
@@ -68,39 +112,57 @@ export class FCMService {
     // Configure notification behavior
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowAlert: false, // We'll handle this with Toast
         shouldPlaySound: true,
         shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
+        shouldShowBanner: false, // We'll show our own toast
+        shouldShowList: false, // We'll show our own toast
       }),
     });
 
     // Handle notifications received while the app is foregrounded
     const foregroundSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("Notification received in foreground:", notification);
+        const { title, body, data } = notification.request.content;
+
+        // Show toast notification (this listener only fires when app is in foreground)
+        Toast.show({
+          type: "success",
+          text1: title || "New Notification",
+          text2: body || "",
+          position: "top",
+          visibilityTime: 4000,
+          autoHide: true,
+          topOffset: 60,
+          onPress: () => {
+            // Handle toast tap - navigate to story if it's a story complete notification
+            if (data?.type === "story_complete" && data?.storyId) {
+              router.push({
+                pathname: "/story/[id]",
+                params: { id: String(data.storyId) },
+              });
+            } else if (data?.type === "story_report") {
+            }
+          },
+        });
 
         // Handle story report notifications
-        const data = notification.request.content.data;
         if (data?.type === "story_report") {
-          console.log(
-            "Story report notification:",
-            notification.request.content.title
-          );
-          console.log("Report ID:", data.reportId);
-          console.log("Story ID:", data.storyId);
         }
       });
 
-    // Handle notification responses (when user taps notification)
+    // Handle notification responses (when user taps notification from background/lock screen)
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification response:", response);
-
         const data = response.notification.request.content.data;
-        if (data?.type === "story_report") {
-          console.log("User tapped story report notification");
+
+        // Navigate to story when user taps a story complete notification
+        if (data?.type === "story_complete" && data?.storyId) {
+          router.push({
+            pathname: "/story/[id]",
+            params: { id: String(data.storyId) },
+          });
+        } else if (data?.type === "story_report") {
           // Navigate to report details or admin panel if needed
         }
       });
@@ -119,7 +181,15 @@ export class FCMService {
     try {
       // Remove push token from backend
       await NotificationService.removeFCMToken();
-      console.log("Push notification cleanup completed");
+
+      // Clean up notification listeners
+      if (this.cleanupFunction) {
+        this.cleanupFunction();
+        this.cleanupFunction = null;
+      }
+
+      // Reset initialization flag
+      this.isInitialized = false;
     } catch (error) {
       console.error("Failed to cleanup push notifications:", error);
     }
@@ -134,7 +204,7 @@ export class FCMService {
       const { status } = await Notifications.getPermissionsAsync();
       return status !== "undetermined" && status !== "denied";
     } catch (error) {
-      console.log("Push notification support check failed:", error);
+      console.error("Push notification support check failed:", error);
       return false;
     }
   }
@@ -152,6 +222,26 @@ export class FCMService {
       trigger: {
         seconds: 2,
       } as any, // Type assertion for expo-notifications compatibility
+    });
+  }
+
+  /**
+   * Schedule a test story complete notification
+   */
+  static async scheduleTestStoryNotification(): Promise<void> {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🌟 Your story is ready!",
+        body: '"The Magical Adventure" is complete with all illustrations. Time for bedtime reading!',
+        data: {
+          type: "story_complete",
+          storyId: "eYabXdTHCGD6VpouIMnX",
+          storyTitle: "The Magical Adventure",
+        },
+      },
+      trigger: {
+        seconds: 2,
+      } as any,
     });
   }
 }

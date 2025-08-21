@@ -27,7 +27,7 @@ import { useCredits } from "../../hooks/useCredits";
 
 export default function CreateScreen() {
   const { children } = useChildren();
-  const { balance } = useCredits();
+  const { balance, loading: creditsLoading } = useCredits();
   const insets = useSafeAreaInsets();
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
@@ -94,6 +94,7 @@ export default function CreateScreen() {
               onPress={handleCreateStory}
               variant="primary"
               size="large"
+              disabled={creditsLoading}
               style={{
                 paddingHorizontal: 48,
                 paddingVertical: 16,

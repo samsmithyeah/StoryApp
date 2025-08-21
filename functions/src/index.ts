@@ -8,6 +8,7 @@ admin.initializeApp();
 
 // Export all functions from their separate files
 export { generateSingleImage } from "./generateSingleImage";
+export { generateCoverImage } from "./generateCoverImage";
 export { generateStory } from "./generateStory";
 export { generateThemeSuggestions } from "./generateThemeSuggestions";
 export { getStories } from "./getStories";

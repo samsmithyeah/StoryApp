@@ -9,7 +9,9 @@ import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
+import { toastConfig } from "@/components/ui/CustomToast";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -70,10 +72,18 @@ function RootLayout() {
             animation: "fade",
             animationDuration: 300,
           }}
+          initialRouteName="(tabs)"
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" options={{ animation: "none" }} />
+          <Stack.Screen
+            name="story/[id]"
+            options={{
+              animation: "fade_from_bottom",
+              animationDuration: 300,
+            }}
+          />
           <Stack.Screen name="wizard" />
           <Stack.Screen name="+not-found" />
           <Stack.Screen
@@ -102,6 +112,7 @@ function RootLayout() {
           />
         </Stack>
         <StatusBar style="auto" />
+        <Toast config={toastConfig} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

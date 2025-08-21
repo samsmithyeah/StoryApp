@@ -1,12 +1,12 @@
 // components/story/StoryCard.tsx
 import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   Platform,
   StyleSheet,
   Text,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { Colors, Shadows } from "../../constants/Theme";
+import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { IconSymbol } from "../ui/IconSymbol";
 import { StoryCardMenu } from "./StoryCardMenu";
 
@@ -30,122 +31,161 @@ const SUBTITLE_SIZE =
 /* ---------- component ---------- */
 interface StoryCardProps {
   story: Story;
-  onPress: () => void;
+  onPress: (storyId: string) => void;
 }
 
-export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
-  const [imageError, setImageError] = React.useState(false);
-  const [menuVisible, setMenuVisible] = React.useState(false);
-  const [isReporting, setIsReporting] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
-  const storagePath = story.coverImageUrl || story.storyContent?.[0]?.imageUrl;
-  const imageUrl = useStorageUrl(storagePath);
+export const StoryCard: React.FC<StoryCardProps> = React.memo(
+  ({ story, onPress }) => {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+    const [menuVisible, setMenuVisible] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
-  const formatDate = (date: Date) =>
-    new Date(date).toLocaleDateString("en-GB", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    const storagePath = useMemo(
+      () => story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
+      [story.coverImageUrl, story.storyContent]
+    );
+    const imageUrl = useStorageUrl(storagePath);
 
-  const pageCount = story.storyContent?.length ?? 0;
+    const isGeneratingCover =
+      !story.coverImageUrl &&
+      story.generationPhase !== "cover_complete" &&
+      story.generationPhase !== "all_complete";
+    const hasCoverPath = !!storagePath;
+    const shouldShowSpinner =
+      (hasCoverPath && imageLoading && !imageError) || isGeneratingCover;
 
-  const handleMenuPress = () => {
-    setMenuVisible(true);
-  };
+    const formatDate = (date: Date) =>
+      new Date(date).toLocaleDateString("en-GB", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
 
-  /* ---------- render ---------- */
-  return (
-    <View style={[styles.card, { width: CARD_W, height: CARD_H }]}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onPress}
-        style={StyleSheet.absoluteFill}
-      >
-        {/* cover (or placeholder) */}
-        {!imageError && imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
+    const pageCount = story.storyContent?.length ?? 0;
+
+    const handleMenuPress = () => {
+      setMenuVisible(true);
+    };
+
+    /* ---------- render ---------- */
+    return (
+      <View style={[styles.card, { width: CARD_W, height: CARD_H }]}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => onPress(story.id)}
+          style={StyleSheet.absoluteFill}
+        >
+          {/* cover (or placeholder) */}
+          {!imageError && imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageLoading(false);
+                setImageError(true);
+              }}
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              {shouldShowSpinner ? (
+                <View style={styles.spinnerContainer}>
+                  {isGeneratingCover ? (
+                    <LoadingSpinner size="small" showGlow={false} />
+                  ) : (
+                    <ActivityIndicator size="large" color="#D4AF37" />
+                  )}
+                </View>
+              ) : (
+                <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* menu button -------------------------------------------------- */}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={handleMenuPress}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <IconSymbol
+            name="ellipsis"
+            size={20}
+            color="rgba(255, 255, 255, 0.7)"
           />
-        ) : (
-          <View style={styles.placeholder}>
-            <IconSymbol name="book.closed.fill" size={24} color="#D4AF37" />
-          </View>
-        )}
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      {/* menu button -------------------------------------------------- */}
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={handleMenuPress}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <IconSymbol
-          name="ellipsis"
-          size={20}
-          color="rgba(255, 255, 255, 0.7)"
+        {/* status badge -------------------------------------------------- */}
+        {story.imageGenerationStatus &&
+          ["generating", "failed"].includes(story.imageGenerationStatus) && (
+            <View
+              style={[
+                styles.imageStatusBadge,
+                story.imageGenerationStatus === "failed" &&
+                  styles.imageStatusError,
+              ]}
+            >
+              {story.imageGenerationStatus === "generating" ? (
+                <>
+                  <ActivityIndicator size="small" color="#6366F1" />
+                  <Text style={styles.imageStatusText}>
+                    {story.imagesGenerated}/{story.totalImages}
+                  </Text>
+                </>
+              ) : (
+                <IconSymbol
+                  name="exclamationmark.circle.fill"
+                  size={16}
+                  color="#EF4444"
+                />
+              )}
+            </View>
+          )}
+
+        {/* vignette for legibility -------------------------------------- */}
+        <LinearGradient
+          colors={["transparent", "rgba(15,17,41,0.96)"]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
-      </TouchableOpacity>
 
-      {/* status badge -------------------------------------------------- */}
-      {story.imageGenerationStatus &&
-        ["generating", "failed"].includes(story.imageGenerationStatus) && (
-          <View
-            style={[
-              styles.imageStatusBadge,
-              story.imageGenerationStatus === "failed" &&
-                styles.imageStatusError,
-            ]}
-          >
-            {story.imageGenerationStatus === "generating" ? (
-              <>
-                <ActivityIndicator size="small" color="#6366F1" />
-                <Text style={styles.imageStatusText}>
-                  {story.imagesGenerated}/{story.totalImages}
-                </Text>
-              </>
-            ) : (
-              <IconSymbol
-                name="exclamationmark.circle.fill"
-                size={16}
-                color="#EF4444"
-              />
-            )}
+        {/* meta block ---------------------------------------------------- */}
+        <View style={styles.meta} pointerEvents="none">
+          <Text numberOfLines={4} style={styles.title}>
+            {story.title}
+          </Text>
+          <Text style={styles.subtitle}>
+            {formatDate(story.createdAt)} – {pageCount} pages
+          </Text>
+        </View>
+
+        <StoryCardMenu
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          story={story}
+          isReporting={isReporting}
+          setIsReporting={setIsReporting}
+          isDeleting={isDeleting}
+          setIsDeleting={setIsDeleting}
+        />
+
+        {/* Deletion overlay */}
+        {isDeleting && (
+          <View style={styles.deletionOverlay}>
+            <ActivityIndicator size="large" color="#D4AF37" />
           </View>
         )}
-
-      {/* vignette for legibility -------------------------------------- */}
-      <LinearGradient
-        colors={["transparent", "rgba(15,17,41,0.96)"]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      {/* meta block ---------------------------------------------------- */}
-      <View style={styles.meta} pointerEvents="none">
-        <Text numberOfLines={4} style={styles.title}>
-          {story.title}
-        </Text>
-        <Text style={styles.subtitle}>
-          {formatDate(story.createdAt)} – {pageCount} pages
-        </Text>
       </View>
+    );
+  }
+);
 
-      <StoryCardMenu
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        story={story}
-        isReporting={isReporting}
-        setIsReporting={setIsReporting}
-        isDeleting={isDeleting}
-        setIsDeleting={setIsDeleting}
-      />
-    </View>
-  );
-};
+StoryCard.displayName = "StoryCard";
 
 /* ---------- styles ---------- */
 
@@ -165,6 +205,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(26,27,58,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  spinnerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  deletionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
   },
 
   /* menu button */
