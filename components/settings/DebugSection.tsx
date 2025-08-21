@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Button } from "../ui/Button";
+import { FCMService } from "../../services/fcm";
 
 interface DebugSectionProps {
   isAdmin: boolean;
@@ -38,6 +39,15 @@ export function DebugSection({
       <Button
         title="Show welcome wizard"
         onPress={onShowWelcomeWizard}
+        variant="outline"
+        style={styles.debugButton}
+      />
+
+      <Button
+        title="Test push notification"
+        onPress={async () => {
+          await FCMService.scheduleTestStoryNotification();
+        }}
         variant="outline"
         style={styles.debugButton}
       />

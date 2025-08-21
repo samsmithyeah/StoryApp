@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { deleteStory, reportStory } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
 import { IconSymbol } from "../ui/IconSymbol";
@@ -49,17 +50,20 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
             try {
               setIsReporting(true);
               await reportStory(story.id, story);
-              Alert.alert(
-                "Story reported",
-                "Thank you for your report. We will review this story promptly.",
-                [{ text: "OK" }]
-              );
+              Toast.show({
+                type: "success",
+                text1: "Story reported",
+                text2:
+                  "Thank you for your report. We will review this story promptly.",
+                visibilityTime: 3000,
+              });
             } catch (error) {
-              Alert.alert(
-                "Error",
-                "Failed to report story. Please try again.",
-                [{ text: "OK" }]
-              );
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to report story. Please try again.",
+                visibilityTime: 3000,
+              });
             } finally {
               setIsReporting(false);
             }
@@ -87,17 +91,19 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
             try {
               setIsDeleting(true);
               await deleteStory(story.id);
-              Alert.alert(
-                "Story deleted",
-                "The story has been permanently deleted.",
-                [{ text: "OK" }]
-              );
+              Toast.show({
+                type: "success",
+                text1: "Story deleted",
+                text2: "The story has been permanently deleted.",
+                visibilityTime: 3000,
+              });
             } catch (error) {
-              Alert.alert(
-                "Error",
-                "Failed to delete story. Please try again.",
-                [{ text: "OK" }]
-              );
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to delete story. Please try again.",
+                visibilityTime: 3000,
+              });
             } finally {
               setIsDeleting(false);
             }

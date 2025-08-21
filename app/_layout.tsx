@@ -9,8 +9,10 @@ import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { toastConfig } from "@/components/ui/CustomToast";
 import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import * as Sentry from "@sentry/react-native";
@@ -102,6 +104,7 @@ function RootLayout() {
           />
         </Stack>
         <StatusBar style="auto" />
+        <Toast config={toastConfig} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

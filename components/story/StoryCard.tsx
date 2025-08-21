@@ -40,18 +40,20 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const storagePath = useMemo(() => 
-    story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
+
+  const storagePath = useMemo(
+    () => story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
     [story.coverImageUrl, story.storyContent]
   );
   const imageUrl = useStorageUrl(storagePath);
-  
-  const isGeneratingCover = !story.coverImageUrl && 
-    story.generationPhase !== "cover_complete" && 
+
+  const isGeneratingCover =
+    !story.coverImageUrl &&
+    story.generationPhase !== "cover_complete" &&
     story.generationPhase !== "all_complete";
   const hasCoverPath = !!storagePath;
-  const shouldShowSpinner = (hasCoverPath && imageLoading && !imageError) || isGeneratingCover;
+  const shouldShowSpinner =
+    (hasCoverPath && imageLoading && !imageError) || isGeneratingCover;
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString("en-GB", {
@@ -170,7 +172,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress }) => {
         isDeleting={isDeleting}
         setIsDeleting={setIsDeleting}
       />
-      
+
       {/* Deletion overlay */}
       {isDeleting && (
         <View style={styles.deletionOverlay}>
@@ -200,12 +202,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  
+
   spinnerContainer: {
     alignItems: "center",
     justifyContent: "center",
   },
-  
+
   deletionOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.7)",

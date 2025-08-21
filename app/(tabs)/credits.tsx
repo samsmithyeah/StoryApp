@@ -25,6 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { PurchasesOffering, PurchasesPackage } from "react-native-purchases";
 import {
   SafeAreaView,
@@ -374,32 +375,26 @@ export default function CreditsScreen({
 
       if (success) {
         if (isSubscription) {
-          Alert.alert("Success", "Subscription updated successfully", [
-            {
-              text: "OK",
-              onPress: () => {
-                if (_isModal && onPurchaseSuccess) {
-                  onPurchaseSuccess();
-                }
-              },
-            },
-          ]);
+          Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: "Subscription updated successfully",
+            visibilityTime: 3000,
+          });
+          if (_isModal && onPurchaseSuccess) {
+            onPurchaseSuccess();
+          }
           await loadCreditsAndOfferings();
         } else {
-          Alert.alert(
-            "Purchase successful",
-            "Your credits have been added to your account",
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  if (_isModal && onPurchaseSuccess) {
-                    onPurchaseSuccess();
-                  }
-                },
-              },
-            ]
-          );
+          Toast.show({
+            type: "success",
+            text1: "Purchase successful",
+            text2: "Your credits have been added to your account",
+            visibilityTime: 3000,
+          });
+          if (_isModal && onPurchaseSuccess) {
+            onPurchaseSuccess();
+          }
         }
       }
     } catch (error: any) {
@@ -416,11 +411,21 @@ export default function CreditsScreen({
     try {
       setPurchasing(true);
       await revenueCatService.restorePurchases();
-      Alert.alert("Success", "Purchases restored successfully!");
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Purchases restored successfully!",
+        visibilityTime: 3000,
+      });
       await loadCreditsAndOfferings();
     } catch (error) {
       console.error("Restore error:", error);
-      Alert.alert("Error", "Failed to restore purchases");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to restore purchases",
+        visibilityTime: 3000,
+      });
     } finally {
       setPurchasing(false);
     }

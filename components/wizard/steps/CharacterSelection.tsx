@@ -72,9 +72,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   );
 
   // Single source of truth for what is currently selected
-  const [selectedCharacters, setSelectedCharacters] = useState<StoryCharacter[]>(
-    initialCharacters
-  );
+  const [selectedCharacters, setSelectedCharacters] =
+    useState<StoryCharacter[]>(initialCharacters);
 
   const [mode, setMode] = useState<"surprise" | "custom">(
     initialCharacters.length > 0 ? "custom" : "surprise"
@@ -86,9 +85,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   const hasFirebaseLoaded = useRef(false);
   const lastKnownIds = useRef<Set<string>>(new Set());
 
-
   useEffect(() => {
-
     const currentIds = new Set(savedCharacters.map((c) => c.id));
 
     // Wait for Firebase to actually load - we know it has loaded when either:
@@ -117,14 +114,12 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
       (id) => !initialCharacterIds.current?.has(id)
     );
 
-
     if (newCharacterIds.length > 0) {
       // Find the actual character objects for the new IDs
       const newCharacters = savedCharacters.filter((char) =>
         newCharacterIds.includes(char.id)
       );
       const newestCharacter = newCharacters[0]; // They're sorted by creation date
-
 
       const newStoryCharacter: StoryCharacter = {
         name: newestCharacter.name,

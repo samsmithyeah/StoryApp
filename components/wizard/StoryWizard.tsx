@@ -190,7 +190,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return;
       }
 
-
       const generationRequest: StoryGenerationRequest = {
         ...wizardData,
         // Add preferences from user settings
@@ -200,7 +199,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         temperature: preferences.temperature,
         geminiThinkingBudget: preferences.geminiThinkingBudget,
       } as StoryGenerationRequest;
-
 
       const result = await generateStory(generationRequest);
 

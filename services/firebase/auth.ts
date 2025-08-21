@@ -10,11 +10,7 @@ import auth, {
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
-import {
-  doc,
-  getDoc,
-  setDoc,
-} from "@react-native-firebase/firestore";
+import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { db } from "./config";
 import {
@@ -471,6 +467,14 @@ export const subscribeToAuthChanges = (
           // Cache the user data
           userCache[firebaseUser.uid] = { user, timestamp: now };
           callback(user);
+
+          // Initialize FCM for existing authenticated users
+          try {
+            await FCMService.initializeFCM();
+            console.log("FCM initialized for existing user");
+          } catch (error) {
+            console.log("FCM initialization failed (non-critical):", error);
+          }
         }
       }
     }, 100); // 100ms debounce to group rapid auth state changes

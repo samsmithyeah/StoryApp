@@ -10,6 +10,7 @@ import {
   StatusBar,
   StyleSheet,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StarsDecorations } from "../../components/credits/StarsDecorations";
 import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding";
@@ -68,7 +69,12 @@ export default function SettingsScreen() {
     try {
       await deleteChild(childId);
     } catch (error) {
-      Alert.alert("Error", "Failed to delete child profile");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete child profile",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -84,7 +90,12 @@ export default function SettingsScreen() {
     try {
       await deleteSavedCharacter(characterId);
     } catch (error) {
-      Alert.alert("Error", "Failed to delete saved character");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete saved character",
+        visibilityTime: 3000,
+      });
     }
   };
 

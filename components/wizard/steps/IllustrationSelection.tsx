@@ -1,18 +1,17 @@
-import { Colors } from "@/constants/Theme";
 import { ContentLimits } from "@/constants/ContentLimits";
+import { Colors } from "@/constants/Theme";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import {
   Alert,
   Dimensions,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
@@ -207,7 +206,6 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     }
   };
 
-
   const handleCustomStyleChange = (text: string) => {
     setCustomStyle(text);
     if (isCustomStyleSelected) {
@@ -251,18 +249,13 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Choose an illustration style
-          </Text>
-          <View
-            style={isTablet ? styles.stylesListTablet : styles.stylesList}
-          >
+          <Text style={styles.sectionTitle}>Choose an illustration style</Text>
+          <View style={isTablet ? styles.stylesListTablet : styles.stylesList}>
             {ILLUSTRATION_STYLES.map((style) => {
               const isSelected =
                 style.id === "custom"
                   ? isCustomStyleSelected
-                  : style.id === illustrationStyle &&
-                    !isCustomStyleSelected;
+                  : style.id === illustrationStyle && !isCustomStyleSelected;
 
               return (
                 <TouchableOpacity

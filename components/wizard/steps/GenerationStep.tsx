@@ -3,7 +3,6 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
-import { AppStateService } from "@/services/appState";
 import { Story } from "@/types/story.types";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -128,7 +127,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   };
 
   const getPageImageProgress = (): string => {
-
     const imagesGenerated = storyData?.imagesGenerated || 0;
     const totalImages =
       storyData?.totalImages || storyData?.storyConfiguration?.pageCount || 0;
@@ -142,18 +140,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
     return "";
   };
-
-  // Update last active time while user is viewing the generation step
-  useEffect(() => {
-    AppStateService.updateLastActive();
-
-    // Update periodically while on this screen
-    const interval = setInterval(() => {
-      AppStateService.updateLastActive();
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Use safe area bottom instead of tab bar height since we're outside tabs
   const tabBarHeight = insets.bottom + Spacing.lg;
@@ -257,42 +243,42 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
           {/* Generation Progress Checklist */}
           <View style={styles.checklistContainer}>
-              <ChecklistItem
-                label="Story text"
-                isCompleted={isStoryTextReady()}
-                isLoading={isGenerating && !isStoryTextReady()}
-                showSpinner={isGenerating && !isStoryTextReady()}
-              />
-              <ChecklistItem
-                label="Cover illustration"
-                isCompleted={isCoverImageReady()}
-                isLoading={isGenerating && !isCoverImageReady()}
-                showSpinner={
-                  isGenerating && isStoryTextReady() && !isCoverImageReady()
-                }
-              />
-              <ChecklistItem
-                label={`Page illustrations${getPageImageProgress()}`}
-                isCompleted={arePageImagesReady()}
-                isLoading={isGenerating && !arePageImagesReady()}
-                showSpinner={
-                  isGenerating && isCoverImageReady() && !arePageImagesReady()
-                }
-              />
+            <ChecklistItem
+              label="Story text"
+              isCompleted={isStoryTextReady()}
+              isLoading={isGenerating && !isStoryTextReady()}
+              showSpinner={isGenerating && !isStoryTextReady()}
+            />
+            <ChecklistItem
+              label="Cover illustration"
+              isCompleted={isCoverImageReady()}
+              isLoading={isGenerating && !isCoverImageReady()}
+              showSpinner={
+                isGenerating && isStoryTextReady() && !isCoverImageReady()
+              }
+            />
+            <ChecklistItem
+              label={`Page illustrations${getPageImageProgress()}`}
+              isCompleted={arePageImagesReady()}
+              isLoading={isGenerating && !arePageImagesReady()}
+              showSpinner={
+                isGenerating && isCoverImageReady() && !arePageImagesReady()
+              }
+            />
           </View>
 
           {/* Push notification message */}
           <View style={styles.tipContainer}>
-              <IconSymbol
-                name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
-                size={isTablet ? 18 : 16}
-                color={isStoryFullyComplete() ? Colors.success : Colors.warning}
-              />
-              <Text style={styles.tipText}>
-                {isStoryFullyComplete()
-                  ? "Your story is complete and ready to read!"
-                  : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
-              </Text>
+            <IconSymbol
+              name={isStoryFullyComplete() ? "checkmark.circle" : "bell"}
+              size={isTablet ? 18 : 16}
+              color={isStoryFullyComplete() ? Colors.success : Colors.warning}
+            />
+            <Text style={styles.tipText}>
+              {isStoryFullyComplete()
+                ? "Your story is complete and ready to read!"
+                : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
+            </Text>
           </View>
         </View>
 

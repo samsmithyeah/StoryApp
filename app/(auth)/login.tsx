@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
 import { EmailAuthForm } from "../../components/auth/EmailAuthForm";
 import { GoogleSignInButton } from "../../components/auth/GoogleSignInButton";
@@ -61,10 +62,12 @@ export default function LoginScreen() {
     try {
       await googleSignIn();
     } catch (error) {
-      Alert.alert(
-        "Sign In Failed",
-        "There was an error signing in with Google. Please try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Sign In Failed",
+        text2: "There was an error signing in with Google. Please try again.",
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -76,10 +79,12 @@ export default function LoginScreen() {
     try {
       await appleSignIn();
     } catch (error) {
-      Alert.alert(
-        "Sign In Failed",
-        "There was an error signing in with Apple. Please try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Sign In Failed",
+        text2: "There was an error signing in with Apple. Please try again.",
+        visibilityTime: 3000,
+      });
     }
   };
 

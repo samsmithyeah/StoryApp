@@ -423,8 +423,7 @@ Return the story in this JSON format:
               : undefined,
           // Cover image generation details
           coverImageModel:
-            data.coverImageModel ||
-            "gemini-2.0-flash-preview-image-generation",
+            data.coverImageModel || "gemini-2.0-flash-preview-image-generation",
           coverImagePrompt: "", // Will be updated after cover generation
           // Page image generation details
           pageImageModel: data.pageImageModel || "gpt-image-1",

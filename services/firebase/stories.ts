@@ -3,8 +3,7 @@ import { httpsCallable } from "@react-native-firebase/functions";
 import { authService, functionsService } from "./config";
 import { creditsService } from "./credits";
 
-export interface StoryGenerationRequest extends StoryConfiguration {
-}
+export interface StoryGenerationRequest extends StoryConfiguration {}
 
 export const generateStory = async (config: StoryGenerationRequest) => {
   try {
