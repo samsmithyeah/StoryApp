@@ -10,8 +10,8 @@ import {
   StatusBar,
   StyleSheet,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { StarsDecorations } from "../../components/credits/StarsDecorations";
 import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding";
 import { AccountSection } from "../../components/settings/AccountSection";
@@ -136,10 +136,12 @@ export default function SettingsScreen() {
               await deleteAccount();
 
               console.log("Delete account completed, current user:", user?.uid);
-              Alert.alert(
-                "Account deleted",
-                "Your account has been successfully deleted."
-              );
+              Toast.show({
+                type: "success",
+                text1: "Account deleted",
+                text2: "Your account has been successfully deleted.",
+                visibilityTime: 3000,
+              });
               // The auth state listener in (tabs)/_layout.tsx will handle navigation
             } catch (error) {
               console.error("Delete account error:", error);
