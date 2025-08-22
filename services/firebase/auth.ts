@@ -573,6 +573,17 @@ export const checkEmailVerified = async (): Promise<boolean> => {
 
 // Password Reset
 export const resetPassword = async (email: string): Promise<void> => {
+  // Add email validation
+  if (!email || !email.includes("@") || email.length > 254) {
+    throw new Error("Invalid email address");
+  }
+
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error("Invalid email address");
+  }
+
   await sendPasswordResetEmail(authService, email);
 };
 

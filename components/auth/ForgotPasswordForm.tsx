@@ -46,7 +46,8 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
       await sendPasswordReset(email);
       setResetSent(true);
     } catch (error) {
-      // Error is handled by useAuth hook
+      // Error is already set in state by useAuth hook, but log for debugging
+      console.error("Password reset error:", error);
     }
   };
 
