@@ -24,6 +24,7 @@ interface InputProps {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoCorrect?: boolean;
   error?: string;
   disabled?: boolean;
   style?: ViewStyle;
@@ -47,6 +48,7 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry = false,
   keyboardType = "default",
   autoCapitalize = "sentences",
+  autoCorrect = true,
   error,
   disabled = false,
   style,
@@ -119,6 +121,7 @@ export const Input: React.FC<InputProps> = ({
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
           editable={!disabled}
           onFocus={handleFocus}
           onBlur={handleBlur}

@@ -67,6 +67,10 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
   ];
 
   const formatMonthYear = (date: Date) => {
+    // Handle invalid dates
+    if (!date || isNaN(date.getTime())) {
+      return "";
+    }
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -129,9 +133,15 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
           </View>
         )}
 
-        <Text style={[styles.text, !value && styles.placeholder]}>
-          {value ? formatMonthYear(value) : placeholder}
-        </Text>
+        {(() => {
+          const formatted = value ? formatMonthYear(value) : "";
+          const hasValidDate = formatted.length > 0;
+          return (
+            <Text style={[styles.text, !hasValidDate && styles.placeholder]}>
+              {hasValidDate ? formatted : placeholder}
+            </Text>
+          );
+        })()}
 
         <IconSymbol name="chevron.down" size={16} color={Colors.textMuted} />
       </TouchableOpacity>

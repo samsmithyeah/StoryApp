@@ -34,31 +34,59 @@ export class FCMService {
    * Get and register Expo push token
    * This should be called after successful authentication
    */
-  static async initializeFCM(): Promise<(() => void) | undefined> {
-    // Skip if already initialized
-    if (this.isInitialized) {
+  static async initializeFCM(
+    forceReInit = false
+  ): Promise<(() => void) | undefined> {
+    console.log("[FCM] Starting FCM initialization...", {
+      forceReInit,
+      isInitialized: this.isInitialized,
+    });
+
+    // Skip if already initialized (unless forced)
+    if (this.isInitialized && !forceReInit) {
+      console.log(
+        "[FCM] Already initialized, returning existing cleanup function"
+      );
       // Return existing cleanup function if available, otherwise undefined
       return this.cleanupFunction || undefined;
     }
 
+    if (forceReInit && this.isInitialized) {
+      console.log(
+        "[FCM] Force re-initialization requested, proceeding anyway..."
+      );
+    }
+
     try {
       // Request permissions first
+      console.log("[FCM] Requesting notification permissions...");
       const hasPermission = await this.requestPermissions();
+      console.log("[FCM] Permission result:", hasPermission);
+
       if (!hasPermission) {
-        console.warn("Notification permissions not granted");
+        console.warn("[FCM] Notification permissions not granted");
         return undefined;
       }
 
       // Get the Expo push token
+      console.log("[FCM] Getting Expo push token...");
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: "1bd7d4bd-9179-4cab-acee-fe6fa69367d3",
+      });
+      console.log("[FCM] Token data received:", {
+        tokenExists: !!tokenData.data,
+        tokenLength: tokenData.data?.length,
       });
 
       const expoPushToken = tokenData.data;
 
       if (expoPushToken) {
+        console.log("[FCM] Registering token with backend...", expoPushToken);
         // Register token with our backend
         await NotificationService.registerFCMToken(expoPushToken);
+        console.log("[FCM] Token registration completed successfully");
+      } else {
+        console.error("[FCM] No push token received from Expo");
       }
 
       // Check if app was opened from a notification
@@ -71,9 +99,10 @@ export class FCMService {
       this.isInitialized = true;
       this.cleanupFunction = cleanup;
 
+      console.log("[FCM] FCM initialization completed successfully");
       return cleanup;
     } catch (error) {
-      console.error("Failed to initialize push notifications:", error);
+      console.error("[FCM] Failed to initialize push notifications:", error);
       return undefined;
     }
   }

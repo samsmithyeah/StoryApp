@@ -18,6 +18,7 @@ import {
 import Toast from "react-native-toast-message";
 import { AppleSignInButton } from "../../components/auth/AppleSignInButton";
 import { EmailAuthForm } from "../../components/auth/EmailAuthForm";
+import { ForgotPasswordForm } from "../../components/auth/ForgotPasswordForm";
 import { GoogleSignInButton } from "../../components/auth/GoogleSignInButton";
 import {
   BorderRadius,
@@ -40,6 +41,7 @@ export default function LoginScreen() {
 
   // Don't auto-show email form on social sign-in errors
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<"signin" | "signup">(
     "signin"
   );
@@ -92,11 +94,28 @@ export default function LoginScreen() {
 
   const handleEmailToggle = () => {
     setShowEmailForm(!showEmailForm);
+    setShowForgotPassword(false);
     // Clear error when toggling away from email form
     if (showEmailForm && error) {
       const { setError } = useAuthStore.getState();
       setError(null);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setShowForgotPassword(true);
+    setShowEmailForm(false);
+    // Clear any existing errors
+    const { setError } = useAuthStore.getState();
+    setError(null);
+  };
+
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
+    setShowEmailForm(true);
+    // Clear any existing errors
+    const { setError } = useAuthStore.getState();
+    setError(null);
   };
 
   const handleEmailModeToggle = () => {
@@ -161,7 +180,9 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.authContainer}>
-              {!showEmailForm ? (
+              {showForgotPassword ? (
+                <ForgotPasswordForm onBackToLogin={handleBackToLogin} />
+              ) : !showEmailForm ? (
                 <>
                   <View style={styles.socialButtons}>
                     <GoogleSignInButton
@@ -194,10 +215,11 @@ export default function LoginScreen() {
                 <EmailAuthForm
                   mode={emailAuthMode}
                   onToggleMode={handleEmailModeToggle}
+                  onForgotPassword={handleForgotPassword}
                 />
               )}
 
-              {showEmailForm && (
+              {showEmailForm && !showForgotPassword && (
                 <View style={styles.backButton}>
                   <Text
                     style={styles.backButtonText}
