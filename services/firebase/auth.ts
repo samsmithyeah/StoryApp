@@ -106,8 +106,8 @@ const createUserDocument = async (
       email: user.email,
       displayName: finalDisplayName,
       photoURL: user.photoURL,
-      createdAt: new Date(),
-      children: [],
+      // Only set createdAt and children for new users, not existing ones
+      ...(userSnapshot.exists() ? {} : { createdAt: new Date(), children: [] }),
     };
     console.log("[AUTH] User data to set/merge:", userData);
 
