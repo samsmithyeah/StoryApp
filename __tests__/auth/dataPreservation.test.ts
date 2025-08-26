@@ -170,12 +170,14 @@ describe("Auth Data Preservation", () => {
     it("should demonstrate the correct data preservation pattern for error scenarios", async () => {
       // This test documents the expected behavior when Firestore read fails
       // The real createUserDocument function handles this with try/catch and logger.error
-      
+
       // Mock Firestore error scenario
       mockGetDoc.mockRejectedValue(new Error("Firestore connection failed"));
 
       // Test the data preservation pattern (what the real function should do)
-      const testDataPreservationPattern = async (user: typeof mockNewUserProfile) => {
+      const testDataPreservationPattern = async (
+        user: typeof mockNewUserProfile
+      ) => {
         // When Firestore read fails, we should create a new user document
         // without overwriting any existing data (this simulates the error handling fallback)
         const userData = {
@@ -192,7 +194,7 @@ describe("Auth Data Preservation", () => {
 
       // Verify the pattern works correctly
       await testDataPreservationPattern(mockNewUserProfile);
-      
+
       expect(mockSetDoc).toHaveBeenCalled();
       const setDocCall = mockSetDoc.mock.calls[0];
       expect(setDocCall[1]).toHaveProperty("children", []);

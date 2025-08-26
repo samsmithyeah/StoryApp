@@ -50,13 +50,6 @@ export class GeminiClient {
     temperature: number = 0.9,
     thinkingBudget?: number
   ): Promise<string> {
-    logger.debug("GeminiClient generating text", {
-      userPromptPreview: userPrompt.substring(0, 100),
-      systemPromptPreview: systemPrompt.substring(0, 200),
-      temperature,
-      thinkingBudget,
-    });
-
     const request = {
       contents: [
         {
