@@ -21,7 +21,7 @@ describe("Synchronous Auth Flows", () => {
       expect(mockUser).toHaveProperty("createdAt");
       expect(mockUser).toHaveProperty("isAdmin");
       expect(mockUser).toHaveProperty("emailVerified");
-      
+
       expect(mockUser.uid).toBe("test-uid");
       expect(mockUser.displayName).toBe("Test User");
       expect(mockUser.isAdmin).toBe(false);
@@ -35,10 +35,10 @@ describe("Synchronous Auth Flows", () => {
       inputDisplayName: string | null
     ) => {
       return {
-        displayName: 
-          firestoreData?.displayName || 
-          firebaseUser.displayName || 
-          inputDisplayName
+        displayName:
+          firestoreData?.displayName ||
+          firebaseUser.displayName ||
+          inputDisplayName,
       };
     };
 
@@ -47,7 +47,11 @@ describe("Synchronous Auth Flows", () => {
       const firebaseUser = { displayName: "Firebase Name" };
       const inputDisplayName = "Input Name";
 
-      const result = buildUserWithFallbacks(firestoreData, firebaseUser, inputDisplayName);
+      const result = buildUserWithFallbacks(
+        firestoreData,
+        firebaseUser,
+        inputDisplayName
+      );
       expect(result.displayName).toBe("Firestore Name");
     });
 
@@ -56,7 +60,11 @@ describe("Synchronous Auth Flows", () => {
       const firebaseUser = { displayName: "Firebase Name" };
       const inputDisplayName = "Input Name";
 
-      const result = buildUserWithFallbacks(firestoreData, firebaseUser, inputDisplayName);
+      const result = buildUserWithFallbacks(
+        firestoreData,
+        firebaseUser,
+        inputDisplayName
+      );
       expect(result.displayName).toBe("Firebase Name");
     });
 
@@ -65,7 +73,11 @@ describe("Synchronous Auth Flows", () => {
       const firebaseUser = { displayName: null };
       const inputDisplayName = "Input Name";
 
-      const result = buildUserWithFallbacks(firestoreData, firebaseUser, inputDisplayName);
+      const result = buildUserWithFallbacks(
+        firestoreData,
+        firebaseUser,
+        inputDisplayName
+      );
       expect(result.displayName).toBe("Input Name");
     });
 
@@ -74,7 +86,11 @@ describe("Synchronous Auth Flows", () => {
       const firebaseUser = { displayName: null };
       const inputDisplayName = null;
 
-      const result = buildUserWithFallbacks(firestoreData, firebaseUser, inputDisplayName);
+      const result = buildUserWithFallbacks(
+        firestoreData,
+        firebaseUser,
+        inputDisplayName
+      );
       expect(result.displayName).toBe(null);
     });
   });
@@ -82,7 +98,7 @@ describe("Synchronous Auth Flows", () => {
   describe("Firestore data transformation", () => {
     it("should handle Firestore timestamp conversion", () => {
       const mockFirestoreTimestamp = {
-        toDate: () => new Date("2023-01-01T10:00:00Z")
+        toDate: () => new Date("2023-01-01T10:00:00Z"),
       };
 
       const result = mockFirestoreTimestamp.toDate();
@@ -118,7 +134,7 @@ describe("Synchronous Auth Flows", () => {
             isAdmin: false,
           };
         }
-        
+
         // Normal flow with Firestore data
         return {
           uid: "firebase-uid",
@@ -134,25 +150,34 @@ describe("Synchronous Auth Flows", () => {
 
       expect(fallbackUser.displayName).toBe("Firebase Name");
       expect(fallbackUser.isAdmin).toBe(false);
-      
+
       expect(normalUser.displayName).toBe("Firestore Name");
       expect(normalUser.isAdmin).toBe(true);
     });
 
     it("should validate user object completeness", () => {
       const validateUser = (user: any) => {
-        const requiredFields = ['uid', 'email', 'displayName', 'createdAt', 'isAdmin', 'emailVerified'];
-        const missingFields = requiredFields.filter(field => user[field] === undefined);
-        
+        const requiredFields = [
+          "uid",
+          "email",
+          "displayName",
+          "createdAt",
+          "isAdmin",
+          "emailVerified",
+        ];
+        const missingFields = requiredFields.filter(
+          (field) => user[field] === undefined
+        );
+
         return {
           isValid: missingFields.length === 0,
-          missingFields
+          missingFields,
         };
       };
 
       const completeUser = {
         uid: "test-uid",
-        email: "test@example.com", 
+        email: "test@example.com",
         displayName: "Test User",
         createdAt: new Date(),
         isAdmin: false,
@@ -171,17 +196,87 @@ describe("Synchronous Auth Flows", () => {
       expect(completeValidation.missingFields).toEqual([]);
 
       expect(incompleteValidation.isValid).toBe(false);
-      expect(incompleteValidation.missingFields).toContain('displayName');
-      expect(incompleteValidation.missingFields).toContain('createdAt');
+      expect(incompleteValidation.missingFields).toContain("displayName");
+      expect(incompleteValidation.missingFields).toContain("createdAt");
+    });
+  });
+
+  describe("Profile update reliability", () => {
+    it("should handle profile update with retry logic", () => {
+      const simulateProfileUpdateWithRetry = (
+        expectedDisplayName: string,
+        simulateFailures = 0
+      ) => {
+        let attempts = 0;
+        const maxRetries = 5;
+
+        const attemptUpdate = (): { success: boolean; attempts: number } => {
+          attempts++;
+
+          // Simulate failures for first N attempts
+          if (attempts <= simulateFailures) {
+            return { success: false, attempts };
+          }
+
+          // Success after failures
+          return { success: true, attempts };
+        };
+
+        // Simulate retry loop
+        for (let i = 0; i < maxRetries; i++) {
+          const result = attemptUpdate();
+          if (result.success) {
+            return { success: true, attempts: result.attempts, retries: i };
+          }
+        }
+
+        return { success: false, attempts, retries: maxRetries };
+      };
+
+      // Test immediate success
+      const immediateSuccess = simulateProfileUpdateWithRetry("Test User", 0);
+      expect(immediateSuccess.success).toBe(true);
+      expect(immediateSuccess.attempts).toBe(1);
+      expect(immediateSuccess.retries).toBe(0);
+
+      // Test success after 2 failures
+      const successAfterRetries = simulateProfileUpdateWithRetry(
+        "Test User",
+        2
+      );
+      expect(successAfterRetries.success).toBe(true);
+      expect(successAfterRetries.attempts).toBe(3);
+      expect(successAfterRetries.retries).toBe(2);
+
+      // Test failure after max retries
+      const maxFailure = simulateProfileUpdateWithRetry("Test User", 6);
+      expect(maxFailure.success).toBe(false);
+      expect(maxFailure.attempts).toBe(5);
+      expect(maxFailure.retries).toBe(5);
+    });
+
+    it("should calculate exponential backoff correctly", () => {
+      const calculateBackoffDelay = (attempt: number, baseDelay = 200) => {
+        return baseDelay * Math.pow(2, attempt);
+      };
+
+      expect(calculateBackoffDelay(0)).toBe(200); // First retry: 200ms
+      expect(calculateBackoffDelay(1)).toBe(400); // Second retry: 400ms
+      expect(calculateBackoffDelay(2)).toBe(800); // Third retry: 800ms
+      expect(calculateBackoffDelay(3)).toBe(1600); // Fourth retry: 1600ms
+      expect(calculateBackoffDelay(4)).toBe(3200); // Fifth retry: 3200ms
     });
   });
 
   describe("Performance validation", () => {
     it("should create user objects synchronously without delays", () => {
-      const createUserSynchronously = (firestoreData: any, firebaseUser: any) => {
+      const createUserSynchronously = (
+        firestoreData: any,
+        firebaseUser: any
+      ) => {
         // Simulate synchronous user object creation
         const startTime = performance.now();
-        
+
         const user = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -193,10 +288,10 @@ describe("Synchronous Auth Flows", () => {
         };
 
         const endTime = performance.now();
-        
+
         return {
           user,
-          executionTime: endTime - startTime
+          executionTime: endTime - startTime,
         };
       };
 
@@ -214,11 +309,14 @@ describe("Synchronous Auth Flows", () => {
         emailVerified: false,
       };
 
-      const result = createUserSynchronously(mockFirestoreData, mockFirebaseUser);
+      const result = createUserSynchronously(
+        mockFirestoreData,
+        mockFirebaseUser
+      );
 
       // Should execute very quickly (< 10ms for simple object creation)
       expect(result.executionTime).toBeLessThan(10);
-      
+
       // Should have correct data precedence
       expect(result.user.displayName).toBe("Firestore User");
       expect(result.user.isAdmin).toBe(true);
@@ -230,9 +328,18 @@ describe("Synchronous Auth Flows", () => {
     it("should validate store update data structure", () => {
       const mockStoreUpdate = (userData: any) => {
         // Validate the data structure before store update
-        const requiredFields = ['uid', 'email', 'displayName', 'createdAt', 'isAdmin', 'emailVerified'];
-        const hasAllFields = requiredFields.every(field => userData.hasOwnProperty(field));
-        
+        const requiredFields = [
+          "uid",
+          "email",
+          "displayName",
+          "createdAt",
+          "isAdmin",
+          "emailVerified",
+        ];
+        const hasAllFields = requiredFields.every((field) =>
+          userData.hasOwnProperty(field)
+        );
+
         if (!hasAllFields) {
           throw new Error("Invalid user data for store update");
         }
@@ -257,7 +364,9 @@ describe("Synchronous Auth Flows", () => {
       };
 
       expect(() => mockStoreUpdate(validUserData)).not.toThrow();
-      expect(() => mockStoreUpdate(invalidUserData)).toThrow("Invalid user data for store update");
+      expect(() => mockStoreUpdate(invalidUserData)).toThrow(
+        "Invalid user data for store update"
+      );
 
       const result = mockStoreUpdate(validUserData);
       expect(result.success).toBe(true);
@@ -273,13 +382,13 @@ describe("Synchronous Auth Flows", () => {
 
         // Step 1: Firebase auth (simulated)
         steps.push("firebase_auth");
-        
+
         // Step 2: Create/update Firestore document (simulated)
         steps.push("firestore_write");
-        
-        // Step 3: Read Firestore data back (simulated) 
+
+        // Step 3: Read Firestore data back (simulated)
         steps.push("firestore_read");
-        
+
         // Step 4: Create user object with complete data (simulated)
         const userData = {
           uid: "test-uid",
@@ -290,10 +399,10 @@ describe("Synchronous Auth Flows", () => {
           emailVerified: false,
         };
         steps.push("user_object_creation");
-        
+
         // Step 5: Update auth store immediately (simulated)
         steps.push("store_update");
-        
+
         // Step 6: Initialize FCM (simulated)
         steps.push("fcm_init");
 
@@ -312,19 +421,19 @@ describe("Synchronous Auth Flows", () => {
       // Should complete all steps
       expect(result.steps).toEqual([
         "firebase_auth",
-        "firestore_write", 
+        "firestore_write",
         "firestore_read",
         "user_object_creation",
         "store_update",
-        "fcm_init"
+        "fcm_init",
       ]);
 
       // Should have no artificial delays
       expect(result.hasTimeouts).toBe(false);
-      
+
       // Should execute quickly
       expect(result.totalTime).toBeLessThan(10);
-      
+
       // Should return complete user data
       expect(result.userData.displayName).toBe("Complete User");
     });

@@ -24,11 +24,60 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
+
 import { validateEmail } from "../../utils/validation";
 import { logger } from "../../utils/logger";
 import { FCMService } from "../fcm";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
+
+// Apple Authentication Error Types
+interface AppleAuthError {
+  code?: string;
+  message?: string;
+}
+
+// Constants
+const PROFILE_UPDATE_MAX_RETRIES = 5;
+const PROFILE_UPDATE_RETRY_DELAY = 200; // Start with 200ms, exponential backoff
+
+// Helper function to wait for Firebase profile update to propagate
+const waitForProfileUpdate = async (
+  user: FirebaseAuthTypes.User,
+  expectedDisplayName: string,
+  maxRetries = PROFILE_UPDATE_MAX_RETRIES
+): Promise<boolean> => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    await reload(user);
+    const currentUser = authService.currentUser;
+
+    if (currentUser?.displayName === expectedDisplayName) {
+      logger.debug("Profile update confirmed", {
+        displayName: currentUser.displayName,
+        attempts: attempt + 1,
+      });
+      return true;
+    }
+
+    // Exponential backoff: 200ms, 400ms, 800ms, 1600ms, 3200ms
+    const delay = PROFILE_UPDATE_RETRY_DELAY * Math.pow(2, attempt);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    logger.debug("Profile update not yet visible, retrying", {
+      attempt: attempt + 1,
+      expectedDisplayName,
+      currentDisplayName: currentUser?.displayName,
+      nextRetryDelay: delay * 2,
+    });
+  }
+
+  logger.warn("Profile update verification timed out", {
+    expectedDisplayName,
+    finalDisplayName: authService.currentUser?.displayName,
+    maxRetries,
+  });
+  return false;
+};
 
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
@@ -196,21 +245,19 @@ export const signUpWithEmail = async ({
         displayName: displayName.trim(),
       });
 
-      // Small delay to ensure Firebase processes the profile update
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Wait for Firebase profile update to propagate with retry logic
+      const profileUpdateSuccess = await waitForProfileUpdate(
+        userCredential.user,
+        displayName.trim()
+      );
 
-      // Force a complete auth refresh to ensure the profile update persists
-      await reload(userCredential.user);
-
-      // Get fresh user instance after reload
-      const currentUser = authService.currentUser;
-      logger.debug("After reload - Firebase displayName", {
-        displayName: currentUser?.displayName,
-      });
-
-      // Clear user cache to force fresh data fetch in auth state observer
-      userCache = {};
-      logger.debug("Firebase profile updated successfully and cache cleared");
+      if (profileUpdateSuccess) {
+        // Clear user cache to force fresh data fetch in auth state observer
+        userCache.clear();
+        logger.debug("Firebase profile updated successfully and cache cleared");
+      } else {
+        logger.warn("Profile update verification failed, proceeding anyway");
+      }
     } catch (error) {
       logger.error("Firebase profile update failed", error);
     }
@@ -231,6 +278,8 @@ export const signUpWithEmail = async ({
       );
     }
   } else {
+    // Test accounts skip email verification for development purposes
+    logger.debug("Skipping email verification for test account");
   }
 
   // Pass displayName directly to avoid timing issues with Firebase profile updates
@@ -459,21 +508,23 @@ export const signInWithApple = async (): Promise<User> => {
     }
 
     return appUser;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("Apple Sign-In error", error);
 
+    const appleError = error as AppleAuthError;
+
     // Provide more specific error messages
-    if (error.code === "ERR_REQUEST_CANCELED") {
+    if (appleError.code === "ERR_REQUEST_CANCELED") {
       throw new Error("Apple Sign-In was canceled by the user");
-    } else if (error.code === "ERR_INVALID_RESPONSE") {
+    } else if (appleError.code === "ERR_INVALID_RESPONSE") {
       throw new Error("Invalid response from Apple Sign-In");
-    } else if (error.code === "ERR_REQUEST_FAILED") {
+    } else if (appleError.code === "ERR_REQUEST_FAILED") {
       throw new Error(
         "Apple Sign-In request failed. Please check your internet connection and try again."
       );
-    } else if (error.message?.includes("not available")) {
+    } else if (appleError.message?.includes("not available")) {
       throw new Error("Apple Sign-In is not available on this device");
-    } else if (error.message?.includes("authorization attempt failed")) {
+    } else if (appleError.message?.includes("authorization attempt failed")) {
       throw new Error(
         "Apple Sign-In failed. Please ensure you have a valid Apple ID and try again."
       );
@@ -560,12 +611,55 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
-// Cache to prevent excessive Firestore reads during auth state changes
-let userCache: { [uid: string]: { user: User; timestamp: number } } = {};
-const CACHE_DURATION = 60000; // Increased to 60 seconds to reduce cache misses
+// Cache management for user data
+const CACHE_DURATION = 60000; // 60 seconds to reduce cache misses
+
+class UserCache {
+  private cache: { [uid: string]: { user: User; timestamp: number } } = {};
+
+  get(uid: string): { user: User; timestamp: number } | undefined {
+    return this.cache[uid];
+  }
+
+  set(uid: string, user: User): void {
+    this.cache[uid] = { user, timestamp: Date.now() };
+  }
+
+  clear(uid?: string): void {
+    if (uid) {
+      delete this.cache[uid];
+    } else {
+      this.cache = {};
+    }
+  }
+
+  isExpired(uid: string): boolean {
+    const cached = this.cache[uid];
+    if (!cached) return true;
+    return Date.now() - cached.timestamp >= CACHE_DURATION;
+  }
+}
+
+const userCache = new UserCache();
 
 // Debounce mechanism for auth state changes
-let authDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+class AuthDebouncer {
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  debounce(callback: () => void, delay: number): void {
+    this.clear();
+    this.timer = setTimeout(callback, delay);
+  }
+
+  clear(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+}
+
+const authDebouncer = new AuthDebouncer();
 let lastAuthState: {
   uid: string | null;
   emailVerified: boolean;
@@ -597,26 +691,23 @@ export const subscribeToAuthChanges = (
     lastAuthState = currentAuthState;
 
     // Clear any existing debounce timer
-    if (authDebounceTimer) {
-      clearTimeout(authDebounceTimer);
-    }
+    authDebouncer.clear();
 
     // Debounce auth state changes (except for logout)
     if (!firebaseUser) {
       // Process logout immediately
-      userCache = {};
+      userCache.clear();
       callback(null);
       return;
     }
 
     // For login/auth state updates, use a small debounce
-    authDebounceTimer = setTimeout(async () => {
+    authDebouncer.debounce(async () => {
       if (firebaseUser) {
         // Check cache first to avoid excessive Firestore reads
-        const cached = userCache[firebaseUser.uid];
-        const now = Date.now();
+        const cached = userCache.get(firebaseUser.uid);
 
-        if (cached && now - cached.timestamp < CACHE_DURATION) {
+        if (cached && !userCache.isExpired(firebaseUser.uid)) {
           // Update the cached user with latest auth info (like emailVerified and displayName)
           logger.debug(
             "Using cached user, updating with latest Firebase data",
@@ -638,13 +729,13 @@ export const subscribeToAuthChanges = (
           });
 
           // Update the cache with the new data
-          userCache[firebaseUser.uid] = { user: updatedUser, timestamp: now };
+          userCache.set(firebaseUser.uid, updatedUser);
 
           callback(updatedUser);
         } else {
           const user = await convertFirebaseUser(firebaseUser);
           // Cache the user data
-          userCache[firebaseUser.uid] = { user, timestamp: now };
+          userCache.set(firebaseUser.uid, user);
           callback(user);
 
           // Initialize FCM for existing authenticated users
