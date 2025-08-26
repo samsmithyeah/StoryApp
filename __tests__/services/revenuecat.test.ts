@@ -23,14 +23,15 @@ jest.mock("react-native-purchases", () => ({
 }));
 
 // Mock Firebase Auth
-const mockAuth = {
+const mockAuthInstance = {
   currentUser: null as any,
-  onAuthStateChanged: jest.fn(() => jest.fn()), // Returns unsubscribe function
 };
 
 jest.mock("@react-native-firebase/auth", () => ({
   __esModule: true,
-  default: () => mockAuth,
+  default: jest.fn(() => mockAuthInstance),
+  getAuth: jest.fn(() => mockAuthInstance),
+  onAuthStateChanged: jest.fn(() => jest.fn()), // Returns unsubscribe function
 }));
 
 // Mock Credits Service
@@ -55,13 +56,13 @@ describe("RevenueCatService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset mock auth state
-    mockAuth.currentUser = null;
+    mockAuthInstance.currentUser = null;
   });
 
   describe("validateCurrentUser", () => {
     it("should throw AuthenticationError when no user is authenticated", () => {
       // Set mock to return no current user
-      mockAuth.currentUser = null;
+      mockAuthInstance.currentUser = null;
 
       // Use reflection to test private method
       const service = revenueCatService as any;
@@ -73,7 +74,7 @@ describe("RevenueCatService", () => {
 
     it("should throw UserContextError when user IDs do not match", () => {
       // Set mock to return different user
-      mockAuth.currentUser = { uid: "different-user" };
+      mockAuthInstance.currentUser = { uid: "different-user" };
 
       const service = revenueCatService as any;
 
@@ -84,7 +85,7 @@ describe("RevenueCatService", () => {
 
     it("should not throw when user IDs match", () => {
       // Set mock to return matching user
-      mockAuth.currentUser = { uid: "matching-user" };
+      mockAuthInstance.currentUser = { uid: "matching-user" };
 
       const service = revenueCatService as any;
 

@@ -6,13 +6,12 @@ import Purchases, {
 import { Platform } from "react-native";
 import { creditsService } from "./firebase/credits";
 import { logger } from "../utils/logger";
-import auth from "@react-native-firebase/auth";
+import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 import {
   AuthenticationError,
   UserContextError,
   SubscriptionError,
   ConfigurationError,
-  USER_ERROR_MESSAGES,
 } from "../types/revenuecat.errors";
 
 // Replace with your actual RevenueCat API keys
@@ -53,7 +52,8 @@ class RevenueCatService {
   private authUnsubscribe: (() => void) | null = null;
 
   private validateCurrentUser(targetUserId: string): void {
-    const currentUser = auth().currentUser;
+    const authInstance = getAuth();
+    const currentUser = authInstance.currentUser;
     if (!currentUser) {
       throw new AuthenticationError("No authenticated user found");
     }
@@ -156,8 +156,9 @@ class RevenueCatService {
       this.authUnsubscribe();
     }
 
-    // Set up new listener
-    this.authUnsubscribe = auth().onAuthStateChanged((user) => {
+    // Set up new listener using modular API
+    const authInstance = getAuth();
+    this.authUnsubscribe = onAuthStateChanged(authInstance, (user) => {
       if (!user) {
         // User logged out - cleanup RevenueCat
         logger.info("User logged out, cleaning up RevenueCat");
@@ -455,7 +456,7 @@ class RevenueCatService {
     customerInfo: CustomerInfo,
     productId: string,
     monthlyCredits: number,
-    currentSubscription: any
+    _currentSubscription: any
   ): Promise<void> {
     const activeSubscriptions = customerInfo.activeSubscriptions;
 
