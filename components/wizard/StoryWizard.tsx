@@ -310,7 +310,6 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             isGenerating={_isGenerating}
             error={generationError}
             storyData={storyData}
-            onCancel={handleCancel}
             onNavigateToStory={() => {
               if (generatedStoryId) {
                 onComplete({

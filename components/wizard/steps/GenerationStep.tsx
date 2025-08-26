@@ -20,7 +20,6 @@ interface GenerationStepProps {
   isGenerating: boolean;
   error?: string | null;
   storyData?: Story | null;
-  onCancel: () => void;
   onNavigateToStory?: () => void;
   onStartOver?: () => void;
   // For testing - overrides story data checks
@@ -78,7 +77,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   isGenerating,
   error,
   storyData,
-  onCancel,
   onNavigateToStory,
   onStartOver,
   _debugForceStates,
@@ -295,14 +293,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
         <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
           <Button
-            title={isStoryTextReady ? "View story" : "Cancel"}
-            onPress={
-              isStoryTextReady && onNavigateToStory
-                ? onNavigateToStory
-                : onCancel
-            }
+            title="View story"
+            onPress={onNavigateToStory || (() => {})}
             variant="outline"
             size="large"
+            disabled={!isStoryTextReady}
           />
         </View>
       </View>

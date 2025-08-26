@@ -27,12 +27,7 @@ describe("GenerationStep", () => {
   describe("Loading State", () => {
     it("should display loading spinner when generating", () => {
       const { getByText, queryByText } = render(
-        <GenerationStep
-          isGenerating={true}
-          error={null}
-          storyData={null}
-          onCancel={jest.fn()}
-        />
+        <GenerationStep isGenerating={true} error={null} storyData={null} />
       );
 
       expect(getByText("Creating your story")).toBeTruthy();
@@ -41,12 +36,7 @@ describe("GenerationStep", () => {
 
     it("should show generation progress checklist", () => {
       const { getByText } = render(
-        <GenerationStep
-          isGenerating={true}
-          error={null}
-          storyData={null}
-          onCancel={jest.fn()}
-        />
+        <GenerationStep isGenerating={true} error={null} storyData={null} />
       );
 
       expect(getByText("Story text")).toBeTruthy();
@@ -70,7 +60,6 @@ describe("GenerationStep", () => {
           isGenerating={true}
           error={null}
           storyData={mockStory as Story}
-          onCancel={jest.fn()}
         />
       );
 
@@ -90,7 +79,6 @@ describe("GenerationStep", () => {
           isGenerating={true}
           error={null}
           storyData={mockStory as Story}
-          onCancel={jest.fn()}
         />
       );
 
@@ -113,7 +101,6 @@ describe("GenerationStep", () => {
           isGenerating={true}
           error={null}
           storyData={mockStory as Story}
-          onCancel={jest.fn()}
         />
       );
 
@@ -126,7 +113,6 @@ describe("GenerationStep", () => {
           isGenerating={true}
           error={null}
           storyData={null}
-          onCancel={jest.fn()}
           _debugForceStates={{
             textReady: true,
             coverReady: true,
@@ -150,7 +136,6 @@ describe("GenerationStep", () => {
           isGenerating={false}
           error="Something went wrong"
           storyData={null}
-          onCancel={jest.fn()}
           onStartOver={jest.fn()}
         />
       );
@@ -166,7 +151,6 @@ describe("GenerationStep", () => {
           isGenerating={false}
           error="Insufficient credits. You need 5 credits to generate this story."
           storyData={null}
-          onCancel={jest.fn()}
           onStartOver={jest.fn()}
         />
       );
@@ -185,7 +169,6 @@ describe("GenerationStep", () => {
           isGenerating={false}
           error="Insufficient credits"
           storyData={null}
-          onCancel={jest.fn()}
           onStartOver={jest.fn()}
         />
       );
@@ -203,7 +186,6 @@ describe("GenerationStep", () => {
           isGenerating={false}
           error="Generation failed"
           storyData={null}
-          onCancel={jest.fn()}
           onStartOver={mockStartOver}
         />
       );
@@ -216,21 +198,17 @@ describe("GenerationStep", () => {
   });
 
   describe("User Actions", () => {
-    it("should show Cancel button during generation", () => {
-      const mockCancel = jest.fn();
+    it("should show disabled View story button during generation without story text", () => {
       const { getByText } = render(
-        <GenerationStep
-          isGenerating={true}
-          error={null}
-          storyData={null}
-          onCancel={mockCancel}
-        />
+        <GenerationStep isGenerating={true} error={null} storyData={null} />
       );
 
-      const cancelButton = getByText("Cancel");
-      fireEvent.press(cancelButton);
+      const viewButton = getByText("View story");
+      expect(viewButton).toBeTruthy();
 
-      expect(mockCancel).toHaveBeenCalled();
+      // Button should be disabled (non-interactive) when story text isn't ready
+      fireEvent.press(viewButton);
+      // Since it's disabled, pressing shouldn't trigger any action
     });
 
     it("should show View Story button when story text is ready", () => {
@@ -245,7 +223,6 @@ describe("GenerationStep", () => {
           isGenerating={true}
           error={null}
           storyData={mockStory as Story}
-          onCancel={jest.fn()}
           onNavigateToStory={mockNavigate}
         />
       );
@@ -275,7 +252,6 @@ describe("GenerationStep", () => {
           isGenerating={false}
           error={null}
           storyData={mockStory as Story}
-          onCancel={jest.fn()}
         />
       );
 
@@ -286,12 +262,7 @@ describe("GenerationStep", () => {
 
     it("should show push notification tip when generation is in progress", () => {
       const { getByText } = render(
-        <GenerationStep
-          isGenerating={true}
-          error={null}
-          storyData={null}
-          onCancel={jest.fn()}
-        />
+        <GenerationStep isGenerating={true} error={null} storyData={null} />
       );
 
       expect(getByText(/Feel free to get on with something else/)).toBeTruthy();
