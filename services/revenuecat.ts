@@ -7,6 +7,13 @@ import { Platform } from "react-native";
 import { creditsService } from "./firebase/credits";
 import { logger } from "../utils/logger";
 import auth from "@react-native-firebase/auth";
+import {
+  AuthenticationError,
+  UserContextError,
+  SubscriptionError,
+  ConfigurationError,
+  USER_ERROR_MESSAGES,
+} from "../types/revenuecat.errors";
 
 // Replace with your actual RevenueCat API keys
 const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
@@ -45,14 +52,15 @@ class RevenueCatService {
   private userId: string | null = null;
   private authUnsubscribe: (() => void) | null = null;
 
-  private validateCurrentUser(targetUserId: string): boolean {
+  private validateCurrentUser(targetUserId: string): void {
     const currentUser = auth().currentUser;
     if (!currentUser) {
-      return false;
+      throw new AuthenticationError("No authenticated user found");
     }
 
-    const isValid = currentUser.uid === targetUserId;
-    return isValid;
+    if (currentUser.uid !== targetUserId) {
+      throw new UserContextError("User context mismatch detected");
+    }
   }
 
   private async safelyCallCancelSubscription(userId: string): Promise<void> {
@@ -60,23 +68,18 @@ class RevenueCatService {
       await creditsService.cancelSubscription(userId);
     } catch (error: any) {
       if (error?.code === "firestore/permission-denied") {
-        // This is expected during user context switches - log but don't fail the process
+        // Expected during user context switches - don't throw to avoid breaking the flow
         logger.info(
-          "Subscription cancellation skipped due to user context switch",
-          {
-            targetUserId: userId,
-            currentRevenueCatUser: this.userId,
-          }
+          "Subscription cancellation skipped due to user context switch"
         );
         return;
       }
 
-      // For unexpected errors, log and rethrow
       logger.error("Failed to cancel subscription", {
         userId,
         error: error.message,
       });
-      throw error;
+      throw new SubscriptionError("Failed to cancel subscription", error);
     }
   }
 
@@ -129,7 +132,7 @@ class RevenueCatService {
       // Set up auth state listener to handle user switches
       this.setupAuthListener();
 
-      logger.debug("RevenueCat configured successfully");
+      logger.info("RevenueCat configured successfully");
     } catch (error) {
       logger.error("Error configuring RevenueCat", error);
 
@@ -157,14 +160,11 @@ class RevenueCatService {
     this.authUnsubscribe = auth().onAuthStateChanged((user) => {
       if (!user) {
         // User logged out - cleanup RevenueCat
-        logger.debug("User logged out, cleaning up RevenueCat");
+        logger.info("User logged out, cleaning up RevenueCat");
         this.cleanup();
       } else if (this.userId && user.uid !== this.userId) {
         // User switched - cleanup and prepare for reconfiguration
-        logger.debug("User switched, cleaning up RevenueCat", {
-          oldUserId: this.userId,
-          newUserId: user.uid,
-        });
+        logger.info("User switched, cleaning up RevenueCat");
         this.cleanup();
       }
     });
@@ -178,9 +178,17 @@ class RevenueCatService {
       }
 
       // Validate that current user matches the operation target
-      if (!this.validateCurrentUser(this.userId)) {
-        logger.info("Customer info update skipped: user context mismatch");
-        return;
+      try {
+        this.validateCurrentUser(this.userId);
+      } catch (error) {
+        if (
+          error instanceof UserContextError ||
+          error instanceof AuthenticationError
+        ) {
+          logger.info("Customer info update skipped: user context issue");
+          return;
+        }
+        throw error;
       }
 
       // Check for active subscriptions
@@ -407,199 +415,119 @@ class RevenueCatService {
     return uniqueId;
   }
 
-  async purchaseSubscription(
-    packageToPurchase: PurchasesPackage
-  ): Promise<boolean> {
+  private validatePurchaseConfiguration(): void {
     if (!this.isConfigured) {
-      throw new Error("RevenueCat not configured");
+      throw new ConfigurationError("RevenueCat not configured");
     }
 
     if (!this.userId) {
-      throw new Error("User not configured");
+      throw new ConfigurationError("User not configured");
     }
+  }
+
+  private validateProductCredits(productId: string): number {
+    const monthlyCredits = CREDIT_AMOUNTS[productId];
+    if (!monthlyCredits) {
+      throw new SubscriptionError(`Unknown subscription: ${productId}`);
+    }
+    return monthlyCredits;
+  }
+
+  private configurePurchaseOptions(
+    currentSubscription: any,
+    productId: string
+  ): any {
+    const purchaseOptions: any = {};
+
+    if (currentSubscription && currentSubscription.productId !== productId) {
+      purchaseOptions.oldProductIdentifier = currentSubscription.productId;
+
+      if (Platform.OS === "android") {
+        purchaseOptions.oldSkus = [currentSubscription.productId];
+        purchaseOptions.prorationMode = 1; // IMMEDIATE_WITHOUT_PRORATION
+      }
+    }
+
+    return purchaseOptions;
+  }
+
+  private async processPostPurchaseSubscription(
+    customerInfo: CustomerInfo,
+    productId: string,
+    monthlyCredits: number,
+    currentSubscription: any
+  ): Promise<void> {
+    const activeSubscriptions = customerInfo.activeSubscriptions;
+
+    // Find the correct subscription to use - prioritize the one we just purchased
+    let finalProductId = productId;
+    let finalExpirationDate = customerInfo.allExpirationDates?.[productId];
+
+    // If we don't find the expected product, use the first active subscription
+    if (!finalExpirationDate && activeSubscriptions.length > 0) {
+      const sortedSubscriptions = activeSubscriptions.sort((a, b) => {
+        if (a.includes("annual") && !b.includes("annual")) return -1;
+        if (!a.includes("annual") && b.includes("annual")) return 1;
+        return 0;
+      });
+      finalProductId = sortedSubscriptions[0];
+      finalExpirationDate = customerInfo.allExpirationDates?.[finalProductId];
+    }
+
+    const finalCredits = CREDIT_AMOUNTS[finalProductId] || monthlyCredits;
+    const processedExpirationDate = finalExpirationDate
+      ? new Date(finalExpirationDate)
+      : new Date();
+
+    await creditsService.updateSubscription(
+      this.userId!,
+      finalProductId,
+      finalCredits,
+      processedExpirationDate,
+      true // Add credits since this is a new purchase
+    );
+  }
+
+  async purchaseSubscription(
+    packageToPurchase: PurchasesPackage
+  ): Promise<boolean> {
+    this.validatePurchaseConfiguration();
 
     let purchaseInfo: { customerInfo: CustomerInfo } | null = null;
 
     try {
-      // Get the product ID from the purchase
       const productId = packageToPurchase.product.identifier;
-      const monthlyCredits = CREDIT_AMOUNTS[productId];
+      const monthlyCredits = this.validateProductCredits(productId);
 
-      if (!monthlyCredits) {
-        throw new Error(`Unknown subscription: ${productId}`);
-      }
-
-      // Check for existing active subscription to handle upgrades/downgrades
       const currentSubscription = await this.getCurrentActiveSubscription();
-      let purchaseOptions: any = {};
-
-      if (currentSubscription && currentSubscription.productId !== productId) {
-        logger.debug("Existing subscription detected", {
-          current: currentSubscription.productId,
-          new: productId,
-          platform: Platform.OS,
-          expirationDate: currentSubscription.expirationDate.toISOString(),
-        });
-
-        // Use RevenueCat's upgrade/downgrade functionality
-        purchaseOptions.oldProductIdentifier = currentSubscription.productId;
-
-        // Add platform-specific options for immediate replacement
-        if (Platform.OS === "ios") {
-          // iOS: For RevenueCat v7+, use the GooglePlayProductChangeOptions or standard upgrade flow
-          // The oldProductIdentifier should be sufficient for iOS upgrades
-          logger.debug(
-            "iOS: Using oldProductIdentifier for subscription replacement"
-          );
-          // Note: iOS handles subscription upgrades/downgrades automatically through oldProductIdentifier
-          // ProrationMode is primarily for Android - removing it for iOS
-        } else {
-          // Android: Use replace SKUs for immediate replacement
-          purchaseOptions.oldSkus = [currentSubscription.productId];
-          purchaseOptions.prorationMode = 1; // IMMEDIATE_WITHOUT_PRORATION
-          logger.debug(
-            "Android: Configuring subscription replacement with oldSkus"
-          );
-        }
-
-        logger.debug("Subscription replacement config", {
-          oldProductIdentifier: currentSubscription.productId,
-          newProductIdentifier: productId,
-          platform: Platform.OS,
-          purchaseOptions,
-        });
-      }
+      const purchaseOptions = this.configurePurchaseOptions(
+        currentSubscription,
+        productId
+      );
 
       // Make the purchase (with upgrade/replace if applicable)
-      logger.debug("Subscription purchase starting");
-      logger.debug("Final purchase options", { purchaseOptions });
-      logger.debug("Package to purchase", {
-        identifier: packageToPurchase.identifier,
-        productId: packageToPurchase.product.identifier,
-        priceString: packageToPurchase.product.priceString,
-      });
-
       purchaseInfo = await Purchases.purchasePackage(
         packageToPurchase,
         purchaseOptions
       );
-      logger.debug("Subscription purchase completed");
 
-      // Critical: Update subscription and add credits atomically
+      // Process the successful purchase
       try {
-        // For upgrades/downgrades, we need to be more careful about which subscription to track
-        const customerInfo = purchaseInfo.customerInfo;
-        const activeSubscriptions = customerInfo.activeSubscriptions;
-
-        logger.debug("Post-purchase subscription debug", {
-          requestedProductId: productId,
-          oldSubscription: currentSubscription?.productId,
-          activeSubscriptions,
-          activeSubscriptionCount: activeSubscriptions.length,
-          allExpirationDates: customerInfo.allExpirationDates,
-          wasUpgrade: !!currentSubscription,
-        });
-
-        // Validate subscription replacement worked
-        if (currentSubscription && activeSubscriptions.length > 1) {
-          logger.warn("Multiple subscriptions detected after upgrade", {
-            oldSubscription: currentSubscription.productId,
-            newSubscription: productId,
-            allActiveSubscriptions: activeSubscriptions,
-            allExpirationDates: customerInfo.allExpirationDates,
-            platform: Platform.OS,
-            purchaseOptions,
-            message:
-              "Subscription replacement may not have worked properly - this indicates a platform-specific configuration issue",
-          });
-
-          // Check if the old subscription is still active with a future expiration
-          const oldExpirationDate =
-            customerInfo.allExpirationDates?.[currentSubscription.productId];
-          if (oldExpirationDate) {
-            const oldExpDate = new Date(oldExpirationDate);
-            const now = new Date();
-            const stillActive = oldExpDate > now;
-            const minutesUntilExpiration = Math.floor(
-              (oldExpDate.getTime() - now.getTime()) / (1000 * 60)
-            );
-
-            logger.warn("Old subscription status", {
-              productId: currentSubscription.productId,
-              expirationDate: oldExpDate.toISOString(),
-              stillActive,
-              minutesUntilExpiration: stillActive
-                ? minutesUntilExpiration
-                : `expired ${Math.abs(minutesUntilExpiration)} minutes ago`,
-              message: stillActive
-                ? "Old subscription is still active - replacement may not have worked immediately"
-                : "Old subscription has expired - replacement worked correctly",
-            });
-          }
-        } else if (currentSubscription && activeSubscriptions.length === 1) {
-          logger.debug("Subscription replacement successful", {
-            oldSubscription: currentSubscription.productId,
-            newSubscription: productId,
-            activeSubscription: activeSubscriptions[0],
-            replacementWorked: activeSubscriptions[0] === productId,
-            platform: Platform.OS,
-          });
-        }
-
-        // Find the correct subscription to use - prioritize the one we just purchased
-        let finalProductId = productId;
-        let finalExpirationDate = customerInfo.allExpirationDates?.[productId];
-
-        // If we don't find the expected product, use the first active subscription
-        // This handles cases where RevenueCat processes the change differently
-        if (!finalExpirationDate && activeSubscriptions.length > 0) {
-          logger.warn(
-            "Expected product not found in expiration dates, using first active subscription"
-          );
-          const sortedSubscriptions = activeSubscriptions.sort((a, b) => {
-            if (a.includes("annual") && !b.includes("annual")) return -1;
-            if (!a.includes("annual") && b.includes("annual")) return 1;
-            return 0;
-          });
-          finalProductId = sortedSubscriptions[0];
-          finalExpirationDate =
-            customerInfo.allExpirationDates?.[finalProductId];
-        }
-
-        const finalCredits = CREDIT_AMOUNTS[finalProductId] || monthlyCredits;
-        const processedExpirationDate = finalExpirationDate
-          ? new Date(finalExpirationDate)
-          : new Date();
-
-        logger.debug("Final subscription update", {
-          originalProductId: productId,
-          finalProductId,
-          finalCredits,
-          processedExpirationDate: processedExpirationDate.toISOString(),
-          wasProductChanged: finalProductId !== productId,
-        });
-
-        await creditsService.updateSubscription(
-          this.userId,
-          finalProductId, // Use the actual active product ID
-          finalCredits,
-          processedExpirationDate,
-          true // Add credits since this is a new purchase
+        await this.processPostPurchaseSubscription(
+          purchaseInfo.customerInfo,
+          productId,
+          monthlyCredits,
+          currentSubscription
         );
-
-        // Sync subscription status immediately after successful purchase
-        // The RevenueCat SDK should handle state updates automatically
-
         return true;
       } catch (subscriptionError) {
-        // Critical: If subscription setup fails after successful purchase
         logger.error(
           "CRITICAL: Subscription purchase succeeded but setup failed",
           subscriptionError
         );
-
-        throw new Error(
-          "Subscription purchase completed but setup failed. Please contact support with this error message."
+        throw new SubscriptionError(
+          "Subscription purchase completed but setup failed. Please contact support.",
+          subscriptionError as Error
         );
       }
     } catch (error: any) {
@@ -608,7 +536,7 @@ class RevenueCatService {
       }
 
       logger.error("Error purchasing subscription", error);
-      throw error;
+      throw new SubscriptionError("Failed to purchase subscription", error);
     }
   }
 
