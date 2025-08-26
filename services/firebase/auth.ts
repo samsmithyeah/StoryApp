@@ -24,6 +24,7 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
+import { validateEmail } from "../../utils/validation";
 import { FCMService } from "../fcm";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
@@ -573,7 +574,6 @@ export const checkEmailVerified = async (): Promise<boolean> => {
 
 // Password Reset
 export const resetPassword = async (email: string): Promise<void> => {
-  const { validateEmail } = await import("../../utils/validation");
   const validation = validateEmail(email);
 
   if (!validation.isValid) {
