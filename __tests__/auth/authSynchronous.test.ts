@@ -204,7 +204,7 @@ describe("Synchronous Auth Flows", () => {
   describe("Profile update reliability", () => {
     it("should handle profile update with retry logic", () => {
       const simulateProfileUpdateWithRetry = (
-        expectedDisplayName: string,
+        _expectedDisplayName: string,
         simulateFailures = 0
       ) => {
         let attempts = 0;

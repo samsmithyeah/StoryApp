@@ -24,6 +24,7 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
+import { Child } from "../../types/child.types";
 
 import { validateEmail } from "../../utils/validation";
 import { logger } from "../../utils/logger";
@@ -31,15 +32,30 @@ import { FCMService } from "../fcm";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
 
-// Apple Authentication Error Types
+// Type definitions
 interface AppleAuthError {
   code?: string;
   message?: string;
 }
 
+interface FirestoreUserData {
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  createdAt?: { toDate(): Date };
+  children?: Child[];
+  isAdmin?: boolean;
+  fcmToken?: string;
+}
+
 // Constants
 const PROFILE_UPDATE_MAX_RETRIES = 5;
 const PROFILE_UPDATE_RETRY_DELAY = 200; // Start with 200ms, exponential backoff
+const AUTH_DEBOUNCE_DELAY = 100; // 100ms debounce to group rapid auth state changes
+
+// FCM Initialization Strategy:
+// - New users (signup, first-time social): FCMService.initializeFCM(true) - Force re-initialization
+// - Existing users (sign-in, auth state observer): FCMService.initializeFCM() - Normal initialization
 
 // Helper function to wait for Firebase profile update to propagate
 const waitForProfileUpdate = async (
@@ -91,7 +107,7 @@ const convertFirebaseUser = async (
 
     const userRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
-    const userData = userDoc.data();
+    const userData = userDoc.data() as FirestoreUserData | undefined;
 
     const user = {
       uid: firebaseUser.uid,
@@ -133,7 +149,7 @@ const convertFirebaseUser = async (
 const createUserDocument = async (
   user: FirebaseAuthTypes.User,
   overrideDisplayName?: string
-): Promise<any> => {
+): Promise<FirestoreUserData | null> => {
   try {
     logger.debug("Starting user document creation", {
       uid: user.uid,
@@ -169,7 +185,7 @@ const createUserDocument = async (
     // Read back the document and return the complete data
     const finalSnapshot = await getDoc(userRef);
     if (finalSnapshot.exists()) {
-      const savedData = finalSnapshot.data();
+      const savedData = finalSnapshot.data() as FirestoreUserData;
       logger.debug("Document verification successful", {
         hasEmail: !!savedData?.email,
         hasDisplayName: !!savedData?.displayName,
@@ -252,9 +268,14 @@ export const signUpWithEmail = async ({
       );
 
       if (profileUpdateSuccess) {
-        // Clear user cache to force fresh data fetch in auth state observer
-        userCache.clear();
-        logger.debug("Firebase profile updated successfully and cache cleared");
+        // Clear user cache for this specific user to force fresh data fetch
+        userCache.clear(userCredential.user.uid);
+        logger.debug(
+          "Firebase profile updated successfully and user cache cleared for user",
+          {
+            uid: userCredential.user.uid,
+          }
+        );
       } else {
         logger.warn("Profile update verification failed, proceeding anyway");
       }
@@ -279,7 +300,10 @@ export const signUpWithEmail = async ({
     }
   } else {
     // Test accounts skip email verification for development purposes
-    logger.debug("Skipping email verification for test account");
+    logger.debug("Skipping email verification for test account", {
+      email: email,
+      isDevelopment: __DEV__,
+    });
   }
 
   // Pass displayName directly to avoid timing issues with Firebase profile updates
@@ -669,8 +693,8 @@ let lastAuthState: {
 // Auth State Observer
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
-) => {
-  return onAuthStateChanged(authService, async (firebaseUser) => {
+): (() => void) => {
+  const unsubscribe = onAuthStateChanged(authService, async (firebaseUser) => {
     // Check if this is a duplicate auth state change
     const currentAuthState = {
       uid: firebaseUser?.uid || null,
@@ -748,6 +772,12 @@ export const subscribeToAuthChanges = (
           }
         }
       }
-    }, 100); // 100ms debounce to group rapid auth state changes
+    }, AUTH_DEBOUNCE_DELAY);
   });
+
+  // Return cleanup function
+  return () => {
+    authDebouncer.clear();
+    unsubscribe();
+  };
 };
