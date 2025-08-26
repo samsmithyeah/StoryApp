@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { logger } from "@/utils/logger";
 import { useRouter, Redirect } from "expo-router";
 import { GenerationStep } from "../components/wizard/steps/GenerationStep";
 import { IconSymbol } from "../components/ui/IconSymbol";
@@ -257,8 +258,8 @@ export default function DebugGenerationScreen() {
             : null
         }
         storyData={mockStory}
-        onNavigateToStory={() => console.log("Navigate to story pressed")}
-        onStartOver={() => console.log("Start over pressed")}
+        onNavigateToStory={() => logger.debug("Navigate to story pressed")}
+        onStartOver={() => logger.debug("Start over pressed")}
         _debugForceStates={{
           textReady:
             testState === "text-only" ||

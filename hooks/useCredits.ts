@@ -2,6 +2,7 @@ import { creditsService } from "@/services/firebase/credits";
 import type { UserCredits } from "@/types/monetization.types";
 import { useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
+import { logger } from "../utils/logger";
 
 export const useCredits = () => {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export const useCredits = () => {
         } else {
           // Initialize credits if they don't exist
           creditsService.initializeUserCredits(user.uid).then(() => {
-            console.log("🔄 Initialized user credits");
+            logger.debug("Initialized user credits");
           });
         }
         setLoading(false);
@@ -70,7 +71,7 @@ export const useCredits = () => {
         setCredits(userCredits);
       }
     } catch (err) {
-      console.error("Error loading credits:", err);
+      logger.error("Error loading credits", err);
       setError("Failed to load credits");
     } finally {
       setLoading(false);
@@ -89,7 +90,7 @@ export const useCredits = () => {
   const debugSubscription = async () => {
     if (!user) return;
 
-    console.log("=== DEBUGGING SUBSCRIPTION ===");
+    logger.debug("=== DEBUGGING SUBSCRIPTION ===");
 
     try {
       const { revenueCatService } = await import("../services/revenuecat");
@@ -104,10 +105,10 @@ export const useCredits = () => {
       // Refresh credits to see the result
       await refreshCredits();
     } catch (error) {
-      console.error("Debug failed:", error);
+      logger.error("Debug failed", error);
     }
 
-    console.log("=== DEBUG COMPLETE ===");
+    logger.debug("=== DEBUG COMPLETE ===");
   };
 
   const forceSync = async () => {
@@ -118,9 +119,9 @@ export const useCredits = () => {
       await revenueCatService.configure(user.uid);
       await revenueCatService.forceSyncSubscription();
       await refreshCredits();
-      console.log("✅ Force sync completed");
+      logger.debug("Force sync completed");
     } catch (error) {
-      console.error("Force sync failed:", error);
+      logger.error("Force sync failed", error);
     }
   };
 

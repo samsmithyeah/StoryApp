@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef } from "react";
+import { logger } from "@/utils/logger";
 import {
   Alert,
   ImageBackground,
@@ -113,7 +114,7 @@ export default function SavedCharacterProfileScreen() {
 
       router.back();
     } catch (error) {
-      console.error("Save character error:", error);
+      logger.error("Save character error", error);
     }
   };
 

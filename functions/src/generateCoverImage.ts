@@ -2,6 +2,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { PubSub } from "@google-cloud/pubsub";
 import { getGeminiClient } from "./utils/gemini";
+import { logger } from "./utils/logger";
 import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
@@ -187,7 +188,7 @@ export const generateCoverImage = onMessagePublished(
         });
       }
     } catch (error: any) {
-      console.error(`[CoverWorker] Error generating cover image:`, error);
+      logger.error("Error generating cover image", error, { storyId, userId });
 
       // Update story document to indicate failure
       await storyRef.update({

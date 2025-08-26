@@ -1,6 +1,7 @@
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, usePathname } from "expo-router";
+import { logger } from "../../utils/logger";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -57,13 +58,13 @@ export default function StoryScreen() {
           setStory(updatedStory); // Set the new state directly
           setLoading(false); // Stop loading once we have the first batch of data
         } else {
-          console.error("Story document not found in Firestore.");
+          logger.error("Story document not found in Firestore");
           setError("The story you are looking for could not be found.");
           setLoading(false);
         }
       },
       (snapshotError) => {
-        console.error("Error listening to story updates:", snapshotError);
+        logger.error("Error listening to story updates", snapshotError);
         setError("Failed to load real-time story updates.");
         setLoading(false);
       }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useChildrenStore } from "../store/childrenStore";
 import { useAuth } from "./useAuth";
+import { logger } from "../utils/logger";
 
 export const useChildren = () => {
   const {
@@ -28,17 +29,22 @@ export const useChildren = () => {
         // User logged out, clear children
         if (previousUserId) {
           // Only log if there was a previous user
-          console.log("[USE_CHILDREN] User logged out, clearing children");
+          logger.debug("User logged out, clearing children", {
+            previousUserId,
+          });
         }
         clearChildren();
       } else if (!previousUserId) {
         // Fresh login (no previous user)
-        console.log("[USE_CHILDREN] User logged in, loading children");
+        logger.debug("User logged in, loading children", { userId: user.uid });
         clearChildren();
         loadChildren();
       } else {
         // User switch (shouldn't happen in normal flow)
-        console.log("[USE_CHILDREN] User switched, reloading children");
+        logger.debug("User switched, reloading children", {
+          previousUserId,
+          newUserId: user.uid,
+        });
         clearChildren();
         loadChildren();
       }

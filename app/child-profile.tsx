@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef } from "react";
+import { logger } from "@/utils/logger";
 import {
   Alert,
   ImageBackground,
@@ -39,7 +40,7 @@ export default function ChildProfileScreen() {
       router.back();
     } catch (error) {
       // Error handled in hook
-      console.error("Save child error:", error);
+      logger.error("Save child error", error);
     }
   };
 

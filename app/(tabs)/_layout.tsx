@@ -6,6 +6,7 @@ import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors as ThemeColors } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
+import { logger } from "@/utils/logger";
 import { revenueCatService } from "@/services/revenuecat";
 
 export default function TabLayout() {
@@ -14,21 +15,19 @@ export default function TabLayout() {
 
   useEffect(() => {
     if (!user) {
-      console.log(
-        "[TABS LAYOUT] No user detected in useEffect, navigating to login"
-      );
+      logger.debug("No user detected in useEffect, navigating to login");
       router.replace("/(auth)/login");
     } else {
       // Initialize RevenueCat when user is authenticated
       revenueCatService.configure(user.uid).catch((error) => {
-        console.log("RevenueCat configuration failed (non-critical):", error);
+        logger.warn("RevenueCat configuration failed (non-critical)", error);
       });
     }
   }, [user, router]);
 
   // Redirect to login if user is not authenticated
   if (!user) {
-    console.log("[TABS LAYOUT] No user, showing redirect component");
+    logger.debug("No user, showing redirect component");
     return <Redirect href="/(auth)/login" />;
   }
 

@@ -1,4 +1,5 @@
 import { Colors, Spacing, Typography } from "@/constants/Theme";
+import { logger } from "@/utils/logger";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -15,12 +16,12 @@ export default function CreditsModal() {
   const router = useRouter();
 
   const handleCancel = () => {
-    console.log("Cancel button pressed");
+    logger.debug("Credits modal cancelled");
     router.back();
   };
 
   const handlePurchaseSuccess = () => {
-    console.log("Purchase successful, closing modal");
+    logger.debug("Purchase successful, closing modal");
     router.back();
   };
 

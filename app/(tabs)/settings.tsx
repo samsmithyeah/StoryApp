@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { logger } from "@/utils/logger";
 import {
   Alert,
   ImageBackground,
@@ -130,12 +131,16 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               setIsDeleting(true);
-              console.log("Starting account deletion...");
-              console.log("Current user before deletion:", user?.uid);
+              logger.debug("Starting account deletion");
+              logger.debug("Current user before deletion", {
+                userId: user?.uid,
+              });
 
               await deleteAccount();
 
-              console.log("Delete account completed, current user:", user?.uid);
+              logger.debug("Delete account completed", {
+                currentUserId: user?.uid,
+              });
               Toast.show({
                 type: "success",
                 text1: "Account deleted",
@@ -144,7 +149,7 @@ export default function SettingsScreen() {
               });
               // The auth state listener in (tabs)/_layout.tsx will handle navigation
             } catch (error) {
-              console.error("Delete account error:", error);
+              logger.error("Delete account error", error);
               Alert.alert(
                 "Error",
                 "Failed to delete account. Please try again or contact support if the problem persists."

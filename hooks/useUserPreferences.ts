@@ -9,6 +9,7 @@ import {
 } from "@react-native-firebase/firestore";
 import { db } from "../services/firebase/config";
 import { useAuth } from "./useAuth";
+import { logger } from "../utils/logger";
 
 // Note: Firestore security rules must allow read/write access to:
 // users/{userId}/preferences/{document}
@@ -72,7 +73,7 @@ export const useUserPreferences = () => {
           setPreferences(DEFAULT_PREFERENCES);
         }
       } catch (err) {
-        console.error("Error loading preferences:", err);
+        logger.error("Error loading preferences", err);
         setError("Failed to load preferences");
         setPreferences(DEFAULT_PREFERENCES);
       } finally {
@@ -119,7 +120,7 @@ export const useUserPreferences = () => {
       setPreferences(updatedPreferences);
       setError(null);
     } catch (err) {
-      console.error("Error updating preferences:", err);
+      logger.error("Error updating preferences", err);
       setError("Failed to update preferences");
     }
   };

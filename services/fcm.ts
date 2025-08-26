@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
+import { logger } from "../utils/logger";
 import { NotificationService } from "./firebase/notifications";
 
 /**
@@ -25,7 +26,7 @@ export class FCMService {
 
       return finalStatus === "granted";
     } catch (error) {
-      console.error("Failed to request notification permissions:", error);
+      logger.error("Failed to request notification permissions", error);
       return false;
     }
   }
@@ -37,43 +38,39 @@ export class FCMService {
   static async initializeFCM(
     forceReInit = false
   ): Promise<(() => void) | undefined> {
-    console.log("[FCM] Starting FCM initialization...", {
+    logger.debug("Starting FCM initialization", {
       forceReInit,
       isInitialized: this.isInitialized,
     });
 
     // Skip if already initialized (unless forced)
     if (this.isInitialized && !forceReInit) {
-      console.log(
-        "[FCM] Already initialized, returning existing cleanup function"
-      );
+      logger.debug("Already initialized, returning existing cleanup function");
       // Return existing cleanup function if available, otherwise undefined
       return this.cleanupFunction || undefined;
     }
 
     if (forceReInit && this.isInitialized) {
-      console.log(
-        "[FCM] Force re-initialization requested, proceeding anyway..."
-      );
+      logger.debug("Force re-initialization requested, proceeding anyway");
     }
 
     try {
       // Request permissions first
-      console.log("[FCM] Requesting notification permissions...");
+      logger.debug("Requesting notification permissions");
       const hasPermission = await this.requestPermissions();
-      console.log("[FCM] Permission result:", hasPermission);
+      logger.debug("Permission result", { hasPermission });
 
       if (!hasPermission) {
-        console.warn("[FCM] Notification permissions not granted");
+        logger.warn("Notification permissions not granted");
         return undefined;
       }
 
       // Get the Expo push token
-      console.log("[FCM] Getting Expo push token...");
+      logger.debug("Getting Expo push token");
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: "1bd7d4bd-9179-4cab-acee-fe6fa69367d3",
       });
-      console.log("[FCM] Token data received:", {
+      logger.debug("Token data received", {
         tokenExists: !!tokenData.data,
         tokenLength: tokenData.data?.length,
       });
@@ -81,12 +78,12 @@ export class FCMService {
       const expoPushToken = tokenData.data;
 
       if (expoPushToken) {
-        console.log("[FCM] Registering token with backend...", expoPushToken);
+        logger.debug("Registering token with backend", { expoPushToken });
         // Register token with our backend
         await NotificationService.registerFCMToken(expoPushToken);
-        console.log("[FCM] Token registration completed successfully");
+        logger.debug("Token registration completed successfully");
       } else {
-        console.error("[FCM] No push token received from Expo");
+        logger.error("No push token received from Expo");
       }
 
       // Check if app was opened from a notification
@@ -99,10 +96,10 @@ export class FCMService {
       this.isInitialized = true;
       this.cleanupFunction = cleanup;
 
-      console.log("[FCM] FCM initialization completed successfully");
+      logger.debug("FCM initialization completed successfully");
       return cleanup;
     } catch (error) {
-      console.error("[FCM] Failed to initialize push notifications:", error);
+      logger.error("Failed to initialize push notifications", error);
       return undefined;
     }
   }
@@ -130,7 +127,7 @@ export class FCMService {
         }
       }
     } catch (error) {
-      console.error("Error handling initial notification:", error);
+      logger.error("Error handling initial notification", error);
     }
   }
 
@@ -220,7 +217,7 @@ export class FCMService {
       // Reset initialization flag
       this.isInitialized = false;
     } catch (error) {
-      console.error("Failed to cleanup push notifications:", error);
+      logger.error("Failed to cleanup push notifications", error);
     }
   }
 
@@ -233,7 +230,7 @@ export class FCMService {
       const { status } = await Notifications.getPermissionsAsync();
       return status !== "undetermined" && status !== "denied";
     } catch (error) {
-      console.error("Push notification support check failed:", error);
+      logger.error("Push notification support check failed", error);
       return false;
     }
   }

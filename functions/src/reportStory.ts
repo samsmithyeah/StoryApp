@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 // import { google } from "googleapis"; // Temporarily disabled
 // import * as nodemailer from "nodemailer"; // Temporarily disabled
+import { logger } from "./utils/logger";
 
 // const OAuth2 = google.auth.OAuth2; // Temporarily disabled
 
@@ -26,7 +27,9 @@ async function sendPushNotification(reportData: any, reportId: string) {
     const adminDoc = await db.collection("users").doc(ADMIN_USER_ID).get();
 
     if (!adminDoc.exists) {
-      console.warn(`Admin user document not found: ${ADMIN_USER_ID}`);
+      logger.warn("Admin user document not found", {
+        adminUserId: ADMIN_USER_ID,
+      });
       return;
     }
 
@@ -34,9 +37,9 @@ async function sendPushNotification(reportData: any, reportId: string) {
     const expoPushToken = adminData?.fcmToken; // We're reusing the fcmToken field for Expo tokens
 
     if (!expoPushToken) {
-      console.warn(
-        "Admin Expo push token not found. User may need to log in to register device."
-      );
+      logger.warn("Admin Expo push token not found", {
+        message: "User may need to log in to register device",
+      });
       return;
     }
 
@@ -74,12 +77,12 @@ async function sendPushNotification(reportData: any, reportId: string) {
     }
 
     const result = await response.json();
-    console.log(
-      `Expo push notification sent to admin for report ${reportId}:`,
-      result
-    );
+    logger.info("Expo push notification sent to admin", {
+      reportId,
+      result,
+    });
   } catch (error) {
-    console.error("Failed to send push notification:", error);
+    logger.error("Failed to send push notification", error);
     // Don't throw error - push notification failure shouldn't fail the report
   }
 }
@@ -142,7 +145,9 @@ export const reportStory = onCall<ReportStoryRequest>(
       const reportRef = await db.collection("storyReports").add(reportData);
 
       // Log the report for monitoring
-      console.log(`Story reported: ${storyId} by user ${request.auth.uid}`, {
+      logger.info("Story reported", {
+        storyId,
+        reportedBy: request.auth.uid,
         reportId: reportRef.id,
         storyTitle,
         userEmail: request.auth.token.email,
@@ -160,7 +165,7 @@ export const reportStory = onCall<ReportStoryRequest>(
         message: "Story reported successfully",
       };
     } catch (error) {
-      console.error("Error reporting story:", error);
+      logger.error("Error reporting story", error);
 
       if (error instanceof HttpsError) {
         throw error;

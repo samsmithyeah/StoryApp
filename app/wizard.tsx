@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import React from "react";
 import { Alert } from "react-native";
+import { logger } from "@/utils/logger";
 import { StoryWizard } from "../components/wizard/StoryWizard";
 import { StoryConfiguration } from "../types/story.types";
 
@@ -16,7 +17,7 @@ export default function WizardScreen() {
         });
       }
     } catch (error) {
-      console.error("Error navigating to story:", error);
+      logger.error("Error navigating to story", error);
       Alert.alert(
         "Error",
         error instanceof Error

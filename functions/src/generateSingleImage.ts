@@ -4,6 +4,7 @@ import { toFile } from "openai";
 import { Readable } from "stream";
 import { getFluxClient } from "./utils/flux";
 import { getGeminiClient } from "./utils/gemini";
+import { logger } from "./utils/logger";
 import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
@@ -255,10 +256,11 @@ REQUIREMENTS:
         }
       }
     } catch (error) {
-      console.error(
-        `[Worker] Failed to process page ${pageIndex + 1} for story ${storyId}:`,
-        error
-      );
+      logger.error("Failed to process page", error, {
+        pageIndex: pageIndex + 1,
+        storyId,
+        userId,
+      });
       await storyRef.update({
         imageGenerationStatus: "failed",
         imageGenerationError: `Failed on page ${pageIndex + 1}: ${error instanceof Error ? error.message : "Unknown error"}`,

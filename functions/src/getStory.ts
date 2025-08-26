@@ -1,5 +1,6 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { logger } from "./utils/logger";
 
 export const getStory = onCall(async (request) => {
   if (!request.auth) {
@@ -31,7 +32,10 @@ export const getStory = onCall(async (request) => {
       },
     };
   } catch (error) {
-    console.error("Error fetching story:", error);
+    logger.error("Error fetching story", error, {
+      storyId: data.storyId,
+      userId: request.auth?.uid,
+    });
     throw new HttpsError("internal", "Failed to fetch story");
   }
 });

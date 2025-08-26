@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAuthenticatedUrl } from "../services/firebase/storage";
 import { imageCache } from "../services/imageCache";
+import { logger } from "../utils/logger";
 
 // Global cache for download URLs to avoid repeated calls (fallback for non-cached images)
 // This cache persists across component remounts and navigation
@@ -86,7 +87,7 @@ export function useStorageUrl(
           setUrl(null);
         }
       } catch (error) {
-        console.error("Error in useStorageUrl:", error);
+        logger.error("Error in useStorageUrl", error);
         if (!cancelled) {
           setUrl(null);
         }
@@ -161,7 +162,7 @@ export function useStorageUrls(
           setUrls(results);
         }
       } catch (error) {
-        console.error("Error in useStorageUrls:", error);
+        logger.error("Error in useStorageUrls", error);
         if (!cancelled) {
           setUrls(storagePaths.map(() => null));
         }
