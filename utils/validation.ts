@@ -1,4 +1,6 @@
-export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+export const validateEmail = (
+  email: string
+): { isValid: boolean; error?: string } => {
   if (!email.trim()) {
     return { isValid: false, error: "Please enter your email address" };
   }

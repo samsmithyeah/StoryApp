@@ -575,7 +575,7 @@ export const checkEmailVerified = async (): Promise<boolean> => {
 export const resetPassword = async (email: string): Promise<void> => {
   const { validateEmail } = await import("../../utils/validation");
   const validation = validateEmail(email);
-  
+
   if (!validation.isValid) {
     throw new Error(validation.error || "Invalid email address");
   }
