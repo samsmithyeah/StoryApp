@@ -80,11 +80,11 @@ const convertFirebaseUser = async (
   }
 };
 
-// Create user document in Firestore
+// Create user document in Firestore and return the complete user data
 const createUserDocument = async (
   user: FirebaseAuthTypes.User,
   overrideDisplayName?: string
-) => {
+): Promise<any> => {
   try {
     logger.debug("Starting user document creation", {
       uid: user.uid,
@@ -117,39 +117,43 @@ const createUserDocument = async (
     await setDoc(userRef, userData, { merge: true });
     logger.debug("User document created/updated successfully");
 
-    // Verify the document was actually written by reading it back
-    const verifySnapshot = await getDoc(userRef);
-    if (verifySnapshot.exists()) {
-      const savedData = verifySnapshot.data();
+    // Read back the document and return the complete data
+    const finalSnapshot = await getDoc(userRef);
+    if (finalSnapshot.exists()) {
+      const savedData = finalSnapshot.data();
       logger.debug("Document verification successful", {
         hasEmail: !!savedData?.email,
         hasDisplayName: !!savedData?.displayName,
         hasFcmToken: !!savedData?.fcmToken,
       });
+
+      if (!userSnapshot.exists()) {
+        logger.debug("New user - initializing credits");
+        await creditsService.initializeUserCredits(user.uid);
+        logger.debug("Credits initialized successfully");
+      } else {
+        logger.debug("Existing user - checking credits");
+        // Check if user has credits initialized (for existing users before credits system)
+        const userCredits = await creditsService.getUserCredits(user.uid);
+        if (!userCredits) {
+          logger.debug("Initializing credits for existing user");
+          await creditsService.initializeUserCredits(user.uid);
+          logger.debug("Credits initialized for existing user");
+        } else {
+          logger.debug("User credits already exist");
+        }
+      }
+
+      logger.debug("User document creation process completed, returning data");
+      return savedData;
     } else {
       logger.error("Document verification FAILED - document does not exist");
+      return null;
     }
-
-    if (!userSnapshot.exists()) {
-      logger.debug("New user - initializing credits");
-      await creditsService.initializeUserCredits(user.uid);
-      logger.debug("Credits initialized successfully");
-    } else {
-      logger.debug("Existing user - checking credits");
-      // Check if user has credits initialized (for existing users before credits system)
-      const userCredits = await creditsService.getUserCredits(user.uid);
-      if (!userCredits) {
-        logger.debug("Initializing credits for existing user");
-        await creditsService.initializeUserCredits(user.uid);
-        logger.debug("Credits initialized for existing user");
-      } else {
-        logger.debug("User credits already exist");
-      }
-    }
-    logger.debug("User document creation process completed");
   } catch (error) {
     logger.error("Failed to create user document in Firestore", error);
     // Don't throw error - authentication can still work without Firestore
+    return null;
   }
 };
 
@@ -235,65 +239,45 @@ export const signUpWithEmail = async ({
     displayName: finalDisplayName,
   });
 
-  await createUserDocument(userCredential.user, finalDisplayName || undefined);
+  const firestoreData = await createUserDocument(
+    userCredential.user,
+    finalDisplayName || undefined
+  );
 
-  // Force auth state observer to re-evaluate by clearing the last auth state
-  lastAuthState = null;
+  // Create the complete user object with Firestore data
+  const appUser: User = {
+    uid: userCredential.user.uid,
+    email: userCredential.user.email,
+    displayName:
+      firestoreData?.displayName ||
+      userCredential.user.displayName ||
+      finalDisplayName,
+    photoURL: userCredential.user.photoURL,
+    createdAt: firestoreData?.createdAt?.toDate() || new Date(),
+    isAdmin: firestoreData?.isAdmin || false,
+    emailVerified: userCredential.user.emailVerified,
+  };
 
-  // Manually trigger auth state change to pick up the Firestore data
-  setTimeout(async () => {
-    logger.debug("Attempting forced reload after user document creation");
-    const currentUser = authService.currentUser;
-    if (currentUser) {
-      logger.debug("Current user exists, reloading (signUpWithEmail)");
-      await reload(currentUser);
-      logger.debug(
-        "Reload completed, forcing auth state callback (signUpWithEmail)"
-      );
+  // Manually update the store with the complete user object
+  const { useAuthStore } = await import("../../store/authStore");
+  useAuthStore.getState().setUser(appUser);
+  logger.debug("Auth store updated with complete user data (signUpWithEmail)", {
+    displayName: appUser.displayName,
+    uid: appUser.uid,
+  });
 
-      // Clear the user cache to force fresh Firestore read
-      userCache = {};
-
-      // Temporarily clear lastAuthState to force the callback to run
-      lastAuthState = null;
-
-      // Manually trigger the auth state observer callback with fresh data
-      setTimeout(async () => {
-        const user = await convertFirebaseUser(currentUser);
-        logger.debug(
-          "Manually triggering auth store update (signUpWithEmail)",
-          {
-            displayName: user.displayName,
-            uid: user.uid,
-          }
-        );
-
-        // Force the auth store to update by calling the setter directly
-        const { useAuthStore } = await import("../../store/authStore");
-        useAuthStore.getState().setUser(user);
-        logger.debug("Auth store manually updated (signUpWithEmail)");
-      }, 100);
-    } else {
-      logger.debug("No current user for forced reload (signUpWithEmail)");
-    }
-  }, 500);
-
-  // Initialize FCM for push notifications with a small delay to ensure user document is created
+  // Initialize FCM for push notifications
   try {
     logger.debug("Starting FCM initialization for new email signup user", {
       uid: userCredential.user.uid,
     });
-    // Small delay to ensure Firestore document is fully created
-    logger.debug("Waiting 1 second for Firestore document to settle");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    logger.debug("Delay complete, initializing FCM with force flag");
     await FCMService.initializeFCM(true); // Force re-initialization for new users
     logger.debug("FCM initialization completed successfully for email signup");
   } catch (error) {
     logger.error("FCM initialization failed for email signup", error);
   }
 
-  return convertFirebaseUser(userCredential.user);
+  return appUser;
 };
 
 export const signInWithEmail = async ({
@@ -344,61 +328,39 @@ export const signInWithGoogle = async (): Promise<User> => {
       googleCredential
     );
 
-    await createUserDocument(userCredential.user);
+    const firestoreData = await createUserDocument(userCredential.user);
 
-    // Force auth state observer to re-evaluate by clearing the last auth state
-    lastAuthState = null;
+    // Create the complete user object with Firestore data
+    const appUser: User = {
+      uid: userCredential.user.uid,
+      email: userCredential.user.email,
+      displayName:
+        firestoreData?.displayName || userCredential.user.displayName,
+      photoURL: userCredential.user.photoURL,
+      createdAt: firestoreData?.createdAt?.toDate() || new Date(),
+      isAdmin: firestoreData?.isAdmin || false,
+      emailVerified: userCredential.user.emailVerified,
+    };
 
-    // Manually trigger auth state change to pick up the Firestore data
-    setTimeout(async () => {
-      logger.debug(
-        "Attempting forced reload after user document creation (signInWithGoogle)"
-      );
-      const currentUser = authService.currentUser;
-      if (currentUser) {
-        logger.debug("Current user exists, reloading (signInWithGoogle)");
-        await reload(currentUser);
-        logger.debug(
-          "Reload completed, forcing auth state callback (signInWithGoogle)"
-        );
-
-        // Clear the user cache to force fresh Firestore read
-        userCache = {};
-
-        // Temporarily clear lastAuthState to force the callback to run
-        lastAuthState = null;
-
-        // Manually trigger the auth state observer callback with fresh data
-        setTimeout(async () => {
-          const user = await convertFirebaseUser(currentUser);
-          logger.debug(
-            "Manually triggering auth store update (signInWithGoogle)",
-            {
-              displayName: user.displayName,
-              uid: user.uid,
-            }
-          );
-
-          // Force the auth store to update by calling the setter directly
-          const { useAuthStore } = await import("../../store/authStore");
-          useAuthStore.getState().setUser(user);
-          logger.debug("Auth store manually updated (signInWithGoogle)");
-        }, 100);
-      } else {
-        logger.debug("No current user for forced reload (signInWithGoogle)");
+    // Manually update the store with the complete user object
+    const { useAuthStore } = await import("../../store/authStore");
+    useAuthStore.getState().setUser(appUser);
+    logger.debug(
+      "Auth store updated with complete user data (signInWithGoogle)",
+      {
+        displayName: appUser.displayName,
+        uid: appUser.uid,
       }
-    }, 500);
+    );
 
-    // Initialize FCM for push notifications with delay for new users
+    // Initialize FCM for push notifications
     try {
-      // Small delay to ensure Firestore document is fully created for new users
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await FCMService.initializeFCM(true); // Force re-initialization for new users
     } catch (error) {
       logger.error("FCM initialization failed", error);
     }
 
-    return convertFirebaseUser(userCredential.user);
+    return appUser;
   } catch (error) {
     logger.error("Google Sign-In error", error);
     throw error;
@@ -464,61 +426,39 @@ export const signInWithApple = async (): Promise<User> => {
       }
     }
 
-    await createUserDocument(userCredential.user);
+    const firestoreData = await createUserDocument(userCredential.user);
 
-    // Force auth state observer to re-evaluate by clearing the last auth state
-    lastAuthState = null;
+    // Create the complete user object with Firestore data
+    const appUser: User = {
+      uid: userCredential.user.uid,
+      email: userCredential.user.email,
+      displayName:
+        firestoreData?.displayName || userCredential.user.displayName,
+      photoURL: userCredential.user.photoURL,
+      createdAt: firestoreData?.createdAt?.toDate() || new Date(),
+      isAdmin: firestoreData?.isAdmin || false,
+      emailVerified: userCredential.user.emailVerified,
+    };
 
-    // Manually trigger auth state change to pick up the Firestore data
-    setTimeout(async () => {
-      logger.debug(
-        "Attempting forced reload after user document creation (signInWithApple)"
-      );
-      const currentUser = authService.currentUser;
-      if (currentUser) {
-        logger.debug("Current user exists, reloading (signInWithApple)");
-        await reload(currentUser);
-        logger.debug(
-          "Reload completed, forcing auth state callback (signInWithApple)"
-        );
-
-        // Clear the user cache to force fresh Firestore read
-        userCache = {};
-
-        // Temporarily clear lastAuthState to force the callback to run
-        lastAuthState = null;
-
-        // Manually trigger the auth state observer callback with fresh data
-        setTimeout(async () => {
-          const user = await convertFirebaseUser(currentUser);
-          logger.debug(
-            "Manually triggering auth store update (signInWithApple)",
-            {
-              displayName: user.displayName,
-              uid: user.uid,
-            }
-          );
-
-          // Force the auth store to update by calling the setter directly
-          const { useAuthStore } = await import("../../store/authStore");
-          useAuthStore.getState().setUser(user);
-          logger.debug("Auth store manually updated (signInWithApple)");
-        }, 100);
-      } else {
-        logger.debug("No current user for forced reload (signInWithApple)");
+    // Manually update the store with the complete user object
+    const { useAuthStore } = await import("../../store/authStore");
+    useAuthStore.getState().setUser(appUser);
+    logger.debug(
+      "Auth store updated with complete user data (signInWithApple)",
+      {
+        displayName: appUser.displayName,
+        uid: appUser.uid,
       }
-    }, 500);
+    );
 
-    // Initialize FCM for push notifications with delay for new users
+    // Initialize FCM for push notifications
     try {
-      // Small delay to ensure Firestore document is fully created for new users
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await FCMService.initializeFCM(true); // Force re-initialization for new users
     } catch (error) {
       logger.error("FCM initialization failed", error);
     }
 
-    return convertFirebaseUser(userCredential.user);
+    return appUser;
   } catch (error: any) {
     logger.error("Apple Sign-In error", error);
 
