@@ -14,6 +14,7 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
+import { logger } from "../../utils/logger";
 import { Button } from "./Button";
 import { CloseButton } from "./CloseButton";
 import { IconSymbol } from "./IconSymbol";
@@ -82,14 +83,11 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
     const minYear = minimumDate ? minimumDate.getFullYear() : currentYear - 18;
     const maxYear = maximumDate ? maximumDate.getFullYear() : currentYear;
 
-    console.log(
-      "generateYears - currentYear:",
+    logger.debug("generateYears called", {
       currentYear,
-      "minYear:",
       minYear,
-      "maxYear:",
-      maxYear
-    );
+      maxYear,
+    });
 
     const years = [];
     for (let year = maxYear; year >= minYear; year--) {

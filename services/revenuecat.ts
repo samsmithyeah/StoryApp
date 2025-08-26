@@ -5,6 +5,7 @@ import Purchases, {
 } from "react-native-purchases";
 import { Platform } from "react-native";
 import { creditsService } from "./firebase/credits";
+import { logger } from "../utils/logger";
 
 // Replace with your actual RevenueCat API keys
 const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
@@ -54,11 +55,12 @@ class RevenueCatService {
           : REVENUECAT_API_KEY_ANDROID;
 
       if (!apiKey) {
-        console.warn(
-          "RevenueCat API key not configured - purchases will not work"
-        );
-        console.warn(
-          "Add EXPO_PUBLIC_REVENUECAT_IOS_KEY and EXPO_PUBLIC_REVENUECAT_ANDROID_KEY to your .env file"
+        logger.warn(
+          "RevenueCat API key not configured - purchases will not work",
+          {
+            message:
+              "Add EXPO_PUBLIC_REVENUECAT_IOS_KEY and EXPO_PUBLIC_REVENUECAT_ANDROID_KEY to your .env file",
+          }
         );
         return;
       }
@@ -77,13 +79,13 @@ class RevenueCatService {
 
       // Set up listener for customer info updates
       Purchases.addCustomerInfoUpdateListener(this.handleCustomerInfoUpdate);
-      console.log("RevenueCat configured successfully");
+      logger.debug("RevenueCat configured successfully");
     } catch (error) {
-      console.error("Error configuring RevenueCat:", error);
+      logger.error("Error configuring RevenueCat", error);
 
       if (__DEV__) {
         // In development, log warning but don't crash
-        console.warn(
+        logger.warn(
           "RevenueCat configuration failed - purchases will not work in development"
         );
       } else {
@@ -99,7 +101,7 @@ class RevenueCatService {
     try {
       if (!this.userId) return;
 
-      console.log("🔄 Customer info update:", {
+      logger.debug("Customer info update", {
         activeSubscriptions: customerInfo.activeSubscriptions,
         allExpirationDates: customerInfo.allExpirationDates,
       });
@@ -110,13 +112,11 @@ class RevenueCatService {
       if (activeSubscriptions.length > 0) {
         // Warn if multiple subscriptions detected (shouldn't happen with upgrade path)
         if (activeSubscriptions.length > 1) {
-          console.warn(
-            "⚠️ MULTIPLE ACTIVE SUBSCRIPTIONS DETECTED:",
-            activeSubscriptions
-          );
-          console.warn(
-            "This may indicate an upgrade/downgrade in progress or a configuration issue"
-          );
+          logger.warn("Multiple active subscriptions detected", {
+            activeSubscriptions,
+            message:
+              "This may indicate an upgrade/downgrade in progress or a configuration issue",
+          });
 
           // Provide detailed analysis of each subscription
           activeSubscriptions.forEach((subscriptionId, index) => {
@@ -129,7 +129,7 @@ class RevenueCatService {
               ? Math.floor((expDate.getTime() - now.getTime()) / (1000 * 60))
               : null;
 
-            console.warn(`📋 SUBSCRIPTION ${index + 1}:`, {
+            logger.warn(`Subscription ${index + 1} details`, {
               productId: subscriptionId,
               expirationDate: expDate?.toISOString() || "unknown",
               isStillActive,
@@ -155,7 +155,7 @@ class RevenueCatService {
         const primarySubscription = sortedSubscriptions[0];
         const credits = CREDIT_AMOUNTS[primarySubscription] || 0;
 
-        console.log("🔄 Primary subscription:", {
+        logger.debug("Primary subscription identified", {
           primarySubscription,
           credits,
           totalActive: activeSubscriptions.length,
@@ -180,42 +180,40 @@ class RevenueCatService {
               false // Don't add credits during sync operations
             );
           } else {
-            console.log("🔄 Subscription expired, cancelling");
+            logger.debug("Subscription expired, cancelling");
             await creditsService.cancelSubscription(this.userId);
           }
         }
       } else {
         // No active subscription
-        console.log("🔄 No active subscriptions, cancelling");
+        logger.debug("No active subscriptions, cancelling");
         await creditsService.cancelSubscription(this.userId);
       }
     } catch (error) {
-      console.error("Error handling customer info update:", error);
+      logger.error("Error handling customer info update", error);
     }
   };
 
   async getOfferings() {
     if (!this.isConfigured) {
-      console.warn("RevenueCat not configured - returning empty offerings");
+      logger.warn("RevenueCat not configured - returning empty offerings");
       return { current: null, all: {} };
     }
 
     try {
       const offerings = await Purchases.getOfferings();
 
-      console.log(
-        "🏪 OFFERINGS DEBUG - Current offering:",
-        offerings.current?.identifier
-      );
-      console.log(
-        "🏪 PACKAGES COUNT:",
-        offerings.current?.availablePackages?.length || 0
-      );
+      logger.debug("Offerings current offering", {
+        currentOffering: offerings.current?.identifier,
+      });
+      logger.debug("Offerings packages count", {
+        packagesCount: offerings.current?.availablePackages?.length || 0,
+      });
 
       offerings.current?.availablePackages?.forEach((pkg, index) => {
         const isKnownProduct =
           CREDIT_AMOUNTS[pkg.product.identifier] !== undefined;
-        console.log(`🏪 PACKAGE ${index}:`, {
+        logger.debug(`Package ${index} details`, {
           identifier: pkg.identifier,
           packageType: pkg.packageType,
           product: {
@@ -230,15 +228,17 @@ class RevenueCatService {
         });
       });
 
-      console.log("🏪 EXPECTED PRODUCT IDS:", Object.keys(CREDIT_AMOUNTS));
+      logger.debug("Expected product IDs", {
+        expectedProductIds: Object.keys(CREDIT_AMOUNTS),
+      });
 
       return offerings;
     } catch (error: any) {
-      console.error("Error getting offerings:", error);
+      logger.error("Error getting offerings", error);
 
       // Handle the case where no products are configured yet
       if (error.message?.includes("None of the products registered")) {
-        console.warn(
+        logger.warn(
           "No products configured in RevenueCat yet - this is normal during development"
         );
         return { current: null, all: {} };
@@ -266,7 +266,7 @@ class RevenueCatService {
       const productId = packageToPurchase.product.identifier;
       const credits = CREDIT_AMOUNTS[productId];
 
-      console.log("🛒 CREDIT PACK PURCHASE DEBUG:", {
+      logger.debug("Credit pack purchase debug", {
         productId,
         credits,
         packageDetails: {
@@ -286,9 +286,9 @@ class RevenueCatService {
       }
 
       // Make the purchase
-      console.log("🛒 STARTING CREDIT PACK PURCHASE...");
+      logger.debug("Starting credit pack purchase");
       purchaseInfo = await Purchases.purchasePackage(packageToPurchase);
-      console.log("🛒 CREDIT PACK PURCHASE COMPLETED!", {
+      logger.debug("Credit pack purchase completed", {
         customerInfo: {
           activeSubscriptions: purchaseInfo.customerInfo.activeSubscriptions,
           nonSubscriptionTransactions:
@@ -298,8 +298,9 @@ class RevenueCatService {
       });
 
       // Credits will be awarded by RevenueCat webhook automatically
-      console.log("🛒 CREDIT PACK PURCHASE COMPLETED!");
-      console.log("💡 Credits will be added by webhook within a few seconds");
+      logger.debug(
+        "Credit pack purchase completed - credits will be added by webhook within a few seconds"
+      );
 
       return true;
     } catch (error: any) {
@@ -307,7 +308,7 @@ class RevenueCatService {
         return false;
       }
 
-      console.error("Error purchasing credit pack:", error);
+      logger.error("Error purchasing credit pack", error);
       throw error;
     }
   }
@@ -319,8 +320,8 @@ class RevenueCatService {
     const userPrefix = this.userId ? this.userId.substring(0, 8) : "unknown";
     const uniqueId = `${userPrefix}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log("Generated unique transaction ID:", uniqueId);
-    console.log("CustomerInfo debug:", {
+    logger.debug("Generated unique transaction ID", { uniqueId });
+    logger.debug("CustomerInfo debug", {
       originalPurchaseDate: customerInfo.originalPurchaseDate,
       latestExpirationDate: customerInfo.latestExpirationDate,
       activeSubscriptions: customerInfo.activeSubscriptions,
@@ -356,7 +357,7 @@ class RevenueCatService {
       let purchaseOptions: any = {};
 
       if (currentSubscription && currentSubscription.productId !== productId) {
-        console.log("🔄 EXISTING SUBSCRIPTION DETECTED:", {
+        logger.debug("Existing subscription detected", {
           current: currentSubscription.productId,
           new: productId,
           platform: Platform.OS,
@@ -370,8 +371,8 @@ class RevenueCatService {
         if (Platform.OS === "ios") {
           // iOS: For RevenueCat v7+, use the GooglePlayProductChangeOptions or standard upgrade flow
           // The oldProductIdentifier should be sufficient for iOS upgrades
-          console.log(
-            "🍎 iOS: Using oldProductIdentifier for subscription replacement"
+          logger.debug(
+            "iOS: Using oldProductIdentifier for subscription replacement"
           );
           // Note: iOS handles subscription upgrades/downgrades automatically through oldProductIdentifier
           // ProrationMode is primarily for Android - removing it for iOS
@@ -379,12 +380,12 @@ class RevenueCatService {
           // Android: Use replace SKUs for immediate replacement
           purchaseOptions.oldSkus = [currentSubscription.productId];
           purchaseOptions.prorationMode = 1; // IMMEDIATE_WITHOUT_PRORATION
-          console.log(
-            "🤖 Android: Configuring subscription replacement with oldSkus"
+          logger.debug(
+            "Android: Configuring subscription replacement with oldSkus"
           );
         }
 
-        console.log("🔄 SUBSCRIPTION REPLACEMENT CONFIG:", {
+        logger.debug("Subscription replacement config", {
           oldProductIdentifier: currentSubscription.productId,
           newProductIdentifier: productId,
           platform: Platform.OS,
@@ -393,12 +394,9 @@ class RevenueCatService {
       }
 
       // Make the purchase (with upgrade/replace if applicable)
-      console.log("🔔 SUBSCRIPTION PURCHASE STARTING...");
-      console.log(
-        "🔔 FINAL PURCHASE OPTIONS:",
-        JSON.stringify(purchaseOptions, null, 2)
-      );
-      console.log("🔔 PACKAGE TO PURCHASE:", {
+      logger.debug("Subscription purchase starting");
+      logger.debug("Final purchase options", { purchaseOptions });
+      logger.debug("Package to purchase", {
         identifier: packageToPurchase.identifier,
         productId: packageToPurchase.product.identifier,
         priceString: packageToPurchase.product.priceString,
@@ -408,7 +406,7 @@ class RevenueCatService {
         packageToPurchase,
         purchaseOptions
       );
-      console.log("🔔 SUBSCRIPTION PURCHASE COMPLETED!");
+      logger.debug("Subscription purchase completed");
 
       // Critical: Update subscription and add credits atomically
       try {
@@ -416,7 +414,7 @@ class RevenueCatService {
         const customerInfo = purchaseInfo.customerInfo;
         const activeSubscriptions = customerInfo.activeSubscriptions;
 
-        console.log("🔄 POST-PURCHASE SUBSCRIPTION DEBUG:", {
+        logger.debug("Post-purchase subscription debug", {
           requestedProductId: productId,
           oldSubscription: currentSubscription?.productId,
           activeSubscriptions,
@@ -427,7 +425,7 @@ class RevenueCatService {
 
         // Validate subscription replacement worked
         if (currentSubscription && activeSubscriptions.length > 1) {
-          console.warn("⚠️ MULTIPLE SUBSCRIPTIONS DETECTED AFTER UPGRADE:", {
+          logger.warn("Multiple subscriptions detected after upgrade", {
             oldSubscription: currentSubscription.productId,
             newSubscription: productId,
             allActiveSubscriptions: activeSubscriptions,
@@ -449,7 +447,7 @@ class RevenueCatService {
               (oldExpDate.getTime() - now.getTime()) / (1000 * 60)
             );
 
-            console.warn("⚠️ OLD SUBSCRIPTION STATUS:", {
+            logger.warn("Old subscription status", {
               productId: currentSubscription.productId,
               expirationDate: oldExpDate.toISOString(),
               stillActive,
@@ -462,7 +460,7 @@ class RevenueCatService {
             });
           }
         } else if (currentSubscription && activeSubscriptions.length === 1) {
-          console.log("✅ SUBSCRIPTION REPLACEMENT SUCCESSFUL:", {
+          logger.debug("Subscription replacement successful", {
             oldSubscription: currentSubscription.productId,
             newSubscription: productId,
             activeSubscription: activeSubscriptions[0],
@@ -478,8 +476,8 @@ class RevenueCatService {
         // If we don't find the expected product, use the first active subscription
         // This handles cases where RevenueCat processes the change differently
         if (!finalExpirationDate && activeSubscriptions.length > 0) {
-          console.log(
-            "⚠️ Expected product not found in expiration dates, using first active subscription"
+          logger.warn(
+            "Expected product not found in expiration dates, using first active subscription"
           );
           const sortedSubscriptions = activeSubscriptions.sort((a, b) => {
             if (a.includes("annual") && !b.includes("annual")) return -1;
@@ -496,7 +494,7 @@ class RevenueCatService {
           ? new Date(finalExpirationDate)
           : new Date();
 
-        console.log("🔄 FINAL SUBSCRIPTION UPDATE:", {
+        logger.debug("Final subscription update", {
           originalProductId: productId,
           finalProductId,
           finalCredits,
@@ -520,8 +518,8 @@ class RevenueCatService {
         return true;
       } catch (subscriptionError) {
         // Critical: If subscription setup fails after successful purchase
-        console.error(
-          "CRITICAL: Subscription purchase succeeded but setup failed:",
+        logger.error(
+          "CRITICAL: Subscription purchase succeeded but setup failed",
           subscriptionError
         );
 
@@ -534,7 +532,7 @@ class RevenueCatService {
         return false;
       }
 
-      console.error("Error purchasing subscription:", error);
+      logger.error("Error purchasing subscription", error);
       throw error;
     }
   }
@@ -544,7 +542,7 @@ class RevenueCatService {
       const customerInfo = await Purchases.restorePurchases();
       return customerInfo;
     } catch (error) {
-      console.error("Error restoring purchases:", error);
+      logger.error("Error restoring purchases", error);
       throw error;
     }
   }
@@ -554,7 +552,7 @@ class RevenueCatService {
       const customerInfo = await Purchases.getCustomerInfo();
       return customerInfo;
     } catch (error) {
-      console.error("Error getting customer info:", error);
+      logger.error("Error getting customer info", error);
       throw error;
     }
   }
@@ -564,7 +562,7 @@ class RevenueCatService {
       const customerInfo = await this.getCustomerInfo();
       return customerInfo.activeSubscriptions.length > 0;
     } catch (error) {
-      console.error("Error checking subscription status:", error);
+      logger.error("Error checking subscription status", error);
       return false;
     }
   }
@@ -596,7 +594,7 @@ class RevenueCatService {
         customerInfo.allExpirationDates?.[primarySubscription];
 
       if (!expirationDate) {
-        console.warn("No expiration date found for active subscription");
+        logger.warn("No expiration date found for active subscription");
         return null;
       }
 
@@ -606,7 +604,7 @@ class RevenueCatService {
         expirationDate: new Date(expirationDate),
       };
     } catch (error) {
-      console.error("Error getting current active subscription:", error);
+      logger.error("Error getting current active subscription", error);
       return null;
     }
   }
@@ -652,7 +650,7 @@ class RevenueCatService {
         currentSubscription: current.productId,
       };
     } catch (error) {
-      console.error("Error checking upgrade availability:", error);
+      logger.error("Error checking upgrade availability", error);
       return {
         canUpgrade: false,
         isUpgrade: false,
@@ -713,15 +711,15 @@ class RevenueCatService {
    */
   async debugCustomerInfo(): Promise<void> {
     if (!this.isConfigured || !this.userId) {
-      console.warn("RevenueCat not configured");
+      logger.warn("RevenueCat not configured");
       return;
     }
 
     try {
-      console.log("🐛 DEBUG: Fetching customer info from RevenueCat...");
+      logger.debug("Fetching customer info from RevenueCat");
       const customerInfo = await this.getCustomerInfo();
 
-      console.log("🐛 DEBUG: Raw CustomerInfo:", {
+      logger.debug("Raw CustomerInfo", {
         activeSubscriptions: customerInfo.activeSubscriptions,
         allPurchasedProductIdentifiers:
           customerInfo.allPurchasedProductIdentifiers,
@@ -733,7 +731,7 @@ class RevenueCatService {
       });
 
       // Analyze all subscription expirations to understand the timeline
-      console.log("🐛 SUBSCRIPTION TIMELINE ANALYSIS:");
+      logger.debug("Subscription timeline analysis");
       const now = new Date();
       const subscriptionTimeline = Object.entries(
         customerInfo.allExpirationDates || {}
@@ -763,16 +761,19 @@ class RevenueCatService {
         const timeDesc = sub!.isActive
           ? `expires in ${sub!.minutesFromNow} min`
           : `expired ${Math.abs(sub!.minutesFromNow)} min ago`;
-        console.log(
-          `${index + 1}. ${sub!.productId} (${sub!.credits} credits) - ${status} - ${timeDesc}`
-        );
+        logger.debug(`Subscription ${index + 1}`, {
+          productId: sub!.productId,
+          credits: sub!.credits,
+          status,
+          timeDescription: timeDesc,
+        });
       });
 
       // Check what our current active subscription should be
       const currentSub = await this.getCurrentActiveSubscription();
-      console.log("🐛 DEBUG: getCurrentActiveSubscription result:", currentSub);
+      logger.debug("getCurrentActiveSubscription result", { currentSub });
     } catch (error) {
-      console.error("🐛 DEBUG: Error fetching customer info:", error);
+      logger.error("Error fetching customer info for debug", error);
     }
   }
 
@@ -780,24 +781,22 @@ class RevenueCatService {
    * Force sync subscription status (public method for debugging)
    */
   async forceSyncSubscription(): Promise<void> {
-    console.log("🔧 FORCE SYNC: Starting manual subscription sync...");
+    logger.debug("Force sync: Starting manual subscription sync");
     await this.syncSubscriptionStatus();
-    console.log("🔧 FORCE SYNC: Manual subscription sync completed");
+    logger.debug("Force sync: Manual subscription sync completed");
   }
 
   async syncSubscriptionStatus(): Promise<void> {
     if (!this.isConfigured || !this.userId) {
-      console.warn(
-        "RevenueCat not configured, cannot sync subscription status"
-      );
+      logger.warn("RevenueCat not configured, cannot sync subscription status");
       return;
     }
 
     try {
-      console.log("Syncing subscription status with RevenueCat...");
+      logger.debug("Syncing subscription status with RevenueCat");
       const customerInfo = await this.getCustomerInfo();
 
-      console.log("🔄 SYNC: RevenueCat customer info:", {
+      logger.debug("Sync: RevenueCat customer info", {
         activeSubscriptions: customerInfo.activeSubscriptions,
         allExpirationDates: customerInfo.allExpirationDates,
       });
@@ -817,7 +816,7 @@ class RevenueCatService {
         const expirationDate =
           customerInfo.allExpirationDates?.[primarySubscription];
 
-        console.log("🔄 SYNC: Primary subscription details:", {
+        logger.debug("Sync: Primary subscription details", {
           primarySubscription,
           credits,
           expirationDate,
@@ -829,7 +828,7 @@ class RevenueCatService {
           const now = new Date();
           const isExpired = expDate <= now;
 
-          console.log("🔄 SYNC: Expiration check:", {
+          logger.debug("Sync: Expiration check", {
             expirationDate: expDate.toISOString(),
             currentDate: now.toISOString(),
             isExpired,
@@ -843,15 +842,13 @@ class RevenueCatService {
               expDate,
               false // Don't add credits during sync operations
             );
-            console.log("🔄 SYNC: Subscription status updated: active");
+            logger.debug("Sync: Subscription status updated - active");
           } else {
-            console.log("🔄 SYNC: Subscription expired, cancelling");
+            logger.debug("Sync: Subscription expired, cancelling");
             await creditsService.cancelSubscription(this.userId);
           }
         } else {
-          console.warn(
-            "🔄 SYNC: No expiration date found for active subscription"
-          );
+          logger.warn("Sync: No expiration date found for active subscription");
           // Still update the subscription but with a fallback date
           await creditsService.updateSubscription(
             this.userId,
@@ -863,11 +860,11 @@ class RevenueCatService {
         }
       } else {
         // No active subscriptions
-        console.log("🔄 SYNC: No active subscriptions, cancelling");
+        logger.debug("Sync: No active subscriptions, cancelling");
         await creditsService.cancelSubscription(this.userId);
       }
     } catch (error) {
-      console.error("Error syncing subscription status:", error);
+      logger.error("Error syncing subscription status", error);
     }
   }
 

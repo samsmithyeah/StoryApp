@@ -17,6 +17,7 @@ import firestore, {
   increment,
   deleteField,
 } from "@react-native-firebase/firestore";
+import { logger } from "../../utils/logger";
 import type {
   UserCredits,
   CreditTransaction,
@@ -98,7 +99,7 @@ export const creditsService = {
 
       return this.validateUserCredits(data);
     } catch (error) {
-      console.error("Error fetching user credits:", error);
+      logger.error("Error fetching user credits", error);
       throw error;
     }
   },
@@ -128,7 +129,7 @@ export const creditsService = {
         });
       }
     } catch (error) {
-      console.error("Error initializing user credits:", error);
+      logger.error("Error initializing user credits", error);
       throw error;
     }
   },
@@ -189,7 +190,7 @@ export const creditsService = {
         };
       });
     } catch (error) {
-      console.error("Error using credits:", error);
+      logger.error("Error using credits", error);
       return {
         success: false,
         remainingBalance: 0,
@@ -249,7 +250,7 @@ export const creditsService = {
           metadata.purchaseDate = purchaseDate;
         }
 
-        console.log("addCredits - About to save transaction:", {
+        logger.debug("About to save credits transaction", {
           userId,
           amount,
           type,
@@ -272,7 +273,7 @@ export const creditsService = {
         };
       });
     } catch (error) {
-      console.error("Error adding credits:", error);
+      logger.error("Error adding credits", error);
       return {
         success: false,
         newBalance: 0,
@@ -300,7 +301,7 @@ export const creditsService = {
         balance,
       };
     } catch (error) {
-      console.error("Error checking credits availability:", error);
+      logger.error("Error checking credits availability", error);
       return { available: false, balance: 0 };
     }
   },
@@ -314,14 +315,14 @@ export const creditsService = {
         Object.entries(transaction).filter(([_, value]) => value !== undefined)
       );
 
-      console.log("Recording transaction:", cleanTransaction);
+      logger.debug("Recording transaction", cleanTransaction);
 
       await addDoc(collection(db, "creditTransactions"), {
         ...cleanTransaction,
         createdAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error("Error recording credit transaction:", error);
+      logger.error("Error recording credit transaction", error);
       throw error;
     }
   },
@@ -335,14 +336,14 @@ export const creditsService = {
         Object.entries(purchase).filter(([_, value]) => value !== undefined)
       );
 
-      console.log("Recording purchase:", cleanPurchase);
+      logger.debug("Recording purchase", cleanPurchase);
 
       await addDoc(collection(db, "purchaseHistory"), {
         ...cleanPurchase,
         purchaseDate: purchase.purchaseDate || serverTimestamp(),
       });
     } catch (error) {
-      console.error("Error recording purchase:", error);
+      logger.error("Error recording purchase", error);
       throw error;
     }
   },
@@ -362,17 +363,16 @@ export const creditsService = {
         lastUpdated: serverTimestamp(),
       };
 
-      console.log(
-        "updateSubscription - About to update userCredits with:",
-        updateData
-      );
-      console.log("updateSubscription - addCredits flag:", addCredits);
+      logger.debug("updateSubscription - About to update userCredits", {
+        updateData,
+        addCredits,
+      });
 
       await updateDoc(doc(db, "userCredits", userId), updateData);
 
       // Only add credits when explicitly requested (e.g., during purchase, not sync)
       if (addCredits) {
-        console.log(
+        logger.debug(
           "updateSubscription - Adding credits due to addCredits flag"
         );
         await this.addCredits(
@@ -382,12 +382,10 @@ export const creditsService = {
           `Subscription credits: ${monthlyCredits}/month`
         );
       } else {
-        console.log(
-          "updateSubscription - Skipping credit addition (sync operation)"
-        );
+        logger.debug("Skipping credit addition (sync operation)");
       }
     } catch (error) {
-      console.error("Error updating subscription:", error);
+      logger.error("Error updating subscription", error);
       throw error;
     }
   },
@@ -401,7 +399,7 @@ export const creditsService = {
         lastUpdated: serverTimestamp(),
       });
     } catch (error) {
-      console.error("Error canceling subscription:", error);
+      logger.error("Error canceling subscription", error);
       throw error;
     }
   },
@@ -425,7 +423,7 @@ export const creditsService = {
         createdAt: doc.data().createdAt?.toDate(),
       })) as CreditTransaction[];
     } catch (error) {
-      console.error("Error fetching credit transactions:", error);
+      logger.error("Error fetching credit transactions", error);
       throw error;
     }
   },
@@ -447,7 +445,7 @@ export const creditsService = {
               callback(null);
             }
           } catch (error) {
-            console.error("Error validating credits data:", error);
+            logger.error("Error validating credits data", error);
             callback(null);
           }
         } else {
@@ -455,7 +453,7 @@ export const creditsService = {
         }
       },
       (error) => {
-        console.error("Error listening to credits changes:", error);
+        logger.error("Error listening to credits changes", error);
         callback(null);
       }
     );

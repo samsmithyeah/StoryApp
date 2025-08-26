@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { logger } from "./utils/logger";
 
 /**
  * Send push notification to user when their story is fully complete
@@ -14,7 +15,7 @@ export async function sendStoryCompleteNotification(
     const userDoc = await db.collection("users").doc(userId).get();
 
     if (!userDoc.exists) {
-      console.warn(`User document not found: ${userId}`);
+      logger.warn("User document not found", { userId });
       return;
     }
 
@@ -22,16 +23,18 @@ export async function sendStoryCompleteNotification(
     const expoPushToken = userData?.fcmToken;
 
     if (!expoPushToken) {
-      console.warn(
-        `Expo push token not found for user ${userId}. User may need to log in to register device.`
-      );
+      logger.warn("Expo push token not found for user", {
+        userId,
+        message: "User may need to log in to register device",
+      });
       return;
     }
 
     // Create Expo push notification payload
-    console.log(
-      `Sending story complete notification to user ${userId} for story "${storyData.title}"`
-    );
+    logger.info("Sending story complete notification", {
+      userId,
+      storyTitle: storyData.title,
+    });
 
     const message = {
       to: expoPushToken,
@@ -60,15 +63,16 @@ export async function sendStoryCompleteNotification(
     const result = await response.json();
 
     if (result.data && result.data.status === "ok") {
-      console.log(
-        `Story complete notification sent to user ${userId} for story "${storyData.title}":`,
-        result
-      );
+      logger.info("Story complete notification sent successfully", {
+        userId,
+        storyTitle: storyData.title,
+        result,
+      });
     } else {
-      console.error("Failed to send story complete notification:", result);
+      logger.error("Failed to send story complete notification", { result });
     }
   } catch (error) {
-    console.error("Failed to send story complete notification:", error);
+    logger.error("Failed to send story complete notification", error);
     // Don't throw error - notification failure shouldn't fail the story generation
   }
 }

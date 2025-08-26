@@ -1,4 +1,5 @@
 import { defineSecret } from "firebase-functions/params";
+import { logger } from "./logger";
 
 export const fluxApiKey = defineSecret("FLUX_API_KEY");
 
@@ -79,18 +80,18 @@ export class FluxClient {
     maxPollingTimeMs: number = 120000, // 2 minutes default
     pollingIntervalMs: number = 2000 // 2 seconds default
   ): Promise<string> {
-    console.log(
-      `[FluxClient] Starting image generation with prompt: ${request.prompt.substring(0, 100)}...`
-    );
-    console.log(
-      `[FluxClient] Request params: aspect_ratio=${request.aspect_ratio}, has_input_image=${!!request.input_image}`
-    );
+    logger.debug("FluxClient starting image generation", {
+      promptPreview: request.prompt.substring(0, 100),
+      aspectRatio: request.aspect_ratio,
+      hasInputImage: !!request.input_image,
+    });
 
     // Start the image generation task
     const createResponse = await this.createImage(request);
-    console.log(
-      `[FluxClient] Create response: id=${createResponse.id}, polling_url=${createResponse.polling_url}`
-    );
+    logger.debug("FluxClient create response", {
+      id: createResponse.id,
+      pollingUrl: createResponse.polling_url,
+    });
 
     if (!createResponse.polling_url) {
       throw new Error(`FLUX API did not return a polling URL`);
@@ -102,23 +103,26 @@ export class FluxClient {
     // Poll until completion or timeout
     while (Date.now() - startTime < maxPollingTimeMs) {
       pollCount++;
-      console.log(
-        `[FluxClient] Polling attempt ${pollCount} for task ${createResponse.id}`
-      );
+      logger.debug("FluxClient polling attempt", {
+        pollCount,
+        taskId: createResponse.id,
+      });
       const pollResponse = await this.pollTask(createResponse.polling_url);
-      console.log(`[FluxClient] Poll response: status=${pollResponse.status}`);
+      logger.debug("FluxClient poll response", { status: pollResponse.status });
 
       if (pollResponse.status === "Error") {
-        console.error(
-          `[FluxClient] Image generation failed: ${pollResponse.error}`
-        );
+        logger.error("FluxClient image generation failed", {
+          error: pollResponse.error,
+        });
         throw new Error(`FLUX image generation failed: ${pollResponse.error}`);
       }
 
       if (pollResponse.status === "Ready" && pollResponse.result?.sample) {
-        console.log(
-          `[FluxClient] Image ready after ${pollCount} polls (${Date.now() - startTime}ms): ${pollResponse.result.sample.substring(0, 50)}...`
-        );
+        logger.info("FluxClient image ready", {
+          pollCount,
+          timeMs: Date.now() - startTime,
+          samplePreview: pollResponse.result.sample.substring(0, 50),
+        });
         return pollResponse.result.sample;
       }
 
@@ -126,9 +130,9 @@ export class FluxClient {
       await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
     }
 
-    console.error(
-      `[FluxClient] Image generation timed out after ${maxPollingTimeMs}ms`
-    );
+    logger.error("FluxClient image generation timed out", {
+      timeoutMs: maxPollingTimeMs,
+    });
     throw new Error(
       `FLUX image generation timed out after ${maxPollingTimeMs}ms`
     );

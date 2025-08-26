@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { logger } from "./logger";
 
 // Initialize storage bucket
 const bucket = admin.storage().bucket();
@@ -35,7 +36,11 @@ export async function uploadImageToStorage(
 
     return storagePath;
   } catch (error) {
-    console.error("Error uploading image to Firebase Storage:", error);
+    logger.error("Error uploading image to Firebase Storage", error, {
+      userId,
+      storyId,
+      imageName,
+    });
     throw error;
   }
 }

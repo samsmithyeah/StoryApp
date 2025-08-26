@@ -19,6 +19,7 @@ import {
   resendVerificationEmail,
 } from "../../services/firebase/auth";
 import { useAuthStore } from "../../store/authStore";
+import { logger } from "../../utils/logger";
 import { IconSymbol } from "../ui/IconSymbol";
 
 interface EmailVerificationBannerProps {
@@ -52,7 +53,10 @@ export const EmailVerificationBanner: React.FC<
         }
       }
     } catch (error) {
-      console.log("Auto-check verification failed:", error);
+      logger.debug("Auto-check verification failed", {
+        error,
+        userId: user?.uid,
+      });
     }
   }, [user, setUser, onVerified]);
 

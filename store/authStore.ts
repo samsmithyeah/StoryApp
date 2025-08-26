@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeToAuthChanges } from "../services/firebase/auth";
+import { logger } from "../utils/logger";
 import { AuthState, User } from "../types/auth.types";
 
 interface AuthStore extends AuthState {
@@ -46,7 +47,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Validate auth state before updating
       if (!validateAuthState()) {
-        console.warn("Auth state validation failed, resetting to safe state");
+        logger.warn("Auth state validation failed, resetting to safe state");
         set({
           user: null,
           loading: false,
@@ -55,7 +56,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return;
       }
 
-      console.log("[AUTH_STORE] Received user from auth service:", {
+      logger.debug("Received user from auth service", {
         displayName: user?.displayName,
         email: user?.email,
         uid: user?.uid,
@@ -85,14 +86,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   signOut: async () => {
     try {
-      console.log("Starting sign out process...");
+      logger.debug("Starting sign out process");
       set({ loading: true, error: null });
       const { signOutUser } = await import("../services/firebase/auth");
       await signOutUser();
-      console.log("Sign out completed, clearing user state");
+      logger.debug("Sign out completed, clearing user state");
       set({ user: null, loading: false, authLoading: false });
     } catch (error) {
-      console.error("Sign out error:", error);
+      logger.error("Sign out error", error);
       set({
         error: error instanceof Error ? error.message : "Sign out failed",
         loading: false,
@@ -107,19 +108,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     // Check for invalid state combinations and potential corruption
     if (state.user && state.loading) {
       // User is authenticated but still loading - suspicious
-      console.warn("Invalid state: user authenticated but still loading");
+      logger.warn("Invalid state: user authenticated but still loading");
       return false;
     }
 
     if (state.user && !state.user.uid) {
       // User object exists but missing required uid
-      console.warn("Invalid state: user object missing uid");
+      logger.warn("Invalid state: user object missing uid");
       return false;
     }
 
     if (state.user && (!state.user.email || !state.user.email.includes("@"))) {
       // User object exists but has invalid email
-      console.warn("Invalid state: user object has invalid email");
+      logger.warn("Invalid state: user object has invalid email");
       return false;
     }
 
@@ -128,12 +129,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       typeof state.loading !== "boolean" ||
       typeof state.authLoading !== "boolean"
     ) {
-      console.warn("Invalid state: loading flags are not boolean");
+      logger.warn("Invalid state: loading flags are not boolean");
       return false;
     }
 
     if (state.error !== null && typeof state.error !== "string") {
-      console.warn("Invalid state: error is not null or string");
+      logger.warn("Invalid state: error is not null or string");
       return false;
     }
 

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import { getAuthenticatedUrl } from "./firebase/storage";
+import { logger } from "../utils/logger";
 
 const CACHE_DIR = `${FileSystem.documentDirectory}imageCache/`;
 const CACHE_INDEX_KEY = "imageCacheIndex";
@@ -38,7 +39,7 @@ class ImageCacheService {
         this.cacheIndex = JSON.parse(indexData);
       }
     } catch (error) {
-      console.warn("Failed to load cache index:", error);
+      logger.warn("Failed to load cache index", error);
       this.cacheIndex = {};
     }
 
@@ -55,7 +56,7 @@ class ImageCacheService {
         JSON.stringify(this.cacheIndex)
       );
     } catch (error) {
-      console.warn("Failed to save cache index:", error);
+      logger.warn("Failed to save cache index", error);
     }
   }
 
@@ -83,10 +84,10 @@ class ImageCacheService {
             !error.message?.includes("does not exist") &&
             !error.message?.includes("could not be deleted")
           ) {
-            console.warn(
-              `Failed to delete expired cache file ${entry.filePath}:`,
-              error
-            );
+            logger.warn("Failed to delete expired cache file", {
+              filePath: entry.filePath,
+              error,
+            });
           }
           // Continue cleanup even if one file fails
         }
@@ -133,10 +134,10 @@ class ImageCacheService {
           !error.message?.includes("does not exist") &&
           !error.message?.includes("could not be deleted")
         ) {
-          console.warn(
-            `Failed to delete cache file during cleanup ${entry.filePath}:`,
-            error
-          );
+          logger.warn("Failed to delete cache file during cleanup", {
+            filePath: entry.filePath,
+            error,
+          });
         }
         // Remove from index even if file deletion failed to prevent infinite attempts
         delete this.cacheIndex[entry.storagePath];
@@ -184,10 +185,10 @@ class ImageCacheService {
       }
     } catch (error) {
       // File access error, assume it doesn't exist
-      console.warn(
-        `Cache file access error for ${cacheEntry.filePath}:`,
-        error
-      );
+      logger.warn("Cache file access error", {
+        filePath: cacheEntry.filePath,
+        error,
+      });
       delete this.cacheIndex[storagePath];
       await this.saveCacheIndex();
       return null;
@@ -207,10 +208,10 @@ class ImageCacheService {
           !error.message?.includes("does not exist") &&
           !error.message?.includes("could not be deleted")
         ) {
-          console.warn(
-            `Failed to delete expired cache file ${cacheEntry.filePath}:`,
-            error
-          );
+          logger.warn("Failed to delete expired cache file", {
+            filePath: cacheEntry.filePath,
+            error,
+          });
         }
       }
       delete this.cacheIndex[storagePath];
@@ -240,7 +241,9 @@ class ImageCacheService {
       );
 
       if (downloadResult.status !== 200) {
-        console.warn("Failed to download image:", downloadResult.status);
+        logger.warn("Failed to download image", {
+          status: downloadResult.status,
+        });
         return null;
       }
 
@@ -265,7 +268,7 @@ class ImageCacheService {
       await this.enforceMaxCacheSize();
       return cacheFilePath;
     } catch (error) {
-      console.error("Error caching image:", error);
+      logger.error("Error caching image", error);
       return null;
     }
   }
@@ -294,7 +297,7 @@ class ImageCacheService {
       this.cacheIndex = {};
       await AsyncStorage.removeItem(CACHE_INDEX_KEY);
     } catch (error) {
-      console.error("Error clearing cache:", error);
+      logger.error("Error clearing cache", error);
     }
   }
 

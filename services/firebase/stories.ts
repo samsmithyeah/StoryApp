@@ -2,6 +2,7 @@ import { Story, StoryConfiguration } from "@/types/story.types";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { authService, functionsService } from "./config";
 import { creditsService } from "./credits";
+import { logger } from "../../utils/logger";
 
 export interface StoryGenerationRequest extends StoryConfiguration {}
 
@@ -52,7 +53,7 @@ export const generateStory = async (config: StoryGenerationRequest) => {
       throw new Error(data.error || "Story generation failed");
     }
   } catch (error) {
-    console.error("Error calling generateStory function:", error);
+    logger.error("Error calling generateStory function", error);
     throw error;
   }
 };
@@ -68,7 +69,7 @@ export const getStories = async (): Promise<Story[]> => {
       throw new Error("Failed to fetch stories");
     }
   } catch (error) {
-    console.error("Error calling getStories function:", error);
+    logger.error("Error calling getStories function", error);
     throw error;
   }
 };
@@ -107,7 +108,7 @@ export const generateThemeSuggestions = async (
       throw new Error("Theme generation failed");
     }
   } catch (error) {
-    console.error("Error calling generateThemeSuggestions function:", error);
+    logger.error("Error calling generateThemeSuggestions function", error);
     throw error;
   }
 };
@@ -123,7 +124,7 @@ export const getStory = async (storyId: string): Promise<Story> => {
       throw new Error("Failed to fetch story");
     }
   } catch (error) {
-    console.error("Error calling getStory function:", error);
+    logger.error("Error calling getStory function", error);
     throw error;
   }
 };
@@ -146,7 +147,7 @@ export const reportStory = async (
       throw new Error("Failed to report story");
     }
   } catch (error) {
-    console.error("Error calling reportStory function:", error);
+    logger.error("Error calling reportStory function", error);
     throw error;
   }
 };
@@ -162,7 +163,7 @@ export const deleteStory = async (storyId: string): Promise<void> => {
       throw new Error("Failed to delete story");
     }
   } catch (error) {
-    console.error("Error calling deleteStory function:", error);
+    logger.error("Error calling deleteStory function", error);
     throw error;
   }
 };

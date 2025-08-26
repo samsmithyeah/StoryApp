@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Child, ChildrenState } from "../types/child.types";
+import { logger } from "../utils/logger";
 import {
   getChildren,
   addChild as addChildService,
@@ -37,15 +38,11 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       const children = await getChildren();
       // Only log if there's something meaningful to report
       if (children.length > 0) {
-        console.log(
-          "[CHILDREN_STORE] Loaded",
-          children.length,
-          children.length === 1 ? "child" : "children"
-        );
+        logger.debug("Loaded children", { count: children.length });
       }
       set({ children, loading: false });
     } catch (error) {
-      console.log("[CHILDREN_STORE] Error loading children:", error);
+      logger.error("Error loading children", error);
       set({
         error:
           error instanceof Error ? error.message : "Failed to load children",

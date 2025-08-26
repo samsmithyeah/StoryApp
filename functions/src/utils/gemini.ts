@@ -1,4 +1,5 @@
 import { defineSecret } from "firebase-functions/params";
+import { logger } from "./logger";
 
 export const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -49,15 +50,12 @@ export class GeminiClient {
     temperature: number = 0.9,
     thinkingBudget?: number
   ): Promise<string> {
-    console.log(
-      `[GeminiClient] Generating text with prompt: ${userPrompt.substring(0, 100)}...`
-    );
-    console.log(
-      `[GeminiClient] System prompt: ${systemPrompt.substring(0, 200)}...`
-    );
-    console.log(
-      `[GeminiClient] Temperature: ${temperature}, thinkingBudget: ${thinkingBudget}`
-    );
+    logger.debug("GeminiClient generating text", {
+      userPromptPreview: userPrompt.substring(0, 100),
+      systemPromptPreview: systemPrompt.substring(0, 200),
+      temperature,
+      thinkingBudget,
+    });
 
     const request = {
       contents: [
@@ -105,10 +103,10 @@ export class GeminiClient {
       ],
     };
 
-    console.log(
-      `[GeminiClient] Sending request to ${this.textModel}:`,
-      JSON.stringify(request, null, 2)
-    );
+    logger.debug("GeminiClient sending request", {
+      textModel: this.textModel,
+      request,
+    });
 
     const response = await fetch(
       `${this.baseUrl}/models/${this.textModel}:generateContent?key=${this.apiKey}`,
@@ -123,9 +121,11 @@ export class GeminiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `[GeminiClient] Text API error: ${response.status} ${response.statusText}: ${errorText}`
-      );
+      logger.error("GeminiClient text API error", {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+      });
       throw new Error(
         `Gemini text API request failed: ${response.status} ${response.statusText}`
       );
@@ -134,20 +134,17 @@ export class GeminiClient {
     const responseData = (await response.json()) as GeminiResponse;
 
     // Enhanced logging to debug the "No candidates" issue
-    console.log(
-      `[GeminiClient] Text response received with ${responseData.candidates?.length || 0} candidates`
-    );
-    console.log(
-      `[GeminiClient] Full response data:`,
-      JSON.stringify(responseData, null, 2)
-    );
+    logger.debug("GeminiClient text response received", {
+      candidatesCount: responseData.candidates?.length || 0,
+      responseData,
+    });
 
     // Check for content blocked by safety filters
     if ((responseData as any).promptFeedback?.blockReason) {
       const blockReason = (responseData as any).promptFeedback.blockReason;
-      console.error(
-        `[GeminiClient] Content blocked by safety filter. Block reason: ${blockReason}`
-      );
+      logger.error("GeminiClient content blocked by safety filter", {
+        blockReason,
+      });
       throw new Error(
         `Gemini blocked content due to safety filter: ${blockReason}`
       );
@@ -155,15 +152,12 @@ export class GeminiClient {
 
     const candidate = responseData.candidates?.[0];
     if (!candidate) {
-      console.error(
-        `[GeminiClient] No candidates found in response. Response structure:`,
-        {
-          hasCandidates: !!responseData.candidates,
-          candidatesLength: responseData.candidates?.length,
-          responseKeys: Object.keys(responseData),
-          fullResponse: responseData,
-        }
-      );
+      logger.error("GeminiClient no candidates found in response", {
+        hasCandidates: !!responseData.candidates,
+        candidatesLength: responseData.candidates?.length,
+        responseKeys: Object.keys(responseData),
+        fullResponse: responseData,
+      });
       throw new Error("No candidates in Gemini text response");
     }
 
@@ -176,9 +170,9 @@ export class GeminiClient {
   }
 
   async generateImage(prompt: string): Promise<string> {
-    console.log(
-      `[GeminiClient] Generating image with prompt: ${prompt.substring(0, 100)}...`
-    );
+    logger.debug("GeminiClient generating image", {
+      promptPreview: prompt.substring(0, 100),
+    });
 
     const request: GeminiGenerateRequest = {
       contents: [
@@ -210,18 +204,20 @@ export class GeminiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`
-      );
+      logger.error("GeminiClient API error", {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+      });
       throw new Error(
         `Gemini API request failed: ${response.status} ${response.statusText}`
       );
     }
 
     const responseData = (await response.json()) as GeminiResponse;
-    console.log(
-      `[GeminiClient] Response received with ${responseData.candidates?.length || 0} candidates`
-    );
+    logger.debug("GeminiClient response received", {
+      candidatesCount: responseData.candidates?.length || 0,
+    });
 
     // Find the image in the response
     const candidate = responseData.candidates?.[0];
@@ -236,9 +232,9 @@ export class GeminiClient {
 
     // Convert base64 to data URL
     const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    console.log(
-      `[GeminiClient] Image generated successfully, mime type: ${imagePart.inlineData.mimeType}`
-    );
+    logger.debug("GeminiClient image generated successfully", {
+      mimeType: imagePart.inlineData.mimeType,
+    });
 
     return imageDataUrl;
   }
@@ -248,9 +244,9 @@ export class GeminiClient {
     inputImageBase64: string,
     mimeType: string = "image/png"
   ): Promise<string> {
-    console.log(
-      `[GeminiClient] Editing image with prompt: ${prompt.substring(0, 100)}...`
-    );
+    logger.debug("GeminiClient editing image", {
+      promptPreview: prompt.substring(0, 100),
+    });
 
     const request: GeminiGenerateRequest = {
       contents: [
@@ -288,18 +284,20 @@ export class GeminiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `[GeminiClient] API error: ${response.status} ${response.statusText}: ${errorText}`
-      );
+      logger.error("GeminiClient API error", {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+      });
       throw new Error(
         `Gemini API request failed: ${response.status} ${response.statusText}`
       );
     }
 
     const responseData = (await response.json()) as GeminiResponse;
-    console.log(
-      `[GeminiClient] Edit response received with ${responseData.candidates?.length || 0} candidates`
-    );
+    logger.debug("GeminiClient edit response received", {
+      candidatesCount: responseData.candidates?.length || 0,
+    });
 
     // Find the image in the response
     const candidate = responseData.candidates?.[0];
@@ -314,9 +312,9 @@ export class GeminiClient {
 
     // Convert base64 to data URL
     const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    console.log(
-      `[GeminiClient] Image edited successfully, mime type: ${imagePart.inlineData.mimeType}`
-    );
+    logger.debug("GeminiClient image edited successfully", {
+      mimeType: imagePart.inlineData.mimeType,
+    });
 
     return imageDataUrl;
   }

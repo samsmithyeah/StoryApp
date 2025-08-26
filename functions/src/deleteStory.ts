@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { https } from "firebase-functions/v2";
+import { logger } from "./utils/logger";
 
 const db = admin.firestore();
 const storage = admin.storage();
@@ -15,14 +16,15 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
     invoker: "public",
   },
   async (request: https.CallableRequest<DeleteStoryRequest>) => {
-    console.log("=== deleteStory function called ===");
-    console.log("Request auth:", request.auth);
-    console.log("Request data:", request.data);
+    logger.info("deleteStory function called", {
+      auth: request.auth,
+      data: request.data,
+    });
 
     const { auth, data } = request;
 
     if (!auth) {
-      console.error("No auth object in request");
+      logger.error("No auth object in request");
       throw new https.HttpsError(
         "unauthenticated",
         "User must be authenticated."
@@ -30,7 +32,7 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
     }
 
     if (!auth.uid) {
-      console.error("No uid in auth object:", auth);
+      logger.error("No uid in auth object", { auth });
       throw new https.HttpsError(
         "unauthenticated",
         "User must be authenticated."
@@ -44,9 +46,7 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
     const userId = auth.uid;
     const { storyId } = data;
 
-    console.log(
-      `Starting story deletion for story: ${storyId}, user: ${userId}`
-    );
+    logger.info("Starting story deletion", { storyId, userId });
 
     try {
       // First, get the story document to verify ownership and get image paths
@@ -67,11 +67,11 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
         );
       }
 
-      console.log(`Verified story ownership for story: ${storyId}`);
+      logger.debug("Verified story ownership", { storyId });
 
       // Delete the story document from Firestore
       await storyDocRef.delete();
-      console.log(`Story document deleted: ${storyId}`);
+      logger.info("Story document deleted", { storyId });
 
       // Delete all associated images from Firebase Storage
       try {
@@ -85,26 +85,21 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
           // Delete all files in parallel
           const deletePromises = files.map(async (file) => {
             await file.delete();
-            console.log(`Deleted storage file: ${file.name}`);
+            logger.debug("Deleted storage file", { fileName: file.name });
           });
 
           await Promise.all(deletePromises);
-          console.log(`Storage cleanup completed for story: ${storyId}`);
+          logger.info("Storage cleanup completed", { storyId });
         } else {
-          console.log(`No storage files found for story: ${storyId}`);
+          logger.debug("No storage files found", { storyId });
         }
       } catch (storageError) {
-        console.error(
-          `Storage cleanup failed for story ${storyId}:`,
-          storageError
-        );
+        logger.error("Storage cleanup failed", storageError, { storyId });
         // Don't throw here - we want to continue even if storage cleanup fails
         // The story document is already deleted from Firestore
       }
 
-      console.log(
-        `Story deletion completed successfully for story: ${storyId}`
-      );
+      logger.info("Story deletion completed successfully", { storyId });
 
       return {
         success: true,
@@ -112,7 +107,7 @@ export const deleteStory = https.onCall<DeleteStoryRequest>(
         storyId: storyId,
       };
     } catch (error) {
-      console.error(`Error deleting story ${storyId}:`, error);
+      logger.error("Error deleting story", error, { storyId });
 
       // Re-throw HttpsError instances as-is
       if (error instanceof https.HttpsError) {

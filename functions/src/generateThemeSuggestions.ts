@@ -1,16 +1,15 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 
 export const generateThemeSuggestions = onCall(
   { secrets: [openaiApiKey] },
   async (request) => {
-    console.log(
-      "Function called with auth:",
-      !!request.auth,
-      "uid:",
-      request.auth?.uid
-    );
+    logger.debug("generateThemeSuggestions function called", {
+      hasAuth: !!request.auth,
+      uid: request.auth?.uid,
+    });
 
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -117,7 +116,7 @@ Example format:
       try {
         parsedResponse = JSON.parse(content);
       } catch {
-        console.error("Failed to parse OpenAI response:", content);
+        logger.error("Failed to parse OpenAI response", { content });
         throw new Error("Invalid JSON response from OpenAI");
       }
 
@@ -138,7 +137,7 @@ Example format:
 
       return { success: true, themes };
     } catch (error: any) {
-      console.error("Error generating theme suggestions:", error);
+      logger.error("Error generating theme suggestions", error);
 
       if (error instanceof HttpsError) {
         throw error;

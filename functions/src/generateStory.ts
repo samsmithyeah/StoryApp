@@ -8,6 +8,7 @@ import {
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
+import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { TIMEOUTS } from "./constants";
@@ -127,20 +128,13 @@ export const generateStory = onCall(
       // Build character info from character selection screen
       const allCharacters = data.characters || [];
 
-      console.log(
-        "[generateStory] Full request data:",
-        JSON.stringify(
-          {
-            selectedChildren: data.selectedChildren,
-            characters: data.characters,
-            theme: data.theme,
-            mood: data.mood,
-            storyAbout: data.storyAbout,
-          },
-          null,
-          2
-        )
-      );
+      logger.debug("Full request data", {
+        selectedChildren: data.selectedChildren,
+        characters: data.characters,
+        theme: data.theme,
+        mood: data.mood,
+        storyAbout: data.storyAbout,
+      });
 
       // Get appearance details for children who are characters
       const characterDescriptions = await Promise.all(
@@ -190,10 +184,7 @@ export const generateStory = onCall(
 
       const characterInfo = characterDescriptions.join(", ");
 
-      console.log(
-        "[generateStory] Character descriptions built:",
-        characterDescriptions
-      );
+      logger.debug("Character descriptions built", { characterDescriptions });
 
       // Separate character names with ages from full appearance details
       const characterNamesWithAges = await Promise.all(
@@ -213,14 +204,10 @@ export const generateStory = onCall(
 
       const characterNamesString = characterNamesWithAges.join(", ");
 
-      console.log(
-        "[generateStory] Character names with ages:",
-        characterNamesWithAges
-      );
-      console.log(
-        "[generateStory] Final characterNamesString:",
-        characterNamesString
-      );
+      logger.debug("Character names with ages", {
+        characterNamesWithAges,
+        characterNamesString,
+      });
 
       const userPrompt = `Create a personalized bedtime story with the following details:
 ${
@@ -306,7 +293,9 @@ Return the story in this JSON format:
           try {
             storyContent = JSON.parse(jsonText.trim());
           } catch (error) {
-            console.error("Failed to parse Gemini response as JSON:", jsonText);
+            logger.error("Failed to parse Gemini response as JSON", {
+              jsonText,
+            });
             throw new HttpsError(
               "internal",
               "Invalid JSON response from Gemini"
@@ -315,8 +304,8 @@ Return the story in this JSON format:
         } catch (error: any) {
           // Check if this is a Gemini safety filter error
           if (error.message && error.message.includes("safety filter")) {
-            console.log(
-              "[Orchestrator] Gemini safety filter blocked content. Falling back to GPT-4o..."
+            logger.info(
+              "Gemini safety filter blocked content, falling back to GPT-4o"
             );
 
             // Fallback to GPT-4o (proven to work well for children's stories)
@@ -337,18 +326,14 @@ Return the story in this JSON format:
                 chatResponse.choices[0].message.content || "{}"
               );
 
-              console.log(
-                "[Orchestrator] Successfully generated story using GPT-4o fallback"
-              );
+              logger.info("Successfully generated story using GPT-4o fallback");
             } catch (fallbackError: any) {
               // If GPT-4o also blocks content, show friendly error
               if (
                 fallbackError.name === "BadRequestError" &&
                 fallbackError.message?.includes("safety system")
               ) {
-                console.log(
-                  "[Orchestrator] Both Gemini and GPT-4o blocked content"
-                );
+                logger.warn("Both Gemini and GPT-4o blocked content");
                 throw new HttpsError(
                   "invalid-argument",
                   "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
@@ -436,10 +421,8 @@ Return the story in this JSON format:
         },
       };
 
-      console.log(
-        `[Orchestrator] Creating story document with text data (storyId: ${storyId})`
-      );
-      console.log(`[Orchestrator] Document data being written:`, {
+      logger.info("Creating story document with text data", {
+        storyId,
         hasTitle: !!storyContent.title,
         hasStoryContent: storyPages.length > 0,
         coverImageUrl: storyDocData.coverImageUrl,
@@ -447,14 +430,12 @@ Return the story in this JSON format:
         timestamp: new Date().toISOString(),
       });
       await storyRef.set(storyDocData);
-      console.log(
-        `[Orchestrator] Story document created successfully at ${new Date().toISOString()}`
-      );
+      logger.info("Story document created successfully", {
+        timestamp: new Date().toISOString(),
+      });
 
       // 6. Publish Cover Image Generation Task to Pub/Sub
-      console.log(
-        `[Orchestrator] Publishing cover image generation task for storyId: ${storyId}`
-      );
+      logger.info("Publishing cover image generation task", { storyId });
 
       const selectedCoverImageModel =
         data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
@@ -482,20 +463,16 @@ Return the story in this JSON format:
       await pubsub
         .topic("generate-cover-image")
         .publishMessage({ json: coverPayload });
-      console.log(
-        `[Orchestrator] Cover image generation task published successfully`
-      );
+      logger.info("Cover image generation task published successfully");
 
       // 7. Page image generation will be triggered by the cover generation function
       // after the cover is successfully generated (to maintain consistency)
 
       // 9. Return the story ID to the client
-      console.log(
-        `[Orchestrator] Process complete. Returning storyId: ${storyId}`
-      );
+      logger.info("Process complete", { storyId });
       return { success: true, storyId };
     } catch (error: any) {
-      console.error("Error in generateStory orchestrator:", error);
+      logger.error("Error in generateStory orchestrator", error);
 
       // If it's already an HttpsError, just re-throw it
       if (error instanceof HttpsError) {
@@ -504,8 +481,8 @@ Return the story in this JSON format:
 
       // Handle Gemini safety filter errors (fallback should have handled this, but just in case)
       if (error.message && error.message.includes("safety filter")) {
-        console.error(
-          "[Orchestrator] Gemini safety filter error reached global handler - fallback may have failed"
+        logger.error(
+          "Gemini safety filter error reached global handler - fallback may have failed"
         );
         throw new HttpsError(
           "invalid-argument",

@@ -1,6 +1,7 @@
 import { CreditPackCard } from "@/components/credits/CreditPackCard";
 import { CreditsHeader } from "@/components/credits/CreditsHeader";
 import { InfoSection } from "@/components/credits/InfoSection";
+import { logger } from "@/utils/logger";
 import { PurchaseButton } from "@/components/credits/PurchaseButton";
 import { StarsDecorations } from "@/components/credits/StarsDecorations";
 import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
@@ -117,10 +118,10 @@ export default function CreditsScreen({
         setActiveSubscriptions(customerInfo.activeSubscriptions);
         setSubscriptionInfo(customerInfo);
       } catch (error) {
-        console.log("Could not load customer info:", error);
+        logger.debug("Could not load customer info", { error });
       }
     } catch (error: any) {
-      console.error("Error loading offerings:", error);
+      logger.error("Error loading offerings", error);
 
       // Add fake offerings for testing when RevenueCat fails (dev only)
       if (__DEV__) {
@@ -256,7 +257,7 @@ export default function CreditsScreen({
       user.uid,
       (updatedCredits) => {
         if (updatedCredits) {
-          console.log("Credits updated:", updatedCredits.balance);
+          logger.debug("Credits updated", { balance: updatedCredits.balance });
 
           // Check if credits increased to trigger animation
           const newBalance = updatedCredits.balance;
@@ -350,7 +351,7 @@ export default function CreditsScreen({
                       await loadCreditsAndOfferings();
                     }
                   } catch (purchaseError: any) {
-                    console.error("Purchase error:", purchaseError);
+                    logger.error("Purchase error", purchaseError);
                     if (!purchaseError.userCancelled) {
                       Alert.alert(
                         "Purchase failed",
@@ -398,7 +399,7 @@ export default function CreditsScreen({
         }
       }
     } catch (error: any) {
-      console.error("Purchase error:", error);
+      logger.error("Purchase error", error);
       if (!error.userCancelled) {
         Alert.alert("Purchase failed", error.message || "Something went wrong");
       }
@@ -419,7 +420,7 @@ export default function CreditsScreen({
       });
       await loadCreditsAndOfferings();
     } catch (error) {
-      console.error("Restore error:", error);
+      logger.error("Restore error", error);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -675,18 +676,18 @@ export default function CreditsScreen({
 
                       const customerInfo =
                         await revenueCatService.getCustomerInfo();
-                      console.log(
-                        "Debug - Active subscriptions:",
-                        customerInfo.activeSubscriptions
-                      );
-                      console.log(
-                        "Debug - Expiration dates:",
-                        customerInfo.allExpirationDates
-                      );
+                      logger.debug("Debug - Active subscriptions", {
+                        activeSubscriptions: customerInfo.activeSubscriptions,
+                      });
+                      logger.debug("Debug - Expiration dates", {
+                        expirationDates: customerInfo.allExpirationDates,
+                      });
 
                       const currentSub =
                         await revenueCatService.getCurrentActiveSubscription();
-                      console.log("Debug - Current subscription:", currentSub);
+                      logger.debug("Debug - Current subscription", {
+                        currentSub,
+                      });
 
                       await revenueCatService.syncSubscriptionStatus();
                       await loadCreditsAndOfferings();
@@ -696,7 +697,7 @@ export default function CreditsScreen({
                         `Current subscription: ${currentSub?.productId || "None"}`
                       );
                     } catch (error) {
-                      console.error("Debug error:", error);
+                      logger.error("Debug error", error);
                       Alert.alert("Debug Error", String(error));
                     }
                   }}
@@ -712,10 +713,10 @@ export default function CreditsScreen({
 
                       const freshCustomerInfo =
                         await revenueCatService.restorePurchases();
-                      console.log(
-                        "Refresh - Active subscriptions:",
-                        freshCustomerInfo.activeSubscriptions
-                      );
+                      logger.debug("Refresh - Active subscriptions", {
+                        activeSubscriptions:
+                          freshCustomerInfo.activeSubscriptions,
+                      });
 
                       await revenueCatService.syncSubscriptionStatus();
                       await loadCreditsAndOfferings();
@@ -725,7 +726,7 @@ export default function CreditsScreen({
                         `Active subs: ${freshCustomerInfo.activeSubscriptions.join(", ")}`
                       );
                     } catch (error) {
-                      console.error("Refresh error:", error);
+                      logger.error("Refresh error", error);
                       Alert.alert("Refresh Error", String(error));
                     }
                   }}

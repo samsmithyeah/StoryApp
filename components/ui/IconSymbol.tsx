@@ -4,6 +4,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { SymbolViewProps, SymbolWeight } from "expo-symbols";
 import { ComponentProps } from "react";
 import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
+import { logger } from "../../utils/logger";
 
 type IconMapping = Record<
   SymbolViewProps["name"],
@@ -116,9 +117,10 @@ export function IconSymbol({
   const iconName = MAPPING[name as IconSymbolName];
 
   if (!iconName && __DEV__) {
-    console.warn(
-      `IconSymbol: No mapping found for icon "${name}". Add it to MAPPING in IconSymbol.tsx`
-    );
+    logger.warn(`IconSymbol: No mapping found for icon "${name}"`, {
+      iconName: name,
+      availableMappings: Object.keys(MAPPING),
+    });
   }
 
   return (

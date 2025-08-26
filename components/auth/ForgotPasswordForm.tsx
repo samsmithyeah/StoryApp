@@ -8,6 +8,7 @@ import {
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { validateEmail } from "../../utils/validation";
+import { logger } from "../../utils/logger";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
@@ -45,7 +46,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
       setResetSent(true);
     } catch (error) {
       // Error is already set in state by useAuth hook, but log for debugging
-      console.error("Password reset error:", error);
+      logger.error("Password reset error", error, { email });
     }
   };
 

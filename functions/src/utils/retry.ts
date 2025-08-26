@@ -1,4 +1,5 @@
 // Retry function with exponential backoff
+import { logger } from "./logger";
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
@@ -31,11 +32,12 @@ export async function retryWithBackoff<T>(
             : error.message?.includes("No image data in Gemini response")
               ? "Gemini image generation failed"
               : "Content policy violation";
-        console.log(
-          `${errorType}. Retrying after ${delay}ms (attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
+        logger.info("Retrying after error", {
+          errorType,
+          delay,
+          attempt: i + 1,
+          maxRetries,
+        });
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else if (!isRetryableError) {
         // If not a retryable error, throw immediately

@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { https } from "firebase-functions/v2";
+import { logger } from "./utils/logger";
 
 const db = admin.firestore();
 const storage = admin.storage();
@@ -11,14 +12,15 @@ export const deleteUserData = https.onCall(
     invoker: "public",
   },
   async (request: https.CallableRequest) => {
-    console.log("=== deleteUserData function called (v2) ===");
-    console.log("Request auth:", request.auth);
-    console.log("Request data:", request.data);
+    logger.info("deleteUserData function called", {
+      auth: request.auth,
+      data: request.data,
+    });
 
     const { auth } = request;
 
     if (!auth) {
-      console.error("No auth object in request");
+      logger.error("No auth object in request");
       throw new https.HttpsError(
         "unauthenticated",
         "User must be authenticated."
@@ -26,17 +28,17 @@ export const deleteUserData = https.onCall(
     }
 
     if (!auth.uid) {
-      console.error("No uid in auth object:", auth);
+      logger.error("No uid in auth object", { auth });
       throw new https.HttpsError(
         "unauthenticated",
         "User must be authenticated."
       );
     }
 
-    console.log("Authenticated user ID:", auth.uid);
+    logger.debug("Authenticated user ID", { userId: auth.uid });
 
     const userId = auth.uid;
-    console.log(`Starting data deletion for user: ${userId}`);
+    logger.info("Starting data deletion for user", { userId });
 
     try {
       // Create a batch for Firestore operations
@@ -45,12 +47,12 @@ export const deleteUserData = https.onCall(
       // Delete user document
       const userDocRef = db.collection("users").doc(userId);
       batch.delete(userDocRef);
-      console.log(`Queued user document for deletion: ${userId}`);
+      logger.debug("Queued user document for deletion", { userId });
 
       // Delete user preferences
       const preferencesDocRef = db.collection("userPreferences").doc(userId);
       batch.delete(preferencesDocRef);
-      console.log(`Queued user preferences for deletion: ${userId}`);
+      logger.debug("Queued user preferences for deletion", { userId });
 
       // Delete children documents
       const childrenSnapshot = await db
@@ -60,7 +62,7 @@ export const deleteUserData = https.onCall(
 
       childrenSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
-        console.log(`Queued child document for deletion: ${doc.id}`);
+        logger.debug("Queued child document for deletion", { childId: doc.id });
       });
 
       // Delete saved characters documents
@@ -71,7 +73,9 @@ export const deleteUserData = https.onCall(
 
       charactersSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
-        console.log(`Queued saved character for deletion: ${doc.id}`);
+        logger.debug("Queued saved character for deletion", {
+          characterId: doc.id,
+        });
       });
 
       // Delete stories documents
@@ -82,12 +86,12 @@ export const deleteUserData = https.onCall(
 
       storiesSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
-        console.log(`Queued story for deletion: ${doc.id}`);
+        logger.debug("Queued story for deletion", { storyId: doc.id });
       });
 
       // Commit all Firestore deletions
       await batch.commit();
-      console.log(`Firestore data deleted successfully for user: ${userId}`);
+      logger.info("Firestore data deleted successfully for user", { userId });
 
       // Delete all user files from Firebase Storage
       try {
@@ -101,27 +105,26 @@ export const deleteUserData = https.onCall(
           // Delete all files in parallel
           const deletePromises = files.map(async (file) => {
             await file.delete();
-            console.log(`Deleted storage file: ${file.name}`);
+            logger.debug("Deleted storage file", { fileName: file.name });
           });
 
           await Promise.all(deletePromises);
-          console.log(`Storage cleanup completed for user: ${userId}`);
+          logger.info("Storage cleanup completed for user", { userId });
         } else {
-          console.log(`No storage files found for user: ${userId}`);
+          logger.debug("No storage files found for user", { userId });
         }
       } catch (storageError) {
-        console.error(
-          `Storage cleanup failed for user ${userId}:`,
-          storageError
-        );
+        logger.error("Storage cleanup failed for user", storageError, {
+          userId,
+        });
         // Don't throw here - we want to continue even if storage cleanup fails
       }
 
       // Delete from Firebase Auth
       await admin.auth().deleteUser(userId);
-      console.log(`User account deleted from Firebase Auth: ${userId}`);
+      logger.info("User account deleted from Firebase Auth", { userId });
 
-      console.log(`Data deletion completed successfully for user: ${userId}`);
+      logger.info("Data deletion completed successfully for user", { userId });
 
       return {
         success: true,
@@ -137,7 +140,7 @@ export const deleteUserData = https.onCall(
         ],
       };
     } catch (error) {
-      console.error(`Error deleting user data for ${userId}:`, error);
+      logger.error("Error deleting user data", error, { userId });
       throw new https.HttpsError("unknown", "Failed to delete user account.");
     }
   }

@@ -15,6 +15,7 @@ import { toastConfig } from "@/components/ui/CustomToast";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { logger } from "@/utils/logger";
 import * as Sentry from "@sentry/react-native";
 
 // Initialize Sentry with validation and error handling
@@ -22,7 +23,7 @@ const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 let sentryInitialized = false;
 
 if (!SENTRY_DSN) {
-  console.warn(
+  logger.warn(
     "EXPO_PUBLIC_SENTRY_DSN environment variable is not set. Sentry will not be initialized."
   );
 } else {
@@ -33,9 +34,9 @@ if (!SENTRY_DSN) {
     });
     sentryInitialized = true;
 
-    console.log("Sentry initialized successfully");
+    logger.debug("Sentry initialized successfully");
   } catch (error) {
-    console.error("Failed to initialize Sentry:", error);
+    logger.error("Failed to initialize Sentry", error);
   }
 }
 

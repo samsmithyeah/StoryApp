@@ -6,6 +6,7 @@ import {
   StoryGenerationRequest,
 } from "@/services/firebase/stories";
 import { Story, StoryConfiguration } from "@/types/story.types";
+import { logger } from "@/utils/logger";
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -186,7 +187,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       setGenerationError(null);
 
       if (!isWizardComplete(wizardData)) {
-        console.error("Wizard data incomplete");
+        logger.error("Wizard data incomplete", { wizardData });
         return;
       }
 
@@ -205,7 +206,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       // Store the story ID to monitor progress, but don't navigate yet
       setGeneratedStoryId(result.storyId);
     } catch (error: any) {
-      console.error("Error generating story:", error);
+      logger.error("Error generating story", error, { wizardData });
       setIsGenerating(false);
 
       // Use the error message from the cloud function, or provide a fallback

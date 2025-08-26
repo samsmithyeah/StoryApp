@@ -1,6 +1,7 @@
 // import { useChildren } from "@/hooks/useChildren";
 // import { ThemeSuggestion } from "@/services/firebase/stories";
 import { Colors } from "@/constants/Theme";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import {
   Alert,
@@ -10,7 +11,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { CustomThemeSection } from "../shared/CustomThemeSection";
 import { ThemeCard } from "../shared/ThemeCard";
 import { WizardContainer } from "../shared/WizardContainer";

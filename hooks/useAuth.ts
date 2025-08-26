@@ -10,6 +10,7 @@ import {
   signInWithGoogle,
   signUpWithEmail,
 } from "../services/firebase/auth";
+import { logger } from "../utils/logger";
 import { useAuthStore } from "../store/authStore";
 import { LoginCredentials, SignUpCredentials } from "../types/auth.types";
 
@@ -118,17 +119,17 @@ export const useAuth = () => {
 
   const googleSignIn = async () => {
     try {
-      console.log("[AUTH] Starting Google sign in");
+      logger.debug("Starting Google sign in");
       setAuthLoading(true);
       setError(null);
       await signInWithGoogle();
-      console.log("[AUTH] Google sign in completed");
+      logger.debug("Google sign in completed");
     } catch (error) {
-      console.log("[AUTH] Google sign in error:", error);
+      logger.error("Google sign in error", error);
       setError(getAuthErrorMessage(error));
     } finally {
       setAuthLoading(false);
-      console.log("[AUTH] Google sign in finished (authLoading = false)");
+      logger.debug("Google sign in finished (authLoading = false)");
     }
   };
 

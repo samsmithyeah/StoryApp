@@ -99,13 +99,15 @@ To get your Google Web Client ID:
 
 1. Go to **Firestore Database** in Firebase Console
 2. Click **Create database**
-3. Choose **Start in test mode** (for development)
+3. Choose **Start in production mode** (IMPORTANT: Never use test mode as it leaves your database completely open)
 4. Select your preferred location
 5. Click **Done**
 
-## 8. Security Rules (Production)
+## 8. Security Rules Setup (REQUIRED)
 
-Update Firestore security rules for production:
+**CRITICAL: Set up these security rules immediately after creating your database. Do not skip this step.**
+
+In the Firebase Console, go to **Firestore Database** → **Rules** and replace the default rules with:
 
 ```javascript
 rules_version = '2';
@@ -123,6 +125,14 @@ service cloud.firestore {
   }
 }
 ```
+
+**After adding these rules, click "Publish" in the Firebase Console.**
+
+These rules ensure that:
+
+- Only authenticated users can access the database
+- Users can only read/write their own data
+- All other access is denied by default
 
 ## 9. Build and Test
 

@@ -3,6 +3,7 @@ import {
   ref as rnRef,
 } from "@react-native-firebase/storage";
 import { storageService } from "./config";
+import { logger } from "../../utils/logger";
 
 /**
  * Upload an image to Firebase Storage
@@ -29,7 +30,7 @@ export async function uploadImageFromUrl(
     const downloadUrl = await rnGetDownloadURL(reference);
     return downloadUrl;
   } catch (error) {
-    console.error("Error uploading image to Firebase Storage:", error);
+    logger.error("Error uploading image to Firebase Storage", error);
     throw error;
   }
 }
@@ -43,7 +44,7 @@ export async function deleteImage(path: string): Promise<void> {
     const reference = rnRef(storageService, path);
     await reference.delete();
   } catch (error) {
-    console.error("Error deleting image from Firebase Storage:", error);
+    logger.error("Error deleting image from Firebase Storage", error);
     throw error;
   }
 }
@@ -89,7 +90,7 @@ export async function getAuthenticatedUrl(
           return null;
         }
       } catch (fetchError) {
-        console.warn("Error checking signed URL validity:", fetchError);
+        logger.warn("Error checking signed URL validity", fetchError);
         return null;
       }
     }
@@ -98,18 +99,14 @@ export async function getAuthenticatedUrl(
     const reference = rnRef(storageService, storagePath);
     return await rnGetDownloadURL(reference);
   } catch (error) {
-    console.error(
-      "Error getting authenticated URL for path:",
-      storagePath,
-      error
-    );
+    logger.error("Error getting authenticated URL", { storagePath, error });
 
     // If we get a "not found" error, it might mean the file doesn't exist
     if ((error as any).code === "storage/object-not-found") {
-      console.error("Storage object not found. Path:", storagePath);
-      console.error(
-        "Expected format: stories/{userId}/{storyId}/{imageName}.png"
-      );
+      logger.error("Storage object not found", {
+        storagePath,
+        expectedFormat: "stories/{userId}/{storyId}/{imageName}.png",
+      });
     }
 
     return null;
