@@ -75,6 +75,10 @@ export const useAuth = () => {
     authLoading,
     setAuthLoading,
     isInitialized,
+    authStatus,
+    hasCompletedOnboarding,
+    completeOnboarding,
+    resetOnboarding,
   } = useAuthStore();
 
   useEffect(() => {
@@ -189,6 +193,8 @@ export const useAuth = () => {
     loading,
     error,
     authLoading,
+    authStatus,
+    hasCompletedOnboarding,
     emailSignIn,
     emailSignUp,
     googleSignIn,
@@ -198,5 +204,7 @@ export const useAuth = () => {
     checkEmailVerified,
     deleteAccount: deleteUserAccount,
     sendPasswordReset,
+    completeOnboarding,
+    resetOnboarding,
   };
 };
