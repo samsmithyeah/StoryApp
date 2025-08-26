@@ -6,6 +6,7 @@ import Purchases, {
 import { Platform } from "react-native";
 import { creditsService } from "./firebase/credits";
 import { logger } from "../utils/logger";
+import auth from "@react-native-firebase/auth";
 
 // Replace with your actual RevenueCat API keys
 const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
@@ -42,10 +43,66 @@ const CREDIT_AMOUNTS: Record<string, number> = {
 class RevenueCatService {
   private isConfigured = false;
   private userId: string | null = null;
+  private authUnsubscribe: (() => void) | null = null;
+
+  private validateCurrentUser(targetUserId: string): boolean {
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        logger.debug("No authenticated user found");
+        return false;
+      }
+
+      const isValid = currentUser.uid === targetUserId;
+      if (!isValid) {
+        logger.warn("User context mismatch", {
+          currentAuthUser: currentUser.uid,
+          targetUserId: targetUserId,
+        });
+      }
+
+      return isValid;
+    } catch (error) {
+      logger.warn("Error validating current user", error);
+      return false;
+    }
+  }
+
+  private async safelyCallCancelSubscription(userId: string): Promise<void> {
+    try {
+      await creditsService.cancelSubscription(userId);
+    } catch (error: any) {
+      if (error?.code === "firestore/permission-denied") {
+        logger.warn(
+          "Permission denied for subscription cancellation - likely user context mismatch",
+          {
+            targetUserId: userId,
+            currentRevenueCatUser: this.userId,
+            error: error.message,
+          }
+        );
+        // Don't rethrow - this is expected during user switches
+        return;
+      }
+
+      // For other errors, log and rethrow
+      logger.error("Unexpected error canceling subscription", error);
+      throw error;
+    }
+  }
 
   async configure(userId: string) {
     if (this.isConfigured && this.userId === userId) {
       return;
+    }
+
+    // Always cleanup before configuring with a new user
+    if (this.isConfigured && this.userId !== userId) {
+      logger.debug("Cleaning up RevenueCat before reconfiguring for new user", {
+        oldUserId: this.userId,
+        newUserId: userId,
+      });
+      this.cleanup();
     }
 
     try {
@@ -79,6 +136,10 @@ class RevenueCatService {
 
       // Set up listener for customer info updates
       Purchases.addCustomerInfoUpdateListener(this.handleCustomerInfoUpdate);
+
+      // Set up auth state listener to handle user switches
+      this.setupAuthListener();
+
       logger.debug("RevenueCat configured successfully");
     } catch (error) {
       logger.error("Error configuring RevenueCat", error);
@@ -97,9 +158,44 @@ class RevenueCatService {
     }
   }
 
+  private setupAuthListener(): void {
+    // Clean up existing listener if any
+    if (this.authUnsubscribe) {
+      this.authUnsubscribe();
+    }
+
+    // Set up new listener
+    this.authUnsubscribe = auth().onAuthStateChanged((user) => {
+      if (!user) {
+        // User logged out - cleanup RevenueCat
+        logger.debug("User logged out, cleaning up RevenueCat");
+        this.cleanup();
+      } else if (this.userId && user.uid !== this.userId) {
+        // User switched - cleanup and prepare for reconfiguration
+        logger.debug("User switched, cleaning up RevenueCat", {
+          oldUserId: this.userId,
+          newUserId: user.uid,
+        });
+        this.cleanup();
+      }
+    });
+  }
+
   private handleCustomerInfoUpdate = async (customerInfo: CustomerInfo) => {
     try {
-      if (!this.userId) return;
+      if (!this.userId) {
+        logger.debug("Customer info update skipped: no user ID");
+        return;
+      }
+
+      // Validate that current user matches the operation target
+      if (!this.validateCurrentUser(this.userId)) {
+        logger.warn("Customer info update skipped: user mismatch detected", {
+          revenueCatUserId: this.userId,
+          currentAuthState: "mismatch",
+        });
+        return;
+      }
 
       logger.debug("Customer info update", {
         activeSubscriptions: customerInfo.activeSubscriptions,
@@ -181,13 +277,13 @@ class RevenueCatService {
             );
           } else {
             logger.debug("Subscription expired, cancelling");
-            await creditsService.cancelSubscription(this.userId);
+            await this.safelyCallCancelSubscription(this.userId);
           }
         }
       } else {
         // No active subscription
         logger.debug("No active subscriptions, cancelling");
-        await creditsService.cancelSubscription(this.userId);
+        await this.safelyCallCancelSubscription(this.userId);
       }
     } catch (error) {
       logger.error("Error handling customer info update", error);
@@ -845,7 +941,7 @@ class RevenueCatService {
             logger.debug("Sync: Subscription status updated - active");
           } else {
             logger.debug("Sync: Subscription expired, cancelling");
-            await creditsService.cancelSubscription(this.userId);
+            await this.safelyCallCancelSubscription(this.userId);
           }
         } else {
           logger.warn("Sync: No expiration date found for active subscription");
@@ -861,7 +957,7 @@ class RevenueCatService {
       } else {
         // No active subscriptions
         logger.debug("Sync: No active subscriptions, cancelling");
-        await creditsService.cancelSubscription(this.userId);
+        await this.safelyCallCancelSubscription(this.userId);
       }
     } catch (error) {
       logger.error("Error syncing subscription status", error);
@@ -869,9 +965,20 @@ class RevenueCatService {
   }
 
   cleanup() {
+    // Remove RevenueCat listeners
     Purchases.removeCustomerInfoUpdateListener(this.handleCustomerInfoUpdate);
+
+    // Remove auth state listener
+    if (this.authUnsubscribe) {
+      this.authUnsubscribe();
+      this.authUnsubscribe = null;
+    }
+
+    // Reset state
     this.isConfigured = false;
     this.userId = null;
+
+    logger.debug("RevenueCat cleanup completed");
   }
 }
 

@@ -196,7 +196,7 @@ export const signUpWithEmail = async ({
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Force a complete auth refresh to ensure the profile update persists
-      await userCredential.user.reload();
+      await reload(userCredential.user);
 
       // Get fresh user instance after reload
       const currentUser = authService.currentUser;
@@ -246,7 +246,7 @@ export const signUpWithEmail = async ({
     const currentUser = authService.currentUser;
     if (currentUser) {
       logger.debug("Current user exists, reloading (signUpWithEmail)");
-      await currentUser.reload();
+      await reload(currentUser);
       logger.debug(
         "Reload completed, forcing auth state callback (signUpWithEmail)"
       );
@@ -357,7 +357,7 @@ export const signInWithGoogle = async (): Promise<User> => {
       const currentUser = authService.currentUser;
       if (currentUser) {
         logger.debug("Current user exists, reloading (signInWithGoogle)");
-        await currentUser.reload();
+        await reload(currentUser);
         logger.debug(
           "Reload completed, forcing auth state callback (signInWithGoogle)"
         );
@@ -477,7 +477,7 @@ export const signInWithApple = async (): Promise<User> => {
       const currentUser = authService.currentUser;
       if (currentUser) {
         logger.debug("Current user exists, reloading (signInWithApple)");
-        await currentUser.reload();
+        await reload(currentUser);
         logger.debug(
           "Reload completed, forcing auth state callback (signInWithApple)"
         );
