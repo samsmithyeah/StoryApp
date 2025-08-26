@@ -13,6 +13,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
+  Keyboard,
   View,
 } from "react-native";
 import { ContentLimits } from "../../constants/ContentLimits";
@@ -206,15 +208,16 @@ export const ChildProfileForm = forwardRef<
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: contentBottomPadding },
-        ]}
-        keyboardShouldPersistTaps="always"
-        nestedScrollEnabled
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: contentBottomPadding },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+        >
         <View style={styles.header}>
           <Text style={styles.title}>
             {title || (isEditing ? "Edit profile" : "Add a new child")}
@@ -381,7 +384,8 @@ export const ChildProfileForm = forwardRef<
             />
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 });

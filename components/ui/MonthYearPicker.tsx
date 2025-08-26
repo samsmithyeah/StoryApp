@@ -96,7 +96,6 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
       years.push(year);
     }
 
-    console.log("generateYears - generated years:", years);
     return years;
   };
 
