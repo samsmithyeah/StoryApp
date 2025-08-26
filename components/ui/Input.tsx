@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
+  Keyboard,
 } from "react-native";
 import { IconSymbol } from "./IconSymbol";
 import {
@@ -24,6 +25,9 @@ interface InputProps {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoCorrect?: boolean;
+  returnKeyType?: "done" | "go" | "next" | "search" | "send";
+  onSubmitEditing?: () => void;
   error?: string;
   disabled?: boolean;
   style?: ViewStyle;
@@ -47,6 +51,9 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry = false,
   keyboardType = "default",
   autoCapitalize = "sentences",
+  autoCorrect = true,
+  returnKeyType = "next",
+  onSubmitEditing,
   error,
   disabled = false,
   style,
@@ -70,6 +77,13 @@ export const Input: React.FC<InputProps> = ({
 
   const handleBlur = () => {
     setIsFocused(false);
+  };
+
+  const handleSubmitEditing = () => {
+    if (multiline && returnKeyType === "done") {
+      Keyboard.dismiss();
+    }
+    onSubmitEditing?.();
   };
 
   const handleTogglePassword = () => {
@@ -119,13 +133,15 @@ export const Input: React.FC<InputProps> = ({
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={handleSubmitEditing}
           editable={!disabled}
           onFocus={handleFocus}
           onBlur={handleBlur}
           multiline={multiline}
           numberOfLines={numberOfLines}
           placeholderTextColor={Colors.textMuted}
-          blurOnSubmit={false}
           selectTextOnFocus={false}
           maxLength={maxLength}
         />

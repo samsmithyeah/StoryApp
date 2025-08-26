@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { openInbox } from "react-native-email-link";
 import {
   BorderRadius,
   Colors,
@@ -113,14 +113,7 @@ export const EmailVerificationBanner: React.FC<
 
   const handleOpenEmailApp = async () => {
     try {
-      const supported = await Linking.canOpenURL("mailto:");
-      if (supported) {
-        await Linking.openURL("mailto:");
-      } else {
-        setMessage(
-          "Unable to open email app. Please check your email manually."
-        );
-      }
+      await openInbox();
     } catch (error) {
       setMessage("Unable to open email app. Please check your email manually.");
     }

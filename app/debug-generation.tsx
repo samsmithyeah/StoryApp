@@ -257,7 +257,6 @@ export default function DebugGenerationScreen() {
             : null
         }
         storyData={mockStory}
-        onCancel={() => console.log("Cancel pressed")}
         onNavigateToStory={() => console.log("Navigate to story pressed")}
         onStartOver={() => console.log("Start over pressed")}
         _debugForceStates={{

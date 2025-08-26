@@ -4,6 +4,7 @@ import {
   configureGoogleSignIn,
   deleteAccount,
   resendVerificationEmail,
+  resetPassword,
   signInWithApple,
   signInWithEmail,
   signInWithGoogle,
@@ -42,6 +43,9 @@ const getAuthErrorMessage = (error: any): string => {
       return "Please sign in again to complete this action.";
     case "auth/invalid-login-credentials":
       return "Invalid email or password. Please check your credentials and try again.";
+    // Password reset errors
+    case "auth/user-not-found":
+      return "No account found with this email address.";
     default:
       // If it's a custom error message that's already user-friendly, return it
       if (
@@ -166,6 +170,19 @@ export const useAuth = () => {
     }
   };
 
+  const sendPasswordReset = async (email: string) => {
+    try {
+      setAuthLoading(true);
+      setError(null);
+      await resetPassword(email);
+    } catch (error) {
+      setError(getAuthErrorMessage(error));
+      throw error;
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
@@ -179,5 +196,6 @@ export const useAuth = () => {
     resendVerificationEmail,
     checkEmailVerified,
     deleteAccount: deleteUserAccount,
+    sendPasswordReset,
   };
 };

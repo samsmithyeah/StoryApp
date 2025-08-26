@@ -158,14 +158,12 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
           onSave={handleChildFormComplete}
           onCancel={handleSkipChildProfile}
           title="Add a new child"
-          // ❌ no onValidityChange here
           contentBottomPadding={contentBottomPadding}
         />
 
         <View style={footerStyle}>
           <Button
             title="Continue"
-            // Keep the button enabled; validation runs in handleSave
             onPress={() => childFormRef.current?.handleSave()}
             size="large"
             variant="wizard"

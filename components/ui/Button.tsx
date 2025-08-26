@@ -42,6 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
     styles[variant],
     styles[`${size}Size`],
     (disabled || loading) && styles.disabled,
+    (disabled || loading) && variant === "outline" && styles.disabledOutline,
     style,
   ];
 
@@ -215,6 +216,11 @@ const styles = StyleSheet.create({
         boxShadow: "none",
       },
     }),
+  },
+  disabledOutline: {
+    backgroundColor: "transparent",
+    borderColor: Colors.textMuted,
+    opacity: 0.6,
   },
   disabledText: {
     color: Colors.textMuted,

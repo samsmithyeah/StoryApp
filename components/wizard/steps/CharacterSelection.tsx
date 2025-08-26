@@ -38,8 +38,13 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   onCancel,
 }) => {
   const router = useRouter();
-  const { savedCharacters, temporaryCharacter, clearTemporaryCharacter } =
-    useSavedCharacters();
+  const {
+    savedCharacters,
+    temporaryCharacter,
+    clearTemporaryCharacter,
+    loadState,
+    isInitialLoadComplete,
+  } = useSavedCharacters();
 
   // This function correctly sets up the initial state from props
   const initializeCharacters = () => {
@@ -82,30 +87,18 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   // Track which character IDs existed when Firebase first loaded
   // This way we can detect truly NEW characters added during this session
   const initialCharacterIds = useRef<Set<string> | null>(null);
-  const hasFirebaseLoaded = useRef(false);
-  const lastKnownIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    // Only proceed once Firebase has completed its initial load
+    if (!isInitialLoadComplete || loadState === "loading") {
+      return;
+    }
+
     const currentIds = new Set(savedCharacters.map((c) => c.id));
 
-    // Wait for Firebase to actually load - we know it has loaded when either:
-    // 1. We have characters, OR
-    // 2. We've seen the effect run at least twice (initial empty + Firebase response)
-    if (!hasFirebaseLoaded.current) {
-      if (savedCharacters.length > 0) {
-        // Firebase has loaded with characters
-        initialCharacterIds.current = new Set(savedCharacters.map((c) => c.id));
-        lastKnownIds.current = currentIds;
-        hasFirebaseLoaded.current = true;
-      } else if (lastKnownIds.current.size === 0) {
-        // First run with empty array - Firebase might still be loading
-        lastKnownIds.current = currentIds;
-      } else {
-        // Second run with empty array - Firebase has loaded but user has no saved characters
-        initialCharacterIds.current = new Set();
-        lastKnownIds.current = currentIds;
-        hasFirebaseLoaded.current = true;
-      }
+    // Initialize the baseline when Firebase first loads successfully
+    if (initialCharacterIds.current === null) {
+      initialCharacterIds.current = new Set(savedCharacters.map((c) => c.id));
       return;
     }
 
@@ -141,9 +134,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
       // Update our tracking to include these new characters
       newCharacterIds.forEach((id) => initialCharacterIds.current?.add(id));
     }
-
-    lastKnownIds.current = currentIds;
-  }, [savedCharacters]);
+  }, [savedCharacters, isInitialLoadComplete, loadState]);
 
   useEffect(() => {
     if (temporaryCharacter) {

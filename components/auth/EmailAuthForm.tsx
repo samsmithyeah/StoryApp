@@ -17,11 +17,13 @@ const isTablet = width >= 768;
 interface EmailAuthFormProps {
   mode: "signin" | "signup";
   onToggleMode: () => void;
+  onForgotPassword?: () => void;
 }
 
 export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   mode,
   onToggleMode,
+  onForgotPassword,
 }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,6 +147,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           }}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           leftIcon="envelope.fill"
           error={emailError}
         />
@@ -179,12 +182,19 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           />
         )}
 
-        <Button
-          title={mode === "signin" ? "Sign in" : "Create account"}
-          onPress={handleSubmit}
-          loading={authLoading}
-          style={styles.submitButton}
-        />
+        <View style={styles.submitButtonContainer}>
+          <Button
+            title={mode === "signin" ? "Sign in" : "Create account"}
+            onPress={handleSubmit}
+            loading={authLoading}
+            style={styles.submitButton}
+          />
+          {mode === "signin" && onForgotPassword && (
+            <Text style={styles.forgotPasswordLink} onPress={onForgotPassword}>
+              Forgot password?
+            </Text>
+          )}
+        </View>
 
         <View style={styles.toggleContainer}>
           <Text style={styles.toggleText}>
@@ -241,14 +251,27 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: Spacing.lg,
   },
-  submitButton: {
+  submitButtonContainer: {
     marginTop: Spacing.md,
+    position: "relative",
+  },
+  submitButton: {
+    width: "100%",
+  },
+  forgotPasswordLink: {
+    fontSize: Typography.fontSize.small,
+    color: Colors.primary,
+    textDecorationLine: "underline",
+    opacity: 0.8,
+    position: "absolute",
+    bottom: -Spacing.xxl,
+    right: 0,
   },
   toggleContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
     flexWrap: "wrap",
   },
   toggleText: {

@@ -55,6 +55,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return;
       }
 
+      console.log("[AUTH_STORE] Received user from auth service:", {
+        displayName: user?.displayName,
+        email: user?.email,
+        uid: user?.uid,
+      });
+
       // Clear error only when successfully authenticated
       // This prevents stale errors from persisting after successful login
       if (user && currentState.error) {
