@@ -107,3 +107,20 @@ jest.mock("@react-native-firebase/storage", () => ({
     })),
   })),
 }));
+
+// Mock Sentry globally to prevent timer issues
+jest.mock("@sentry/react-native", () => ({
+  addBreadcrumb: jest.fn(),
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+  setContext: jest.fn(),
+  init: jest.fn(),
+  configureScope: jest.fn(),
+  withScope: jest.fn(),
+  setUser: jest.fn(),
+  setTag: jest.fn(),
+  setTags: jest.fn(),
+  setExtra: jest.fn(),
+  setExtras: jest.fn(),
+  setLevel: jest.fn(),
+}));

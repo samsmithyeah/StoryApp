@@ -14,14 +14,7 @@ class Logger {
     if (this.isDev) {
       console.log(`[INFO] ${message}`, extra || "");
     }
-    // In production, only log important info to Sentry
-    if (!this.isDev) {
-      Sentry.addBreadcrumb({
-        message,
-        level: "info",
-        data: extra,
-      });
-    }
+    // Don't send info logs to Sentry to avoid noise and potential sensitive data
   }
 
   /**
