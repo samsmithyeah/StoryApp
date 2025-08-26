@@ -17,7 +17,11 @@ interface TemporaryCharacterPayload {
   removeIndex?: number;
 }
 
+type LoadState = "idle" | "loading" | "loaded" | "error";
+
 interface SavedCharactersStore extends SavedCharactersState {
+  loadState: LoadState;
+  isInitialLoadComplete: boolean;
   loadCharacters: () => Promise<void>;
   addCharacter: (
     character: Omit<SavedCharacter, "id" | "createdAt" | "updatedAt">
@@ -39,13 +43,20 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
     characters: [],
     loading: false,
     error: null,
+    loadState: "idle" as LoadState,
+    isInitialLoadComplete: false,
     temporaryCharacter: null,
 
     loadCharacters: async () => {
       try {
-        set({ loading: true, error: null });
+        set({ loading: true, error: null, loadState: "loading" });
         const characters = await getSavedCharacters();
-        set({ characters, loading: false });
+        set({
+          characters,
+          loading: false,
+          loadState: "loaded",
+          isInitialLoadComplete: true,
+        });
       } catch (error) {
         set({
           error:
@@ -53,6 +64,8 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
               ? error.message
               : "Failed to load saved characters",
           loading: false,
+          loadState: "error",
+          isInitialLoadComplete: true,
         });
       }
     },
