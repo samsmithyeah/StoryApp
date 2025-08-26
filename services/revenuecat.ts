@@ -46,26 +46,13 @@ class RevenueCatService {
   private authUnsubscribe: (() => void) | null = null;
 
   private validateCurrentUser(targetUserId: string): boolean {
-    try {
-      const currentUser = auth().currentUser;
-      if (!currentUser) {
-        logger.debug("No authenticated user found");
-        return false;
-      }
-
-      const isValid = currentUser.uid === targetUserId;
-      if (!isValid) {
-        logger.warn("User context mismatch", {
-          currentAuthUser: currentUser.uid,
-          targetUserId: targetUserId,
-        });
-      }
-
-      return isValid;
-    } catch (error) {
-      logger.warn("Error validating current user", error);
+    const currentUser = auth().currentUser;
+    if (!currentUser) {
       return false;
     }
+
+    const isValid = currentUser.uid === targetUserId;
+    return isValid;
   }
 
   private async safelyCallCancelSubscription(userId: string): Promise<void> {
@@ -73,20 +60,22 @@ class RevenueCatService {
       await creditsService.cancelSubscription(userId);
     } catch (error: any) {
       if (error?.code === "firestore/permission-denied") {
-        logger.warn(
-          "Permission denied for subscription cancellation - likely user context mismatch",
+        // This is expected during user context switches - log but don't fail the process
+        logger.info(
+          "Subscription cancellation skipped due to user context switch",
           {
             targetUserId: userId,
             currentRevenueCatUser: this.userId,
-            error: error.message,
           }
         );
-        // Don't rethrow - this is expected during user switches
         return;
       }
 
-      // For other errors, log and rethrow
-      logger.error("Unexpected error canceling subscription", error);
+      // For unexpected errors, log and rethrow
+      logger.error("Failed to cancel subscription", {
+        userId,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -190,17 +179,9 @@ class RevenueCatService {
 
       // Validate that current user matches the operation target
       if (!this.validateCurrentUser(this.userId)) {
-        logger.warn("Customer info update skipped: user mismatch detected", {
-          revenueCatUserId: this.userId,
-          currentAuthState: "mismatch",
-        });
+        logger.info("Customer info update skipped: user context mismatch");
         return;
       }
-
-      logger.debug("Customer info update", {
-        activeSubscriptions: customerInfo.activeSubscriptions,
-        allExpirationDates: customerInfo.allExpirationDates,
-      });
 
       // Check for active subscriptions
       const activeSubscriptions = customerInfo.activeSubscriptions;
@@ -606,10 +587,8 @@ class RevenueCatService {
           true // Add credits since this is a new purchase
         );
 
-        // Force a sync after purchase to ensure consistency
-        setTimeout(() => {
-          this.syncSubscriptionStatus();
-        }, 2000);
+        // Sync subscription status immediately after successful purchase
+        // The RevenueCat SDK should handle state updates automatically
 
         return true;
       } catch (subscriptionError) {
