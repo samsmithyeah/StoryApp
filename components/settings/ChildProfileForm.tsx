@@ -218,90 +218,104 @@ export const ChildProfileForm = forwardRef<
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
         >
-        <View style={styles.header}>
-          <Text style={styles.title}>
-            {title || (isEditing ? "Edit profile" : "Add a new child")}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isEditing
-              ? "Update your child's information"
-              : "Tell us about your little one to create personalized stories"}
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.fieldContainer}>
-            <Input
-              label="Child's name"
-              placeholder="Enter your child's name"
-              value={childName}
-              onChangeText={setChildName}
-              leftIcon="person.fill"
-              autoCapitalize="words"
-              error={errors.childName}
-              maxLength={ContentLimits.CHILD_NAME_MAX_LENGTH}
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <MonthYearPicker
-              label="Birth month & year"
-              placeholder="Select your child's birth month and year"
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
-              leftIcon="calendar"
-              maximumDate={new Date()}
-              minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
-              error={errors.dateOfBirth}
-              optional
-            />
-          </View>
-
-          <View style={styles.preferencesContainer}>
-            <Input
-              label="Interests & preferences"
-              placeholder="What does your child love? (e.g., dinosaurs, princesses, space, animals)"
-              value={childPreferences}
-              onChangeText={setChildPreferences}
-              leftIcon="heart.fill"
-              style={styles.preferencesInput}
-              error={errors.childPreferences}
-              optional
-              multiline
-              numberOfLines={3}
-              maxLength={ContentLimits.CHILD_PREFERENCES_MAX_LENGTH}
-            />
-            <Text style={styles.preferencesHint}>
-              This helps us create more personalized and engaging stories that
-              your child will love!
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              {title || (isEditing ? "Edit profile" : "Add a new child")}
+            </Text>
+            <Text style={styles.subtitle}>
+              {isEditing
+                ? "Update your child's information"
+                : "Tell us about your little one to create personalized stories"}
             </Text>
           </View>
 
-          <View style={styles.sectionDivider}>
-            <Text style={styles.sectionTitle}>Appearance</Text>
-            <Text style={styles.sectionSubtitle}>
-              Help us create more accurate illustrations
-            </Text>
-          </View>
-
-          <View style={styles.appearanceRow}>
-            <View
-              style={[
-                styles.halfFieldContainer,
-                !isTablet && styles.fullFieldContainer,
-              ]}
-            >
+          <View style={styles.form}>
+            <View style={styles.fieldContainer}>
               <Input
-                label="Hair color"
-                placeholder="e.g., Brown, Black"
-                value={hairColor}
-                onChangeText={setHairColor}
-                leftIcon="paintbrush.fill"
+                label="Child's name"
+                placeholder="Enter your child's name"
+                value={childName}
+                onChangeText={setChildName}
+                leftIcon="person.fill"
+                autoCapitalize="words"
+                error={errors.childName}
+                maxLength={ContentLimits.CHILD_NAME_MAX_LENGTH}
+              />
+            </View>
+
+            <View style={styles.fieldContainer}>
+              <MonthYearPicker
+                label="Birth month & year"
+                placeholder="Select your child's birth month and year"
+                value={dateOfBirth}
+                onChange={setDateOfBirth}
+                leftIcon="calendar"
+                maximumDate={new Date()}
+                minimumDate={new Date(new Date().getFullYear() - 18, 0, 1)}
+                error={errors.dateOfBirth}
                 optional
               />
             </View>
-            {isTablet && (
-              <View style={styles.halfFieldContainer}>
+
+            <View style={styles.preferencesContainer}>
+              <Input
+                label="Interests & preferences"
+                placeholder="What does your child love? (e.g., dinosaurs, princesses, space, animals)"
+                value={childPreferences}
+                onChangeText={setChildPreferences}
+                leftIcon="heart.fill"
+                style={styles.preferencesInput}
+                error={errors.childPreferences}
+                optional
+                multiline
+                numberOfLines={3}
+                maxLength={ContentLimits.CHILD_PREFERENCES_MAX_LENGTH}
+              />
+              <Text style={styles.preferencesHint}>
+                This helps us create more personalized and engaging stories that
+                your child will love!
+              </Text>
+            </View>
+
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionTitle}>Appearance</Text>
+              <Text style={styles.sectionSubtitle}>
+                Help us create more accurate illustrations
+              </Text>
+            </View>
+
+            <View style={styles.appearanceRow}>
+              <View
+                style={[
+                  styles.halfFieldContainer,
+                  !isTablet && styles.fullFieldContainer,
+                ]}
+              >
+                <Input
+                  label="Hair color"
+                  placeholder="e.g., Brown, Black"
+                  value={hairColor}
+                  onChangeText={setHairColor}
+                  leftIcon="paintbrush.fill"
+                  optional
+                />
+              </View>
+              {isTablet && (
+                <View style={styles.halfFieldContainer}>
+                  <Input
+                    label="Eye color"
+                    placeholder="e.g., Blue, Brown"
+                    value={eyeColor}
+                    onChangeText={setEyeColor}
+                    leftIcon="eye.fill"
+                    optional
+                  />
+                </View>
+              )}
+            </View>
+
+            {!isTablet && (
+              <View style={styles.fieldContainer}>
                 <Input
                   label="Eye color"
                   placeholder="e.g., Blue, Brown"
@@ -312,39 +326,39 @@ export const ChildProfileForm = forwardRef<
                 />
               </View>
             )}
-          </View>
 
-          {!isTablet && (
-            <View style={styles.fieldContainer}>
-              <Input
-                label="Eye color"
-                placeholder="e.g., Blue, Brown"
-                value={eyeColor}
-                onChangeText={setEyeColor}
-                leftIcon="eye.fill"
-                optional
-              />
+            <View style={styles.appearanceRow}>
+              <View
+                style={[
+                  styles.halfFieldContainer,
+                  !isTablet && styles.fullFieldContainer,
+                ]}
+              >
+                <Input
+                  label="Skin color"
+                  placeholder="e.g., Fair, Olive"
+                  value={skinColor}
+                  onChangeText={setSkinColor}
+                  leftIcon="person.fill"
+                  optional
+                />
+              </View>
+              {isTablet && (
+                <View style={styles.halfFieldContainer}>
+                  <Input
+                    label="Hair style"
+                    placeholder="e.g., Curly, Short"
+                    value={hairStyle}
+                    onChangeText={setHairStyle}
+                    leftIcon="scissors"
+                    optional
+                  />
+                </View>
+              )}
             </View>
-          )}
 
-          <View style={styles.appearanceRow}>
-            <View
-              style={[
-                styles.halfFieldContainer,
-                !isTablet && styles.fullFieldContainer,
-              ]}
-            >
-              <Input
-                label="Skin color"
-                placeholder="e.g., Fair, Olive"
-                value={skinColor}
-                onChangeText={setSkinColor}
-                leftIcon="person.fill"
-                optional
-              />
-            </View>
-            {isTablet && (
-              <View style={styles.halfFieldContainer}>
+            {!isTablet && (
+              <View style={styles.fieldContainer}>
                 <Input
                   label="Hair style"
                   placeholder="e.g., Curly, Short"
@@ -355,35 +369,21 @@ export const ChildProfileForm = forwardRef<
                 />
               </View>
             )}
-          </View>
 
-          {!isTablet && (
             <View style={styles.fieldContainer}>
               <Input
-                label="Hair style"
-                placeholder="e.g., Curly, Short"
-                value={hairStyle}
-                onChangeText={setHairStyle}
-                leftIcon="scissors"
+                label="Other appearance details"
+                placeholder="Any other distinctive features (e.g., glasses, freckles)"
+                value={appearanceDetails}
+                onChangeText={setAppearanceDetails}
+                leftIcon="sparkles"
+                multiline
+                numberOfLines={3}
+                style={styles.textAreaInput}
                 optional
               />
             </View>
-          )}
-
-          <View style={styles.fieldContainer}>
-            <Input
-              label="Other appearance details"
-              placeholder="Any other distinctive features (e.g., glasses, freckles)"
-              value={appearanceDetails}
-              onChangeText={setAppearanceDetails}
-              leftIcon="sparkles"
-              multiline
-              numberOfLines={3}
-              style={styles.textAreaInput}
-              optional
-            />
           </View>
-        </View>
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

@@ -177,7 +177,6 @@ export const Input: React.FC<InputProps> = ({
           {value.length}/{maxLength}
         </Text>
       )}
-
     </View>
   );
 };
