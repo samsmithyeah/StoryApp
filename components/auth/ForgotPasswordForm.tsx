@@ -7,6 +7,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { validateEmail } from "../../utils/validation";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
@@ -26,13 +27,10 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
 
   const { sendPasswordReset, authLoading, error } = useAuth();
 
-  const validateEmail = () => {
-    if (!email.trim()) {
-      setEmailError("Please enter your email address");
-      return false;
-    }
-    if (!email.includes("@")) {
-      setEmailError("Please enter a valid email address");
+  const validateEmailInput = () => {
+    const validation = validateEmail(email);
+    if (!validation.isValid) {
+      setEmailError(validation.error || "Invalid email address");
       return false;
     }
     setEmailError("");
@@ -40,7 +38,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateEmail()) return;
+    if (!validateEmailInput()) return;
 
     try {
       await sendPasswordReset(email);
