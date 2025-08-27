@@ -285,5 +285,18 @@ describe("WizardStore", () => {
       expect(useWizardStore.getState().selectedCharacters).toHaveLength(0);
       expect(useWizardStore.getState().mode).toBe("surprise");
     });
+
+    test("validates negative indices safely", () => {
+      const char: StoryCharacter = { name: "Test", isOneOff: true };
+      useWizardStore.getState().addOneOffCharacter(char);
+
+      // Should handle negative indices gracefully (no crash)
+      expect(() => {
+        useWizardStore.getState().removeOneOffCharacter(-1);
+      }).not.toThrow();
+
+      // Original character should still be there
+      expect(useWizardStore.getState().oneOffCharacters).toHaveLength(1);
+    });
   });
 });

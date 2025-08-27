@@ -6,7 +6,7 @@ import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -55,41 +55,60 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     isOneOffCharacterSelected,
   } = useWizardStore();
 
-  // Create stable references for arrays to prevent excessive re-initializations
-  // Use JSON.stringify for deep comparison but memoize to avoid performance issues
-  const charactersKey = useMemo(() => JSON.stringify(characters), [characters]);
-  const selectedChildrenKey = useMemo(
-    () => JSON.stringify(selectedChildren),
-    [selectedChildren]
-  );
-  const savedChildrenKey = useMemo(
-    () => JSON.stringify(savedChildren),
-    [savedChildren]
-  );
-
-  // Track if we've already initialized to prevent re-initialization on every render
+  // Track initialization state and dependencies efficiently
   const hasInitialized = useRef(false);
-  const lastKeysRef = useRef<string>("");
+  const lastDepsRef = useRef<{
+    charactersLength: number;
+    selectedChildrenLength: number;
+    savedChildrenLength: number;
+    charactersHash: string;
+    selectedChildrenHash: string;
+    savedChildrenHash: string;
+  } | null>(null);
+
+  // Lightweight hash function for arrays
+  const createHash = (arr: any[]) => {
+    if (!arr) return "";
+    return arr
+      .map((item) =>
+        typeof item === "object"
+          ? `${item.id || item.childId || item.name || ""}:${Object.keys(item).length}`
+          : String(item)
+      )
+      .join(",");
+  };
 
   // Initialize wizard state when dependencies actually change
   useEffect(() => {
-    const currentKeys = `${charactersKey}-${selectedChildrenKey}-${savedChildrenKey}`;
+    const currentDeps = {
+      charactersLength: characters?.length || 0,
+      selectedChildrenLength: selectedChildren?.length || 0,
+      savedChildrenLength: savedChildren?.length || 0,
+      charactersHash: createHash(characters || []),
+      selectedChildrenHash: createHash(selectedChildren || []),
+      savedChildrenHash: createHash(savedChildren || []),
+    };
 
-    // Only initialize if we haven't done so yet, or if the actual content has changed
-    if (!hasInitialized.current || lastKeysRef.current !== currentKeys) {
+    // Check if we need to initialize
+    const shouldInitialize =
+      !hasInitialized.current ||
+      !lastDepsRef.current ||
+      lastDepsRef.current.charactersLength !== currentDeps.charactersLength ||
+      lastDepsRef.current.selectedChildrenLength !==
+        currentDeps.selectedChildrenLength ||
+      lastDepsRef.current.savedChildrenLength !==
+        currentDeps.savedChildrenLength ||
+      lastDepsRef.current.charactersHash !== currentDeps.charactersHash ||
+      lastDepsRef.current.selectedChildrenHash !==
+        currentDeps.selectedChildrenHash ||
+      lastDepsRef.current.savedChildrenHash !== currentDeps.savedChildrenHash;
+
+    if (shouldInitialize) {
       initializeCharacters(characters, selectedChildren, savedChildren);
       hasInitialized.current = true;
-      lastKeysRef.current = currentKeys;
+      lastDepsRef.current = currentDeps;
     }
-  }, [
-    charactersKey,
-    selectedChildrenKey,
-    savedChildrenKey,
-    initializeCharacters,
-    characters,
-    selectedChildren,
-    savedChildren,
-  ]);
+  }, [characters, selectedChildren, savedChildren, initializeCharacters]);
 
   const handleToggleChild = (child: Child) => {
     toggleChildCharacter(child);

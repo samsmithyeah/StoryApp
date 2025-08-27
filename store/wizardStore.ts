@@ -102,6 +102,12 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
   updateOneOffCharacter: (index, character) => {
     const { oneOffCharacters, selectedCharacters } = get();
+
+    // Validate index bounds
+    if (index < 0 || index >= oneOffCharacters.length) {
+      return; // Silently ignore invalid indices
+    }
+
     const oldChar = oneOffCharacters[index];
 
     // Preserve the ID and isOneOff flag
@@ -126,6 +132,12 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
   removeOneOffCharacter: (index) => {
     const { oneOffCharacters, selectedCharacters } = get();
+
+    // Validate index bounds
+    if (index < 0 || index >= oneOffCharacters.length) {
+      return; // Silently ignore invalid indices
+    }
+
     const charToRemove = oneOffCharacters[index];
 
     set({
