@@ -41,7 +41,10 @@ interface StoryViewerProps {
   onClose?: () => void;
 }
 
-export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
+const StoryViewerComponent: React.FC<StoryViewerProps> = ({
+  story,
+  onClose,
+}) => {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -162,6 +165,14 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     },
     [story.storyContent, pageWidth, totalPages]
   );
+
+  const handleNewStory = useCallback(() => {
+    router.replace("/(tabs)/create");
+  }, []);
+
+  const handleBackToLibrary = useCallback(() => {
+    router.replace("/(tabs)");
+  }, []);
 
   const handleHorizontalScroll = (e: any) => {
     const pageIdx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
@@ -371,8 +382,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
                 style={[styles.pageContainer, { width: pageWidth }]}
               >
                 <TheEndScreen
-                  onNewStory={() => router.replace("/(tabs)/create")}
-                  onBackToLibrary={() => router.replace("/(tabs)")}
+                  onNewStory={handleNewStory}
+                  onBackToLibrary={handleBackToLibrary}
                 />
               </View>
             </ScrollView>
@@ -420,6 +431,68 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     </ImageBackground>
   );
 };
+
+// Custom comparison function to prevent unnecessary re-renders during image generation
+export const StoryViewer = React.memo(
+  StoryViewerComponent,
+  (prevProps, nextProps) => {
+    // Always re-render if onClose function changes
+    if (prevProps.onClose !== nextProps.onClose) {
+      return false;
+    }
+
+    const prevStory = prevProps.story;
+    const nextStory = nextProps.story;
+
+    // Re-render if core story properties that affect UI have changed
+    if (
+      prevStory.id !== nextStory.id ||
+      prevStory.title !== nextStory.title ||
+      prevStory.imageGenerationStatus !== nextStory.imageGenerationStatus
+    ) {
+      return false;
+    }
+
+    const prevContent = prevStory.storyContent;
+    const nextContent = nextStory.storyContent;
+
+    // If references are the same, content is the same.
+    if (prevContent === nextContent) {
+      return true;
+    }
+
+    // If one is falsy or lengths differ, they are not equal.
+    if (
+      !prevContent ||
+      !nextContent ||
+      prevContent.length !== nextContent.length
+    ) {
+      return false;
+    }
+
+    // Deep compare each page.
+    for (let i = 0; i < prevContent.length; i++) {
+      const prevPage = prevContent[i];
+      const nextPage = nextContent[i];
+
+      // Defensive check (shouldn't be needed due to length check above)
+      if (!prevPage || !nextPage) {
+        return false;
+      }
+
+      if (
+        prevPage.page !== nextPage.page ||
+        prevPage.text !== nextPage.text ||
+        prevPage.imageUrl !== nextPage.imageUrl
+      ) {
+        return false; // Page content is different
+      }
+    }
+
+    // All UI-relevant props are the same, skip re-render
+    return true;
+  }
+);
 
 /* ---------- STYLES ---------- */
 const styles = StyleSheet.create({
