@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { logger } from "@/utils/logger";
 import { Colors, Typography, Spacing } from "@/constants/Theme";
 import { useAuthStore, clearUserDataCache } from "@/store/authStore";
+import { isFirebaseAuthError } from "@/types/auth.types";
 
 interface Props {
   children: ReactNode;
@@ -14,7 +15,7 @@ interface State {
 }
 
 export class AuthErrorBoundary extends Component<Props, State> {
-  private isMounted = true;
+  private mountedRef = { current: true };
 
   constructor(props: Props) {
     super(props);
@@ -22,7 +23,7 @@ export class AuthErrorBoundary extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.isMounted = false;
+    this.mountedRef.current = false;
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -44,6 +45,7 @@ export class AuthErrorBoundary extends Component<Props, State> {
 
     // Only reset auth state for auth-related errors, not general React errors
     const isAuthError =
+      isFirebaseAuthError(this.state.error) ||
       this.state.error?.message?.toLowerCase().includes("auth") ||
       this.state.error?.name?.toLowerCase().includes("auth") ||
       this.state.error?.stack?.toLowerCase().includes("auth");
@@ -62,12 +64,12 @@ export class AuthErrorBoundary extends Component<Props, State> {
         const { signOut, initialize } = useAuthStore.getState();
 
         try {
-          if (this.isMounted) {
+          if (this.mountedRef.current) {
             await signOut();
             logger.debug("AuthErrorBoundary: Sign out completed successfully");
           }
         } catch (signOutError) {
-          if (this.isMounted) {
+          if (this.mountedRef.current) {
             logger.warn(
               "AuthErrorBoundary: Sign out failed, continuing with reset",
               signOutError
@@ -77,12 +79,12 @@ export class AuthErrorBoundary extends Component<Props, State> {
 
         // Reinitialize auth system after cleanup
         try {
-          if (this.isMounted) {
+          if (this.mountedRef.current) {
             initialize();
             logger.debug("AuthErrorBoundary: Auth system reinitialized");
           }
         } catch (initError) {
-          if (this.isMounted) {
+          if (this.mountedRef.current) {
             logger.error(
               "AuthErrorBoundary: Failed to reinitialize auth system",
               initError
@@ -90,7 +92,7 @@ export class AuthErrorBoundary extends Component<Props, State> {
           }
         }
       } catch (error) {
-        if (this.isMounted) {
+        if (this.mountedRef.current) {
           logger.error(
             "AuthErrorBoundary: Comprehensive auth reset failed",
             error

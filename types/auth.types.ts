@@ -49,3 +49,27 @@ export interface FirebaseUserWithMetadata {
   emailVerified: boolean;
   metadata?: FirebaseUserMetadata;
 }
+
+// Firebase Auth Error type
+export interface FirebaseAuthError extends Error {
+  code: string;
+}
+
+// Type guard for Firebase auth errors
+export const isFirebaseAuthError = (
+  error: unknown
+): error is FirebaseAuthError => {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    error.code.startsWith("auth/")
+  );
+};
+
+// Type guard for checking if Firebase user has metadata
+export const hasFirebaseMetadata = (
+  user: any
+): user is { metadata: FirebaseUserMetadata } => {
+  return user && typeof user.metadata === "object" && user.metadata !== null;
+};

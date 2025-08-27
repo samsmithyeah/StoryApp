@@ -11,6 +11,7 @@ import {
 import { logger } from "../utils/logger";
 import { useAuthStore } from "../store/authStore";
 import { OnboardingService } from "../services/auth/onboardingService";
+import { authService } from "../services/firebase/config";
 import {
   AuthStatus,
   LoginCredentials,
@@ -25,7 +26,6 @@ import { isTestAccount as centralIsTestAccount } from "../constants/AuthConstant
  */
 const updateAuthStateFromFirebase = async () => {
   try {
-    const { authService } = await import("@/services/firebase/config");
     const currentFirebaseUser = authService.currentUser;
 
     if (currentFirebaseUser) {

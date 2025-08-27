@@ -6,7 +6,7 @@ import {
   AuthState,
   AuthStatus,
   User,
-  FirebaseUserWithMetadata,
+  hasFirebaseMetadata,
 } from "../types/auth.types";
 import { isTestAccount } from "../constants/AuthConstants";
 import { CacheConfig } from "../constants/CacheConfig";
@@ -143,20 +143,19 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                   );
                 }
 
+                // Safely handle Firebase user metadata
+                const metadata = hasFirebaseMetadata(firebaseUser)
+                  ? firebaseUser.metadata
+                  : undefined;
+                const creationTime = metadata?.creationTime;
+
                 const user: User = {
                   uid: firebaseUser.uid,
                   email: firebaseUser.email,
                   displayName: firebaseUser.displayName,
                   photoURL: firebaseUser.photoURL,
                   emailVerified: firebaseUser.emailVerified,
-                  createdAt: (firebaseUser as FirebaseUserWithMetadata).metadata
-                    ?.creationTime
-                    ? new Date(
-                        (
-                          firebaseUser as FirebaseUserWithMetadata
-                        ).metadata!.creationTime!
-                      )
-                    : new Date(),
+                  createdAt: creationTime ? new Date(creationTime) : new Date(),
                   isAdmin: firestoreUserData?.isAdmin || false,
                 };
 
