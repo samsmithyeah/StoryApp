@@ -30,6 +30,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { Button } from "../ui/Button";
 import { CloseButton } from "../ui/CloseButton";
 import { IconSymbol } from "../ui/IconSymbol";
 import { TheEndScreen } from "./TheEndScreen";
@@ -39,11 +40,13 @@ const CREAM_COLOR = "#F5E6C8";
 interface StoryViewerProps {
   story: Story;
   onClose?: () => void;
+  onRetryImageGeneration?: (storyId: string) => void;
 }
 
 const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   story,
   onClose,
+  onRetryImageGeneration,
 }) => {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -60,6 +63,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
   const [imageErrors, setImageErrors] = useState<boolean[]>([]);
+  const [retryingGeneration, setRetryingGeneration] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -97,10 +101,12 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
 
       const initialErrors = story.storyContent.map((page) => {
         // Show error if no imageUrl and generation is not active (completed, failed, or not_requested)
+        // Also clear errors if we're retrying (status changed from failed to pending/generating)
         return (
           !page.imageUrl &&
           story.imageGenerationStatus !== "generating" &&
-          story.imageGenerationStatus !== "pending"
+          story.imageGenerationStatus !== "pending" &&
+          !retryingGeneration
         );
       });
 
@@ -119,7 +125,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [story, fadeAnim, slideAnim]);
+  }, [story, fadeAnim, slideAnim, retryingGeneration]);
 
   // keep correct offset after rotation / inset change
   useEffect(() => {
@@ -149,6 +155,23 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       return next;
     });
   };
+
+  const handleRetryClick = useCallback(async () => {
+    if (!onRetryImageGeneration) return;
+
+    setRetryingGeneration(true);
+    try {
+      await onRetryImageGeneration(story.id);
+      // Reset error states since we're retrying
+      setImageErrors(story.storyContent?.map(() => false) || []);
+      setImageLoading(story.storyContent?.map(() => true) || []);
+    } catch (error) {
+      // Error is already handled in the parent component
+      console.error("Retry failed:", error);
+    } finally {
+      setRetryingGeneration(false);
+    }
+  }, [onRetryImageGeneration, story.id, story.storyContent]);
 
   const goToPage = useCallback(
     (idx: number) => {
@@ -216,6 +239,17 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
                           ? "Image generation failed"
                           : "Image failed to load"}
                       </Text>
+                      {story.imageGenerationStatus === "failed" &&
+                        onRetryImageGeneration && (
+                          <Button
+                            title={retryingGeneration ? "Retrying..." : "Retry"}
+                            onPress={handleRetryClick}
+                            variant="outline"
+                            size="small"
+                            style={styles.retryButton}
+                            disabled={retryingGeneration}
+                          />
+                        )}
                     </View>
                   ) : imageUrl ? (
                     <Image
@@ -583,6 +617,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: Spacing.lg,
     backgroundColor: "rgba(239, 68, 68, 0.1)",
+    gap: Spacing.md,
+  },
+  retryButton: {
+    marginTop: Spacing.sm,
+    minWidth: 80,
   },
 
   textPanel: {
