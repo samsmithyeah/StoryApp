@@ -1,10 +1,7 @@
 import { useChildren } from "@/hooks/useChildren";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { db } from "@/services/firebase/config";
-import {
-  generateStory,
-  StoryGenerationRequest,
-} from "@/services/firebase/stories";
+import { generateStory } from "@/services/firebase/stories";
 import { Story, StoryConfiguration } from "@/types/story.types";
 import { logger } from "@/utils/logger";
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
@@ -191,7 +188,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return;
       }
 
-      const generationRequest: StoryGenerationRequest = {
+      const generationRequest: StoryConfiguration = {
         ...wizardData,
         // Add preferences from user settings
         textModel: preferences.textModel,
@@ -199,7 +196,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         pageImageModel: preferences.pageImageModel,
         temperature: preferences.temperature,
         geminiThinkingBudget: preferences.geminiThinkingBudget,
-      } as StoryGenerationRequest;
+      } as StoryConfiguration;
 
       const result = await generateStory(generationRequest);
 

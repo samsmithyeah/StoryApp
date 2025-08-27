@@ -1,57 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { logger } from "../utils/logger";
-import { useAuth } from "./useAuth";
-import { useChildren } from "./useChildren";
+import { useAuthStore } from "../store/authStore";
 
 const ONBOARDING_KEY = "user_onboarded";
 
+// Backward compatibility hook - now just proxies to centralized auth status
+
 export const useOnboarding = () => {
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<
-    boolean | null
-  >(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const { children, loading: childrenLoading } = useChildren();
+  const { user, hasCompletedOnboarding, setOnboardingStatus, loading } =
+    useAuthStore();
 
-  // Check onboarding status when user or children data changes
+  // This hook is now just a compatibility layer
+  // All onboarding logic is handled in the centralized auth store
   useEffect(() => {
-    async function checkOnboardingStatus() {
-      // If there's no user, they haven't completed onboarding
-      if (!user) {
-        setHasCompletedOnboarding(false);
-        setLoading(false);
-        return;
-      }
-
-      // Wait for children data to load
-      if (childrenLoading) {
-        return;
-      }
-
-      try {
-        // If user has children, they've completed onboarding
-        if (children.length > 0) {
-          setHasCompletedOnboarding(true);
-          // Update storage for consistency
-          const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
-          await AsyncStorage.setItem(onboardingKey, "true");
-        } else {
-          // Check if onboarding was completed but no children added yet
-          const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
-          const hasOnboardedFlag = await AsyncStorage.getItem(onboardingKey);
-          setHasCompletedOnboarding(hasOnboardedFlag === "true");
-        }
-      } catch (error) {
-        logger.error("Error checking onboarding status", error);
-        setHasCompletedOnboarding(false);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkOnboardingStatus();
-  }, [user?.uid, children.length, childrenLoading]);
+    // The auth store handles all onboarding status computation
+    // This hook just exists for backward compatibility
+    logger.debug("useOnboarding hook called", {
+      hasCompletedOnboarding,
+      loading,
+      userUid: user?.uid,
+    });
+  }, [hasCompletedOnboarding, loading, user?.uid]);
 
   const completeOnboarding = async () => {
     if (!user) return;
@@ -59,11 +29,12 @@ export const useOnboarding = () => {
     try {
       const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
       await AsyncStorage.setItem(onboardingKey, "true");
-      setHasCompletedOnboarding(true);
+      setOnboardingStatus(true);
+      logger.debug("Onboarding completed", { userUid: user.uid });
     } catch (error) {
       logger.error("Error saving onboarding completion", error);
       // Still mark as completed in state even if saving fails
-      setHasCompletedOnboarding(true);
+      setOnboardingStatus(true);
     }
   };
 
@@ -73,7 +44,8 @@ export const useOnboarding = () => {
     try {
       const onboardingKey = `${ONBOARDING_KEY}_${user.uid}`;
       await AsyncStorage.removeItem(onboardingKey);
-      setHasCompletedOnboarding(false);
+      setOnboardingStatus(false);
+      logger.debug("Onboarding reset", { userUid: user.uid });
     } catch (error) {
       logger.error("Error resetting onboarding", error);
     }
@@ -81,7 +53,7 @@ export const useOnboarding = () => {
 
   return {
     hasCompletedOnboarding,
-    loading,
+    loading: loading || hasCompletedOnboarding === null,
     completeOnboarding,
     resetOnboarding,
   };

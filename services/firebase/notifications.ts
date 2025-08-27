@@ -4,7 +4,7 @@ import {
   setDoc,
   updateDoc,
 } from "@react-native-firebase/firestore";
-import auth, { getAuth } from "@react-native-firebase/auth";
+import { getAuth } from "@react-native-firebase/auth";
 import { db } from "./config";
 import { logger } from "../../utils/logger";
 

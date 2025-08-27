@@ -56,7 +56,7 @@ describe("Auth Security & Edge Cases", () => {
   describe("Concurrent authentication attempts", () => {
     const createAuthQueue = () => {
       let isProcessing = false;
-      const queue: Array<() => Promise<any>> = [];
+      const queue: (() => Promise<any>)[] = [];
 
       const processQueue = async () => {
         if (isProcessing) return;

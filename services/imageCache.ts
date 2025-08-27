@@ -2,11 +2,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import { getAuthenticatedUrl } from "./firebase/storage";
 import { logger } from "../utils/logger";
+import { CacheConfig } from "../constants/CacheConfig";
 
 const CACHE_DIR = `${FileSystem.documentDirectory}imageCache/`;
 const CACHE_INDEX_KEY = "imageCacheIndex";
-const MAX_CACHE_SIZE_MB = 100; // 100MB cache limit
-const CACHE_EXPIRY_DAYS = 30; // Files expire after 30 days
+const MAX_CACHE_SIZE_MB = CacheConfig.MAX_IMAGE_CACHE_SIZE_MB;
+const CACHE_EXPIRY_MS = CacheConfig.IMAGE_CACHE_TTL;
 
 interface CacheEntry {
   filePath: string;
@@ -62,7 +63,7 @@ class ImageCacheService {
 
   private async cleanupExpired(): Promise<void> {
     const now = Date.now();
-    const expiryTime = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    const expiryTime = CACHE_EXPIRY_MS;
 
     const expiredPaths: string[] = [];
 
@@ -196,7 +197,7 @@ class ImageCacheService {
 
     // Check if file is expired
     const now = Date.now();
-    const expiryTime = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    const expiryTime = CACHE_EXPIRY_MS;
     if (now - cacheEntry.timestamp > expiryTime) {
       // File is expired, delete it
       try {

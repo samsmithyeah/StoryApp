@@ -117,13 +117,13 @@ export class FCMService {
 
         // Navigate to story if it's a story complete notification
         if (data?.type === "story_complete" && data?.storyId) {
-          // Small delay to ensure navigation is ready
-          setTimeout(() => {
+          // Use requestAnimationFrame to ensure navigation is ready
+          requestAnimationFrame(() => {
             router.push({
               pathname: "/story/[id]",
               params: { id: String(data.storyId) },
             });
-          }, 100);
+          });
         }
       }
     } catch (error) {
@@ -201,7 +201,31 @@ export class FCMService {
   }
 
   /**
-   * Cleanup FCM on logout
+   * Cleanup FCM listeners only (keep token in database)
+   * This is called during sign out to stop receiving notifications
+   * but preserves the token for when the user signs back in
+   */
+  static async cleanupListeners(): Promise<void> {
+    try {
+      // Clean up notification listeners
+      if (this.cleanupFunction) {
+        this.cleanupFunction();
+        this.cleanupFunction = null;
+      }
+
+      // Reset initialization flag so FCM can be re-initialized
+      this.isInitialized = false;
+
+      logger.debug("FCM listeners cleaned up, token preserved");
+    } catch (error) {
+      logger.error("FCM listener cleanup failed", error);
+    }
+  }
+
+  /**
+   * Full cleanup FCM including token removal from database
+   * This should only be called when completely removing the user
+   * (e.g., account deletion, device change, etc.)
    */
   static async cleanup(): Promise<void> {
     try {
@@ -209,13 +233,9 @@ export class FCMService {
       await NotificationService.removeFCMToken();
 
       // Clean up notification listeners
-      if (this.cleanupFunction) {
-        this.cleanupFunction();
-        this.cleanupFunction = null;
-      }
+      await this.cleanupListeners();
 
-      // Reset initialization flag
-      this.isInitialized = false;
+      logger.debug("FCM fully cleaned up including token removal");
     } catch (error) {
       logger.error("Failed to cleanup push notifications", error);
     }

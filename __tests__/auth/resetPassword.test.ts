@@ -1,6 +1,8 @@
 // Basic tests for password reset functionality
 
 // Mock all Firebase and React Native modules first
+import { resetPassword } from "../../services/firebase/auth";
+
 jest.mock("@react-native-firebase/auth", () => ({
   sendPasswordResetEmail: jest.fn(),
   default: () => ({}),
@@ -67,8 +69,6 @@ jest.mock("../../services/firebase/credits", () => ({
     getUserCredits: jest.fn(),
   },
 }));
-
-import { resetPassword } from "../../services/firebase/auth";
 
 describe("Password Reset", () => {
   beforeEach(() => {

@@ -56,8 +56,9 @@ export const useChildrenStore = create<ChildrenStore>((set, get) => ({
       set({ loading: true, error: null });
       const newChild = await addChildService(child);
       const currentChildren = get().children;
+      const updatedChildren = [...currentChildren, newChild];
       set({
-        children: [...currentChildren, newChild],
+        children: updatedChildren,
         loading: false,
       });
     } catch (error) {
