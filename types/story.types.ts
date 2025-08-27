@@ -5,6 +5,8 @@ export interface StoryPage {
 }
 
 export interface StoryCharacter {
+  id?: string; // Unique identifier for one-off characters
+  savedCharacterId?: string; // ID of the saved character this is based on
   name: string;
   description?: string;
   appearance?: string;

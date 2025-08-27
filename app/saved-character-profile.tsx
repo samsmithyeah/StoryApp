@@ -16,6 +16,7 @@ import {
 import { SavedCharacterForm } from "../components/settings/SavedCharacterForm";
 import { Colors, Spacing, Typography } from "../constants/Theme";
 import { useSavedCharacters } from "../hooks/useSavedCharacters";
+import { useWizardStore } from "../store/wizardStore";
 import { SavedCharacter } from "../types/savedCharacter.types";
 import { StoryCharacter } from "../types/story.types";
 
@@ -29,13 +30,15 @@ export default function SavedCharacterProfileScreen() {
     description?: string;
     appearance?: string;
   }>();
+  const { savedCharacters, loading, addSavedCharacter, updateSavedCharacter } =
+    useSavedCharacters();
   const {
-    savedCharacters,
-    loading,
-    addSavedCharacter,
-    updateSavedCharacter,
-    addTemporaryCharacter,
-  } = useSavedCharacters();
+    oneOffCharacters,
+    addOneOffCharacter,
+    updateOneOffCharacter,
+    removeOneOffCharacter,
+    addSavedCharacterToSelection,
+  } = useWizardStore();
   const formRef = useRef<{
     handleSave: () => void;
     hasUnsavedChanges: () => boolean;
@@ -60,13 +63,20 @@ export default function SavedCharacterProfileScreen() {
         await updateSavedCharacter(params.characterId, characterData);
       } else if (params.tempCharIndex) {
         // Editing a temp character
+        const tempCharIndex = parseInt(params.tempCharIndex, 10);
+        if (
+          isNaN(tempCharIndex) ||
+          tempCharIndex < 0 ||
+          tempCharIndex >= oneOffCharacters.length
+        ) {
+          throw new Error("Invalid temp character index");
+        }
+
         if (shouldSave) {
           // Save permanently and remove the temp character
-          await addSavedCharacter(characterData);
-          addTemporaryCharacter({
-            character: { name: "", isChild: false, isOneOff: true }, // dummy character
-            removeIndex: parseInt(params.tempCharIndex),
-          });
+          const newSavedChar = await addSavedCharacter(characterData);
+          removeOneOffCharacter(tempCharIndex);
+          addSavedCharacterToSelection(newSavedChar);
         } else {
           // Just update the temp character
           const fullDescription = [
@@ -83,13 +93,13 @@ export default function SavedCharacterProfileScreen() {
             isOneOff: true,
           };
 
-          addTemporaryCharacter({
-            character: tempChar,
-            indexToUpdate: parseInt(params.tempCharIndex),
-          });
+          updateOneOffCharacter(tempCharIndex, tempChar);
         }
       } else if (shouldSave) {
-        await addSavedCharacter(characterData);
+        const newSavedChar = await addSavedCharacter(characterData);
+        if (params.fromWizard === "true") {
+          addSavedCharacterToSelection(newSavedChar);
+        }
       } else {
         // Creating a new temp character
         const fullDescription = [
@@ -106,10 +116,7 @@ export default function SavedCharacterProfileScreen() {
           isOneOff: true,
         };
 
-        addTemporaryCharacter({
-          character: tempChar,
-          indexToUpdate: undefined,
-        });
+        addOneOffCharacter(tempChar);
       }
 
       router.back();
