@@ -1,9 +1,4 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  updateDoc,
-} from "@react-native-firebase/firestore";
+import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { authService, db } from "./config";
 import { Child } from "../../types/child.types";
 

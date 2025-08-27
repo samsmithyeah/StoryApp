@@ -4,9 +4,7 @@ import { authService, functionsService } from "./config";
 import { creditsService } from "./credits";
 import { logger } from "../../utils/logger";
 
-export interface StoryGenerationRequest extends StoryConfiguration {}
-
-export const generateStory = async (config: StoryGenerationRequest) => {
+export const generateStory = async (config: StoryConfiguration) => {
   try {
     // Check if user has enough credits
     const userId = authService.currentUser?.uid;

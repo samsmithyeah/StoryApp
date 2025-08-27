@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { getAuthenticatedUrl } from "../services/firebase/storage";
 import { imageCache } from "../services/imageCache";
 import { logger } from "../utils/logger";
+import { CacheConfig } from "../constants/CacheConfig";
 
 // Global cache for download URLs to avoid repeated calls (fallback for non-cached images)
 // This cache persists across component remounts and navigation
 const urlCache = new Map<string, { url: string; timestamp: number }>();
-import { CacheConfig } from "../constants/CacheConfig";
 
 const URL_CACHE_TTL = CacheConfig.STORAGE_URL_TTL; // Use centralized cache duration
 
@@ -34,7 +34,7 @@ export function useStorageUrl(
   useLocalCache: boolean = true
 ): string | null {
   const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!storagePath) {
@@ -185,7 +185,7 @@ export function useStorageUrls(
     return () => {
       cancelled = true;
     };
-  }, [JSON.stringify(storagePaths), useLocalCache]);
+  }, [storagePaths, useLocalCache]);
 
   return urls;
 }

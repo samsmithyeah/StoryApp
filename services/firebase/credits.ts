@@ -1,4 +1,4 @@
-import firestore, {
+import {
   getFirestore,
   collection,
   doc,

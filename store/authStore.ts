@@ -8,13 +8,11 @@ import {
   User,
   FirebaseUserWithMetadata,
 } from "../types/auth.types";
+import { isTestAccount } from "../constants/AuthConstants";
 import { CacheConfig } from "../constants/CacheConfig";
 import { getAuthErrorMessage } from "../utils/authErrorMessages";
 import { AuthCacheService } from "../services/auth/authCacheService";
-import {
-  OnboardingService,
-  OnboardingResult,
-} from "../services/auth/onboardingService";
+import { OnboardingService } from "../services/auth/onboardingService";
 import {
   AuthOperationService,
   executeAuthOperation,
@@ -217,7 +215,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
 
       logger.debug("Initializing auth status", { uid: startingUser.uid });
 
-      const success = await executeAuthOperation(
+      await executeAuthOperation(
         "initialize_auth_status",
         async () => {
           const result =
@@ -275,7 +273,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         return;
       }
 
-      if (!user.emailVerified) {
+      if (!user.emailVerified && !isTestAccount(user.email)) {
         setAuthStatus(AuthStatus.UNVERIFIED);
         return;
       }

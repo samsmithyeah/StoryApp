@@ -1,4 +1,5 @@
 // Mock Firebase first before importing
+import type { UserCredits } from "../../types/monetization.types";
 const mockDoc = {
   get: jest.fn(),
   set: jest.fn(),
@@ -71,8 +72,8 @@ const mockFirestoreModule = {
 jest.doMock("@react-native-firebase/firestore", () => mockFirestoreModule);
 
 // Now import the service AFTER the mock is set up
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { creditsService } = require("../../services/firebase/credits");
-import type { UserCredits } from "../../types/monetization.types";
 
 describe("CreditsService", () => {
   beforeEach(() => {

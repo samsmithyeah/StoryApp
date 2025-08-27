@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthStatus, User } from "../../types/auth.types";
+import { isTestAccount } from "../../constants/AuthConstants";
 
 // Types for centralized auth state test
 interface AuthStatusState {
@@ -13,7 +14,7 @@ interface AuthStatusState {
 
 interface AuthStatusActions {
   setAuthStatus: (status: AuthStatus) => void;
-  setUser: (user: any | null) => void;
+  setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setOnboardingStatus: (completed: boolean | null) => void;
@@ -28,11 +29,26 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   removeItem: jest.fn(),
 }));
 
+// Mock __DEV__ for test account logic
+(global as any).__DEV__ = true;
+
 // Mock useChildren hook
 const mockUseChildren = jest.fn();
 jest.mock("../../hooks/useChildren", () => ({
   useChildren: () => mockUseChildren(),
 }));
+
+// Helper function to create valid User objects for tests
+const createTestUser = (overrides: Partial<User> = {}): User => ({
+  uid: "test-uid",
+  email: "test@example.com",
+  displayName: "Test User",
+  photoURL: null,
+  emailVerified: true,
+  createdAt: new Date(),
+  isAdmin: false,
+  ...overrides,
+});
 
 // Create test store
 const createAuthStatusStore = () =>
@@ -66,10 +82,7 @@ const createAuthStatusStore = () =>
       }
 
       // User exists but email not verified (skip test accounts)
-      const isTestAccount =
-        user.email?.endsWith("@test.dreamweaver") ||
-        user.email?.includes("test@example.com");
-      if (user.email && !user.emailVerified && !isTestAccount) {
+      if (user.email && !user.emailVerified && !isTestAccount(user.email)) {
         set({ authStatus: AuthStatus.UNVERIFIED });
         return;
       }
@@ -99,6 +112,15 @@ const createAuthStatusStore = () =>
 describe("Centralized Auth Status System", () => {
   let useAuthStatusStore: ReturnType<typeof createAuthStatusStore>;
   const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
 
   beforeEach(() => {
     useAuthStatusStore = createAuthStatusStore();
@@ -132,11 +154,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(true);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.computeAuthStatus();
 
@@ -149,11 +173,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(null); // Unknown onboarding status
       store.computeAuthStatus();
 
@@ -179,11 +205,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "user@example.com",
-        emailVerified: false,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "user@example.com",
+          emailVerified: false,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -196,11 +224,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "user@test.dreamweaver",
-        emailVerified: false,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "user@test.dreamweaver",
+          emailVerified: false,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -213,11 +243,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "user@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "user@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -230,11 +262,13 @@ describe("Centralized Auth Status System", () => {
       const store = useAuthStatusStore.getState();
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "user@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "user@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.computeAuthStatus();
 
@@ -258,11 +292,13 @@ describe("Centralized Auth Status System", () => {
       store.setLoading(true);
       store.computeAuthStatus();
 
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.computeAuthStatus();
 
       store.setOnboardingStatus(false);
@@ -301,11 +337,13 @@ describe("Centralized Auth Status System", () => {
 
       // Start with user who hasn't completed onboarding
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -327,11 +365,13 @@ describe("Centralized Auth Status System", () => {
 
       // Start authenticated
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.computeAuthStatus();
 
@@ -373,11 +413,13 @@ describe("Centralized Auth Status System", () => {
 
       // Then successful auth
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.setError(null); // Clear error on success
       store.computeAuthStatus();
@@ -394,11 +436,13 @@ describe("Centralized Auth Status System", () => {
 
       // User with verified email but no explicit onboarding flag
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       // Note: Onboarding status is now determined from Firestore during initializeAuthStatus
       store.setOnboardingStatus(null); // Unknown from storage
 
@@ -417,11 +461,13 @@ describe("Centralized Auth Status System", () => {
       mockAsyncStorage.getItem.mockResolvedValue("true");
 
       store.setLoading(false);
-      store.setUser({
-        uid: "test",
-        email: "test@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "test",
+          email: "test@example.com",
+          emailVerified: true,
+        })
+      );
       // Note: Onboarding status is now determined from Firestore during initializeAuthStatus
 
       // Simulate reading from storage
@@ -456,11 +502,13 @@ describe("Auth Status Integration Tests", () => {
 
       // Start with signup
       store.setLoading(false);
-      store.setUser({
-        uid: "new-user",
-        email: "new@example.com",
-        emailVerified: false,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "new-user",
+          email: "new@example.com",
+          emailVerified: false,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -469,11 +517,13 @@ describe("Auth Status Integration Tests", () => {
       );
 
       // Email verification
-      store.setUser({
-        uid: "new-user",
-        email: "new@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "new-user",
+          email: "new@example.com",
+          emailVerified: true,
+        })
+      );
       store.computeAuthStatus();
 
       expect(useAuthStatusStore.getState().authStatus).toBe(
@@ -505,11 +555,13 @@ describe("Auth Status Integration Tests", () => {
 
       // Simulate app restart with authenticated user
       store.setLoading(true);
-      store.setUser({
-        uid: "existing-user",
-        email: "user@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "existing-user",
+          email: "user@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.computeAuthStatus();
 
@@ -531,11 +583,13 @@ describe("Auth Status Integration Tests", () => {
 
       // Start authenticated
       store.setLoading(false);
-      store.setUser({
-        uid: "user",
-        email: "user@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "user",
+          email: "user@example.com",
+          emailVerified: true,
+        })
+      );
       store.setOnboardingStatus(true);
       store.computeAuthStatus();
 
@@ -558,11 +612,13 @@ describe("Auth Status Integration Tests", () => {
 
       // Start with unverified user
       store.setLoading(false);
-      store.setUser({
-        uid: "user",
-        email: "user@example.com",
-        emailVerified: false,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "user",
+          email: "user@example.com",
+          emailVerified: false,
+        })
+      );
       store.setOnboardingStatus(false);
       store.computeAuthStatus();
 
@@ -571,11 +627,13 @@ describe("Auth Status Integration Tests", () => {
       );
 
       // Email gets verified (user object updates)
-      store.setUser({
-        uid: "user",
-        email: "user@example.com",
-        emailVerified: true,
-      });
+      store.setUser(
+        createTestUser({
+          uid: "user",
+          email: "user@example.com",
+          emailVerified: true,
+        })
+      );
       store.computeAuthStatus(); // This should be called automatically in real app
 
       expect(useAuthStatusStore.getState().authStatus).toBe(

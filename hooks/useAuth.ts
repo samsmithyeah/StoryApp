@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
   checkEmailVerified,
-  configureGoogleSignIn,
   deleteAccount,
   resendVerificationEmail,
   resetPassword,
@@ -19,6 +17,7 @@ import {
   SignUpCredentials,
 } from "../types/auth.types";
 import { getAuthErrorMessage } from "../utils/authErrorMessages";
+import { isTestAccount as centralIsTestAccount } from "../constants/AuthConstants";
 
 /**
  * Helper function to manually update auth state after successful auth operations
@@ -71,83 +70,12 @@ const updateAuthStateFromFirebase = async () => {
   }
 };
 
-// Initialization state management - more testable than global flags
-class AuthInitializationManager {
-  private static instance: AuthInitializationManager;
-  private googleInitialized = false;
-  private storeInitialized = false;
-
-  static getInstance(): AuthInitializationManager {
-    if (!this.instance) {
-      this.instance = new AuthInitializationManager();
-    }
-    return this.instance;
-  }
-
-  // For testing purposes
-  static resetInstance(): void {
-    this.instance = new AuthInitializationManager();
-  }
-
-  isGoogleInitialized(): boolean {
-    return this.googleInitialized;
-  }
-
-  setGoogleInitialized(): void {
-    this.googleInitialized = true;
-  }
-
-  isStoreInitialized(): boolean {
-    return this.storeInitialized;
-  }
-
-  setStoreInitialized(): void {
-    this.storeInitialized = true;
-  }
-}
-
 // Helper function to check if this is a test account
 export const isTestAccount = (email: string | null | undefined): boolean => {
   if (!email || !__DEV__) return false;
 
   // Use the centralized, secure test account detection
-  const {
-    isTestAccount: centralIsTestAccount,
-  } = require("../constants/AuthConstants");
   return centralIsTestAccount(email);
-};
-
-// Lightweight hook for root layout - only initializes, doesn't subscribe to loading
-export const useAuthInitialization = () => {
-  const initManager = AuthInitializationManager.getInstance();
-
-  // Use a simple approach - always return false for loading after initialization
-  useEffect(() => {
-    // Only run once
-    if (initManager.isStoreInitialized()) {
-      return;
-    }
-
-    // Only configure Google Sign-In once globally
-    if (!initManager.isGoogleInitialized()) {
-      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-      if (webClientId) {
-        configureGoogleSignIn(webClientId);
-        initManager.setGoogleInitialized();
-      }
-    }
-
-    // Initialize auth state listener
-    const { initialize, isInitialized } = useAuthStore.getState();
-    if (!isInitialized) {
-      initialize();
-    }
-
-    initManager.setStoreInitialized();
-  }, []); // Empty deps - only run once
-
-  // Always return false for loading - the auth status will handle loading states
-  return { loading: false };
 };
 
 export const useAuth = () => {
@@ -157,12 +85,10 @@ export const useAuth = () => {
     error,
     authStatus,
     hasCompletedOnboarding,
-    initialize,
     setError,
     signOut,
     authLoading,
     setAuthLoading,
-    isInitialized,
     setOnboardingStatus,
   } = useAuthStore();
 

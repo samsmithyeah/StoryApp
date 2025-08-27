@@ -1,6 +1,6 @@
 import { creditsService } from "@/services/firebase/credits";
 import type { UserCredits } from "@/types/monetization.types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
 import { logger } from "../utils/logger";
 
@@ -10,24 +10,7 @@ export const useCredits = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-
-    if (user) {
-      unsubscribe = setupRealtimeCredits();
-    } else {
-      setCredits(null);
-      setLoading(false);
-    }
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [user]);
-
-  const setupRealtimeCredits = () => {
+  const setupRealtimeCredits = useCallback(() => {
     if (!user) return;
 
     // Set up real-time subscription to credits - same as credits.tsx
@@ -47,7 +30,24 @@ export const useCredits = () => {
     );
 
     return unsubscribe;
-  };
+  }, [user]);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    if (user) {
+      unsubscribe = setupRealtimeCredits();
+    } else {
+      setCredits(null);
+      setLoading(false);
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user, setupRealtimeCredits]);
 
   const loadCredits = async () => {
     if (!user) return;

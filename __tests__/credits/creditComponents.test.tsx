@@ -1,7 +1,6 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { InsufficientCreditsModal } from "../../components/ui/InsufficientCreditsModal";
-import { router } from "expo-router";
 
 // Mock expo-router
 const mockPush = jest.fn();

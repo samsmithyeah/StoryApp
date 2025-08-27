@@ -29,7 +29,6 @@ import {
   SignUpCredentials,
   User,
 } from "../../types/auth.types";
-import { Child } from "../../types/child.types";
 
 import { validateEmail } from "../../utils/validation";
 import { logger } from "../../utils/logger";
@@ -37,6 +36,7 @@ import { CacheConfig } from "../../constants/CacheConfig";
 import { FirestoreUserData } from "../../types/firestore.types";
 import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 import { FCMService } from "../fcm";
+import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
 
@@ -342,7 +342,7 @@ export const signUpWithEmail = async ({
 
       if (profileUpdateSuccess) {
         // Clear user cache for this specific user to force fresh data fetch
-        userCache.clear(userCredential.user.uid);
+        AuthCacheService.invalidateUser(userCredential.user.uid);
         logger.debug(
           "Firebase profile updated successfully and user cache cleared for user",
           {
@@ -714,49 +714,6 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
-// Cache management for user data
-const CACHE_DURATION = CacheConfig.USER_DATA_TTL; // Use centralized cache duration
-
-class UserCache {
-  private cache: { [uid: string]: { user: User; timestamp: number } } = {};
-
-  get(uid: string): { user: User; timestamp: number } | undefined {
-    return this.cache[uid];
-  }
-
-  set(uid: string, user: User): void {
-    this.cache[uid] = { user, timestamp: Date.now() };
-  }
-
-  clear(uid?: string): void {
-    if (uid) {
-      delete this.cache[uid];
-    } else {
-      this.cache = {};
-    }
-  }
-
-  isExpired(uid: string): boolean {
-    const cached = this.cache[uid];
-    if (!cached) return true;
-    return Date.now() - cached.timestamp >= CACHE_DURATION;
-  }
-}
-
-const userCache = new UserCache();
-
-// Service function to fetch user data from Firestore with caching
-export const fetchUserData = async (
-  uid: string
-): Promise<FirestoreUserData | null> => {
-  logger.debug("Fetching user data from Firestore", { uid });
-
-  const userRef = doc(db, "users", uid);
-  const userDoc = await getDoc(userRef);
-
-  return userDoc.exists() ? (userDoc.data() as FirestoreUserData) : null;
-};
-
 // Service function to update user onboarding status
 export const updateUserOnboardingStatus = async (
   uid: string,
@@ -831,7 +788,7 @@ export const subscribeToAuthChanges = (
     // Debounce auth state changes (except for logout)
     if (!firebaseUser) {
       // Process logout immediately
-      userCache.clear();
+      AuthCacheService.clearAll();
       callback(null);
       return;
     }
@@ -839,38 +796,43 @@ export const subscribeToAuthChanges = (
     // For login/auth state updates, use a small debounce
     authDebouncer.debounce(async () => {
       if (firebaseUser) {
-        // Check cache first to avoid excessive Firestore reads
-        const cached = userCache.get(firebaseUser.uid);
+        // Try to get cached user data first to avoid excessive Firestore reads
+        let cachedUser: User | null = null;
+        try {
+          // AuthCacheService.getUserData returns null if not cached or expired
+          const firestoreData = await AuthCacheService.getUserData(
+            firebaseUser.uid
+          );
+          if (firestoreData) {
+            // Reconstruct User object from cached Firestore data and Firebase auth data
+            cachedUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: new Date(
+                firebaseUser.metadata?.creationTime || Date.now()
+              ),
+              isAdmin: firestoreData.isAdmin || false,
+            };
+          }
+        } catch (error) {
+          logger.debug("Cache miss or error, will fetch fresh data", error);
+        }
 
-        if (cached && !userCache.isExpired(firebaseUser.uid)) {
-          // Update the cached user with latest auth info (like emailVerified and displayName)
+        if (cachedUser) {
           logger.debug(
-            "Using cached user, updating with latest Firebase data",
+            "Using cached user data, updated with latest Firebase auth info",
             {
               firebaseDisplayName: firebaseUser.displayName,
-              cachedDisplayName: cached.user.displayName,
+              cachedDisplayName: cachedUser.displayName,
             }
           );
 
-          // Prefer Firebase displayName if it exists, otherwise keep cached version
-          const updatedUser = {
-            ...cached.user,
-            emailVerified: firebaseUser.emailVerified,
-            displayName: firebaseUser.displayName || cached.user.displayName,
-          };
-
-          logger.debug("Final updated user", {
-            displayName: updatedUser.displayName,
-          });
-
-          // Update the cache with the new data
-          userCache.set(firebaseUser.uid, updatedUser);
-
-          callback(updatedUser);
+          callback(cachedUser);
         } else {
           const user = await convertFirebaseUser(firebaseUser);
-          // Cache the user data
-          userCache.set(firebaseUser.uid, user);
           callback(user);
 
           // Initialize FCM for existing authenticated users

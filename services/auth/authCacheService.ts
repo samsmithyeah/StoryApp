@@ -5,7 +5,7 @@ import {
   CachedUserData,
   validateCacheData,
 } from "../../types/firestore.types";
-import { fetchUserData } from "../firebase/auth";
+import { fetchUserData } from "../firebase/userDataService";
 import { ErrorNotificationService } from "./errorNotificationService";
 
 // Simple LRU cache implementation with automatic cleanup
