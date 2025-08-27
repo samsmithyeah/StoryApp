@@ -298,5 +298,22 @@ describe("WizardStore", () => {
       // Original character should still be there
       expect(useWizardStore.getState().oneOffCharacters).toHaveLength(1);
     });
+
+    test("validates out-of-bounds indices safely", () => {
+      const char: StoryCharacter = { name: "Test", isOneOff: true };
+      useWizardStore.getState().addOneOffCharacter(char);
+
+      // Should handle out-of-bounds indices gracefully (no crash)
+      expect(() => {
+        useWizardStore.getState().removeOneOffCharacter(999);
+        useWizardStore
+          .getState()
+          .updateOneOffCharacter(999, { ...char, name: "Updated" });
+      }).not.toThrow();
+
+      // Original character should still be there and unchanged
+      expect(useWizardStore.getState().oneOffCharacters).toHaveLength(1);
+      expect(useWizardStore.getState().oneOffCharacters[0].name).toBe("Test");
+    });
   });
 });

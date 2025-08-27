@@ -66,16 +66,11 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     savedChildrenHash: string;
   } | null>(null);
 
-  // Lightweight hash function for arrays
+  // Robust hash function for arrays using JSON serialization
   const createHash = (arr: any[]) => {
     if (!arr) return "";
-    return arr
-      .map((item) =>
-        typeof item === "object"
-          ? `${item.id || item.childId || item.name || ""}:${Object.keys(item).length}`
-          : String(item)
-      )
-      .join(",");
+    // A more robust way to create a hash is to serialize the entire object.
+    return arr.map((item) => JSON.stringify(item)).join(",");
   };
 
   // Initialize wizard state when dependencies actually change

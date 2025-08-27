@@ -33,6 +33,7 @@ export default function SavedCharacterProfileScreen() {
   const { savedCharacters, loading, addSavedCharacter, updateSavedCharacter } =
     useSavedCharacters();
   const {
+    oneOffCharacters,
     addOneOffCharacter,
     updateOneOffCharacter,
     removeOneOffCharacter,
@@ -63,7 +64,11 @@ export default function SavedCharacterProfileScreen() {
       } else if (params.tempCharIndex) {
         // Editing a temp character
         const tempCharIndex = parseInt(params.tempCharIndex, 10);
-        if (isNaN(tempCharIndex) || tempCharIndex < 0) {
+        if (
+          isNaN(tempCharIndex) ||
+          tempCharIndex < 0 ||
+          tempCharIndex >= oneOffCharacters.length
+        ) {
           throw new Error("Invalid temp character index");
         }
 
