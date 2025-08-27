@@ -115,17 +115,14 @@ describe("Centralized Auth Status System", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    useAuthStatusStore = createAuthStatusStore();
+    jest.clearAllMocks();
+    mockUseChildren.mockReturnValue({ children: [], loading: false });
   });
 
   afterEach(() => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
-  });
-
-  beforeEach(() => {
-    useAuthStatusStore = createAuthStatusStore();
-    jest.clearAllMocks();
-    mockUseChildren.mockReturnValue({ children: [], loading: false });
   });
 
   describe("AuthStatus Enum Values", () => {

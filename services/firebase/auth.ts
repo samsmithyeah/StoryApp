@@ -722,7 +722,7 @@ export const updateUserOnboardingStatus = async (
   logger.debug("Updating user onboarding status", { uid, completed });
 
   const userRef = doc(db, "users", uid);
-  const updateData: any = {
+  const updateData: Partial<FirestoreUserData> = {
     hasCompletedOnboarding: completed,
   };
 

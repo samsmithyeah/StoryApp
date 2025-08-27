@@ -11,6 +11,10 @@ const compat = new FlatCompat({
 module.exports = [
   ...compat.extends("expo"),
   {
+    // Ignore Firebase Functions directory - it has its own linting setup
+    ignores: ["functions/**/*"],
+  },
+  {
     // ESLint config file itself
     files: ["eslint.config.js"],
     languageOptions: {
