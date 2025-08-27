@@ -1,11 +1,12 @@
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useSavedCharacters } from "@/hooks/useSavedCharacters";
+import { useWizardStore } from "@/store/wizardStore";
 import { Child } from "@/types/child.types";
 import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -38,195 +39,37 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   onCancel,
 }) => {
   const router = useRouter();
+  const { savedCharacters } = useSavedCharacters();
   const {
-    savedCharacters,
-    temporaryCharacter,
-    clearTemporaryCharacter,
-    loadState,
-    isInitialLoadComplete,
-  } = useSavedCharacters();
+    selectedCharacters,
+    oneOffCharacters,
+    mode,
+    initializeCharacters,
+    setMode,
+    toggleChildCharacter,
+    toggleSavedCharacter,
+    toggleOneOffCharacter,
+    getCharactersForStory,
+    isChildSelected,
+    isSavedCharacterSelected,
+    isOneOffCharacterSelected,
+  } = useWizardStore();
 
-  // This function correctly sets up the initial state from props
-  const initializeCharacters = () => {
-    if (characters && characters.length > 0) {
-      return characters;
-    }
-
-    const childCharacters = selectedChildren
-      .map((childId) => {
-        const child = savedChildren.find((c) => c.id === childId);
-        if (child) {
-          return {
-            name: child.childName,
-            isChild: true,
-            childId: child.id,
-          } as StoryCharacter;
-        }
-        return null;
-      })
-      .filter((char): char is StoryCharacter => char !== null);
-
-    return childCharacters;
-  };
-
-  const initialCharacters = initializeCharacters();
-
-  // State for all temporary characters created in this session
-  const [oneOffCharacters, setOneOffCharacters] = useState<StoryCharacter[]>(
-    initialCharacters.filter((c) => c.isOneOff)
-  );
-
-  // Single source of truth for what is currently selected
-  const [selectedCharacters, setSelectedCharacters] =
-    useState<StoryCharacter[]>(initialCharacters);
-
-  const [mode, setMode] = useState<"surprise" | "custom">(
-    initialCharacters.length > 0 ? "custom" : "surprise"
-  );
-
-  // Track which character IDs existed when Firebase first loaded
-  // This way we can detect truly NEW characters added during this session
-  const initialCharacterIds = useRef<Set<string> | null>(null);
-
+  // Initialize wizard state on mount
   useEffect(() => {
-    // Only proceed once Firebase has completed its initial load
-    if (!isInitialLoadComplete || loadState === "loading") {
-      return;
-    }
-
-    const currentIds = new Set(savedCharacters.map((c) => c.id));
-
-    // Initialize the baseline when Firebase first loads successfully
-    if (initialCharacterIds.current === null) {
-      initialCharacterIds.current = new Set(savedCharacters.map((c) => c.id));
-      return;
-    }
-
-    // Check if there are any truly NEW characters (not in initial Firebase load)
-    const newCharacterIds = Array.from(currentIds).filter(
-      (id) => !initialCharacterIds.current?.has(id)
-    );
-
-    if (newCharacterIds.length > 0) {
-      // Find the actual character objects for the new IDs
-      const newCharacters = savedCharacters.filter((char) =>
-        newCharacterIds.includes(char.id)
-      );
-      const newestCharacter = newCharacters[0]; // They're sorted by creation date
-
-      const newStoryCharacter: StoryCharacter = {
-        name: newestCharacter.name,
-        description: newestCharacter.description,
-        isChild: false,
-      };
-
-      setSelectedCharacters((prev) => {
-        const isAlreadySelected = prev.some(
-          (char) => char.name === newStoryCharacter.name && !char.isChild
-        );
-        if (!isAlreadySelected) {
-          setMode("custom");
-          return [...prev, newStoryCharacter];
-        }
-        return prev;
-      });
-
-      // Update our tracking to include these new characters
-      newCharacterIds.forEach((id) => initialCharacterIds.current?.add(id));
-    }
-  }, [savedCharacters, isInitialLoadComplete, loadState]);
-
-  useEffect(() => {
-    if (temporaryCharacter) {
-      const { character, indexToUpdate, removeIndex } = temporaryCharacter;
-      if (removeIndex !== undefined) {
-        // Remove a temp character (when it's converted to saved)
-        const charToRemove = oneOffCharacters[removeIndex];
-        setOneOffCharacters((prev) =>
-          prev.filter((_, index) => index !== removeIndex)
-        );
-        setSelectedCharacters((prev) => prev.filter((c) => c !== charToRemove));
-      } else if (indexToUpdate !== undefined) {
-        // This is an EDIT of an existing one-off character
-        const oldChar = oneOffCharacters[indexToUpdate];
-        setOneOffCharacters((prev) => {
-          const updated = [...prev];
-          updated[indexToUpdate] = character;
-          return updated;
-        });
-        setSelectedCharacters((prev) =>
-          prev.map((c) => (c === oldChar ? character : c))
-        );
-      } else {
-        // This is a NEW one-off character
-        setOneOffCharacters((prev) => [...prev, character]);
-        setSelectedCharacters((prev) => [...prev, character]);
-        setMode("custom");
-      }
-      clearTemporaryCharacter();
-    }
-  }, [temporaryCharacter, clearTemporaryCharacter, oneOffCharacters]);
+    initializeCharacters(characters, selectedChildren, savedChildren);
+  }, [initializeCharacters, characters, selectedChildren, savedChildren]);
 
   const handleToggleChild = (child: Child) => {
-    setSelectedCharacters((prev) => {
-      const isSelected = prev.some(
-        (char) => char.isChild && char.childId === child.id
-      );
-      if (isSelected) {
-        return prev.filter(
-          (char) => !(char.isChild && char.childId === child.id)
-        );
-      } else {
-        return [
-          ...prev,
-          { name: child.childName, isChild: true, childId: child.id },
-        ];
-      }
-    });
+    toggleChildCharacter(child);
   };
 
   const handleToggleSavedCharacter = (savedChar: SavedCharacter) => {
-    setSelectedCharacters((prev) => {
-      const isSelected = prev.some(
-        (char) =>
-          !char.isChild &&
-          char.name === savedChar.name &&
-          char.description === savedChar.description &&
-          char.appearance === savedChar.appearance
-      );
-      if (isSelected) {
-        return prev.filter(
-          (char) =>
-            !(
-              !char.isChild &&
-              char.name === savedChar.name &&
-              char.description === savedChar.description &&
-              char.appearance === savedChar.appearance
-            )
-        );
-      } else {
-        return [
-          ...prev,
-          {
-            name: savedChar.name,
-            description: savedChar.description,
-            appearance: savedChar.appearance,
-            isChild: false,
-          },
-        ];
-      }
-    });
+    toggleSavedCharacter(savedChar);
   };
 
   const handleToggleOneOffCharacter = (charToToggle: StoryCharacter) => {
-    setSelectedCharacters((prev) => {
-      const isSelected = prev.some((char) => char === charToToggle);
-      if (isSelected) {
-        return prev.filter((char) => char !== charToToggle);
-      } else {
-        return [...prev, charToToggle];
-      }
-    });
+    toggleOneOffCharacter(charToToggle);
   };
 
   const handleEditOneOffCharacter = (
@@ -257,23 +100,8 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     router.push("/saved-character-profile?fromWizard=true");
   };
 
-  const isCharacterSelected = (charToFind: StoryCharacter) => {
-    return selectedCharacters.some((char) => char === charToFind);
-  };
-
-  const isSavedCharacterSelected = (savedChar: SavedCharacter) => {
-    return selectedCharacters.some(
-      (char) =>
-        !char.isChild &&
-        !char.isOneOff &&
-        char.name === savedChar.name &&
-        char.description === savedChar.description &&
-        char.appearance === savedChar.appearance
-    );
-  };
-
   const handleNext = () => {
-    const charactersToSend = mode === "surprise" ? [] : selectedCharacters;
+    const charactersToSend = getCharactersForStory();
     onUpdate({ characters: charactersToSend });
     onNext();
   };
@@ -294,12 +122,6 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
       icon: "person.fill",
     },
   ];
-
-  const isChildSelected = (childId: string) => {
-    return selectedCharacters.some(
-      (char) => char.isChild && char.childId === childId
-    );
-  };
 
   return (
     <WizardContainer>
@@ -375,7 +197,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
                   </TouchableOpacity>
                 </View>
                 {oneOffCharacters.map((char, index) => {
-                  const isSelected = isCharacterSelected(char);
+                  const isSelected = isOneOffCharacterSelected(char);
                   return (
                     <TouchableOpacity
                       key={`one-off-${index}`}

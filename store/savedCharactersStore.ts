@@ -25,7 +25,7 @@ interface SavedCharactersStore extends SavedCharactersState {
   loadCharacters: () => Promise<void>;
   addCharacter: (
     character: Omit<SavedCharacter, "id" | "createdAt" | "updatedAt">
-  ) => Promise<void>;
+  ) => Promise<SavedCharacter>;
   updateCharacter: (
     characterId: string,
     updates: Partial<Omit<SavedCharacter, "id" | "createdAt" | "updatedAt">>
@@ -82,6 +82,7 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
           characters: updatedCharacters,
           loading: false,
         });
+        return newCharacter;
       } catch (error) {
         set({
           error:
@@ -90,6 +91,7 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
               : "Failed to add saved character",
           loading: false,
         });
+        throw error;
       }
     },
 
