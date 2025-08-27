@@ -55,10 +55,12 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     isOneOffCharacterSelected,
   } = useWizardStore();
 
-  // Initialize wizard state on mount
+  // Initialize wizard state on mount - use ref to prevent excessive re-initializations
   useEffect(() => {
     initializeCharacters(characters, selectedChildren, savedChildren);
-  }, [initializeCharacters, characters, selectedChildren, savedChildren]);
+    // Only run on mount and when the actual length changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characters?.length, selectedChildren?.length, savedChildren?.length]);
 
   const handleToggleChild = (child: Child) => {
     toggleChildCharacter(child);

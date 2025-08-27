@@ -3,6 +3,10 @@ import { StoryCharacter } from "../types/story.types";
 import { Child } from "../types/child.types";
 import { SavedCharacter } from "../types/savedCharacter.types";
 
+// Generate unique ID for one-off characters
+const generateId = () =>
+  `oneoff_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
 interface WizardState {
   selectedCharacters: StoryCharacter[];
   oneOffCharacters: StoryCharacter[];
@@ -43,9 +47,17 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
   initializeCharacters: (characters, selectedChildren, savedChildren) => {
     if (characters && characters.length > 0) {
+      // Ensure one-off characters have IDs
+      const charactersWithIds = characters.map((char) => {
+        if (char.isOneOff && !char.id) {
+          return { ...char, id: generateId() };
+        }
+        return char;
+      });
+
       set({
-        selectedCharacters: characters,
-        oneOffCharacters: characters.filter((c) => c.isOneOff),
+        selectedCharacters: charactersWithIds,
+        oneOffCharacters: charactersWithIds.filter((c) => c.isOneOff),
         mode: "custom",
       });
       return;
@@ -76,9 +88,14 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
   addOneOffCharacter: (character) => {
     const { oneOffCharacters, selectedCharacters } = get();
+    const characterWithId = {
+      ...character,
+      id: generateId(),
+      isOneOff: true,
+    };
     set({
-      oneOffCharacters: [...oneOffCharacters, character],
-      selectedCharacters: [...selectedCharacters, character],
+      oneOffCharacters: [...oneOffCharacters, characterWithId],
+      selectedCharacters: [...selectedCharacters, characterWithId],
       mode: "custom",
     });
   },
@@ -87,11 +104,18 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
     const { oneOffCharacters, selectedCharacters } = get();
     const oldChar = oneOffCharacters[index];
 
+    // Preserve the ID and isOneOff flag
+    const updatedChar = {
+      ...character,
+      id: oldChar.id,
+      isOneOff: true,
+    };
+
     const updatedOneOffs = [...oneOffCharacters];
-    updatedOneOffs[index] = character;
+    updatedOneOffs[index] = updatedChar;
 
     const updatedSelected = selectedCharacters.map((c) =>
-      c === oldChar ? character : c
+      c.id === oldChar.id ? updatedChar : c
     );
 
     set({
@@ -106,7 +130,9 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
     set({
       oneOffCharacters: oneOffCharacters.filter((_, i) => i !== index),
-      selectedCharacters: selectedCharacters.filter((c) => c !== charToRemove),
+      selectedCharacters: selectedCharacters.filter(
+        (c) => c.id !== charToRemove.id
+      ),
     });
   },
 
@@ -137,23 +163,13 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   toggleSavedCharacter: (savedChar) => {
     const { selectedCharacters } = get();
     const isSelected = selectedCharacters.some(
-      (char) =>
-        !char.isChild &&
-        char.name === savedChar.name &&
-        char.description === savedChar.description &&
-        char.appearance === savedChar.appearance
+      (char) => char.savedCharacterId === savedChar.id
     );
 
     if (isSelected) {
       set({
         selectedCharacters: selectedCharacters.filter(
-          (char) =>
-            !(
-              !char.isChild &&
-              char.name === savedChar.name &&
-              char.description === savedChar.description &&
-              char.appearance === savedChar.appearance
-            )
+          (char) => char.savedCharacterId !== savedChar.id
         ),
       });
     } else {
@@ -162,6 +178,7 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
         description: savedChar.description,
         appearance: savedChar.appearance,
         isChild: false,
+        savedCharacterId: savedChar.id,
       };
       set({
         selectedCharacters: [...selectedCharacters, storyCharacter],
@@ -171,12 +188,14 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
   toggleOneOffCharacter: (character) => {
     const { selectedCharacters } = get();
-    const isSelected = selectedCharacters.some((char) => char === character);
+    const isSelected = selectedCharacters.some(
+      (char) => char.id === character.id
+    );
 
     if (isSelected) {
       set({
         selectedCharacters: selectedCharacters.filter(
-          (char) => char !== character
+          (char) => char.id !== character.id
         ),
       });
     } else {
@@ -189,7 +208,7 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   addSavedCharacterToSelection: (savedChar) => {
     const { selectedCharacters } = get();
     const isAlreadySelected = selectedCharacters.some(
-      (char) => char.name === savedChar.name && !char.isChild
+      (char) => char.savedCharacterId === savedChar.id
     );
 
     if (!isAlreadySelected) {
@@ -198,6 +217,7 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
         description: savedChar.description,
         appearance: savedChar.appearance,
         isChild: false,
+        savedCharacterId: savedChar.id,
       };
       set({
         selectedCharacters: [...selectedCharacters, storyCharacter],
@@ -224,17 +244,12 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   isSavedCharacterSelected: (savedChar) => {
     const { selectedCharacters } = get();
     return selectedCharacters.some(
-      (char) =>
-        !char.isChild &&
-        !char.isOneOff &&
-        char.name === savedChar.name &&
-        char.description === savedChar.description &&
-        char.appearance === savedChar.appearance
+      (char) => char.savedCharacterId === savedChar.id
     );
   },
 
   isOneOffCharacterSelected: (character) => {
     const { selectedCharacters } = get();
-    return selectedCharacters.some((char) => char === character);
+    return selectedCharacters.some((char) => char.id === character.id);
   },
 }));
