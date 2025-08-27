@@ -259,4 +259,31 @@ describe("WizardStore", () => {
       expect(isSavedCharacterSelected(mockSavedCharacter)).toBe(false);
     });
   });
+
+  describe("Edge Cases & Error Handling", () => {
+    test("handles array operations safely with valid indices", () => {
+      const char: StoryCharacter = { name: "Test", isOneOff: true };
+
+      useWizardStore.getState().addOneOffCharacter(char);
+      expect(useWizardStore.getState().oneOffCharacters).toHaveLength(1);
+
+      // Valid update
+      useWizardStore
+        .getState()
+        .updateOneOffCharacter(0, { ...char, name: "Updated" });
+      expect(useWizardStore.getState().oneOffCharacters[0].name).toBe(
+        "Updated"
+      );
+
+      // Valid removal
+      useWizardStore.getState().removeOneOffCharacter(0);
+      expect(useWizardStore.getState().oneOffCharacters).toHaveLength(0);
+    });
+
+    test("handles empty state gracefully", () => {
+      expect(useWizardStore.getState().oneOffCharacters).toHaveLength(0);
+      expect(useWizardStore.getState().selectedCharacters).toHaveLength(0);
+      expect(useWizardStore.getState().mode).toBe("surprise");
+    });
+  });
 });

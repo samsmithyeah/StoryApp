@@ -6,7 +6,7 @@ import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -55,12 +55,41 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     isOneOffCharacterSelected,
   } = useWizardStore();
 
-  // Initialize wizard state on mount - use ref to prevent excessive re-initializations
+  // Create stable references for arrays to prevent excessive re-initializations
+  // Use JSON.stringify for deep comparison but memoize to avoid performance issues
+  const charactersKey = useMemo(() => JSON.stringify(characters), [characters]);
+  const selectedChildrenKey = useMemo(
+    () => JSON.stringify(selectedChildren),
+    [selectedChildren]
+  );
+  const savedChildrenKey = useMemo(
+    () => JSON.stringify(savedChildren),
+    [savedChildren]
+  );
+
+  // Track if we've already initialized to prevent re-initialization on every render
+  const hasInitialized = useRef(false);
+  const lastKeysRef = useRef<string>("");
+
+  // Initialize wizard state when dependencies actually change
   useEffect(() => {
-    initializeCharacters(characters, selectedChildren, savedChildren);
-    // Only run on mount and when the actual length changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [characters?.length, selectedChildren?.length, savedChildren?.length]);
+    const currentKeys = `${charactersKey}-${selectedChildrenKey}-${savedChildrenKey}`;
+
+    // Only initialize if we haven't done so yet, or if the actual content has changed
+    if (!hasInitialized.current || lastKeysRef.current !== currentKeys) {
+      initializeCharacters(characters, selectedChildren, savedChildren);
+      hasInitialized.current = true;
+      lastKeysRef.current = currentKeys;
+    }
+  }, [
+    charactersKey,
+    selectedChildrenKey,
+    savedChildrenKey,
+    initializeCharacters,
+    characters,
+    selectedChildren,
+    savedChildren,
+  ]);
 
   const handleToggleChild = (child: Child) => {
     toggleChildCharacter(child);

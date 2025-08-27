@@ -62,10 +62,15 @@ export default function SavedCharacterProfileScreen() {
         await updateSavedCharacter(params.characterId, characterData);
       } else if (params.tempCharIndex) {
         // Editing a temp character
+        const tempCharIndex = parseInt(params.tempCharIndex, 10);
+        if (isNaN(tempCharIndex)) {
+          throw new Error("Invalid temp character index");
+        }
+
         if (shouldSave) {
           // Save permanently and remove the temp character
           const newSavedChar = await addSavedCharacter(characterData);
-          removeOneOffCharacter(parseInt(params.tempCharIndex));
+          removeOneOffCharacter(tempCharIndex);
           addSavedCharacterToSelection(newSavedChar);
         } else {
           // Just update the temp character
@@ -83,7 +88,7 @@ export default function SavedCharacterProfileScreen() {
             isOneOff: true,
           };
 
-          updateOneOffCharacter(parseInt(params.tempCharIndex), tempChar);
+          updateOneOffCharacter(tempCharIndex, tempChar);
         }
       } else if (shouldSave) {
         const newSavedChar = await addSavedCharacter(characterData);
