@@ -2,7 +2,7 @@ import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, usePathname } from "expo-router";
 import { logger } from "../../utils/logger";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ImageBackground,
@@ -27,6 +27,15 @@ export default function StoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTitleScreen, setShowTitleScreen] = useState(true);
+
+  // Stable callback functions - must be defined before any early returns
+  const handleStartReading = useCallback(() => {
+    setShowTitleScreen(false);
+  }, []);
+
+  const handleGoBack = useCallback(() => {
+    router.replace("/(tabs)");
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -204,14 +213,6 @@ export default function StoryScreen() {
       </ImageBackground>
     );
   }
-
-  const handleStartReading = () => {
-    setShowTitleScreen(false);
-  };
-
-  const handleGoBack = () => {
-    router.replace("/(tabs)");
-  };
 
   if (showTitleScreen) {
     return (

@@ -166,6 +166,14 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
     [story.storyContent, pageWidth, totalPages]
   );
 
+  const handleNewStory = useCallback(() => {
+    router.replace("/(tabs)/create");
+  }, []);
+
+  const handleBackToLibrary = useCallback(() => {
+    router.replace("/(tabs)");
+  }, []);
+
   const handleHorizontalScroll = (e: any) => {
     const pageIdx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
     if (pageIdx !== currentPage) setCurrentPage(pageIdx);
@@ -374,8 +382,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
                 style={[styles.pageContainer, { width: pageWidth }]}
               >
                 <TheEndScreen
-                  onNewStory={() => router.replace("/(tabs)/create")}
-                  onBackToLibrary={() => router.replace("/(tabs)")}
+                  onNewStory={handleNewStory}
+                  onBackToLibrary={handleBackToLibrary}
                 />
               </View>
             </ScrollView>
@@ -440,30 +448,44 @@ export const StoryViewer = React.memo(
     if (
       prevStory.id !== nextStory.id ||
       prevStory.title !== nextStory.title ||
-      prevStory.storyContent !== nextStory.storyContent ||
       prevStory.imageGenerationStatus !== nextStory.imageGenerationStatus
     ) {
       return false;
     }
 
-    // Check if any page imageUrls have changed (affects image loading state)
-    if (prevStory.storyContent && nextStory.storyContent) {
-      for (
-        let i = 0;
-        i <
-        Math.max(prevStory.storyContent.length, nextStory.storyContent.length);
-        i++
+    const prevContent = prevStory.storyContent;
+    const nextContent = nextStory.storyContent;
+
+    // If references are the same, content is the same.
+    if (prevContent === nextContent) {
+      return true;
+    }
+
+    // If one is falsy or lengths differ, they are not equal.
+    if (
+      !prevContent ||
+      !nextContent ||
+      prevContent.length !== nextContent.length
+    ) {
+      return false;
+    }
+
+    // Deep compare each page.
+    for (let i = 0; i < prevContent.length; i++) {
+      const prevPage = prevContent[i];
+      const nextPage = nextContent[i];
+
+      // Defensive check (shouldn't be needed due to length check above)
+      if (!prevPage || !nextPage) {
+        return false;
+      }
+
+      if (
+        prevPage.page !== nextPage.page ||
+        prevPage.text !== nextPage.text ||
+        prevPage.imageUrl !== nextPage.imageUrl
       ) {
-        const prevPage = prevStory.storyContent[i];
-        const nextPage = nextStory.storyContent[i];
-
-        if (!prevPage || !nextPage) {
-          return false; // Pages added/removed
-        }
-
-        if (prevPage.imageUrl !== nextPage.imageUrl) {
-          return false; // Image URL changed
-        }
+        return false; // Page content is different
       }
     }
 
