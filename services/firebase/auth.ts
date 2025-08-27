@@ -11,7 +11,12 @@ import auth, {
   signOut,
   updateProfile,
 } from "@react-native-firebase/auth";
-import { doc, getDoc, setDoc } from "@react-native-firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import {
   GoogleSignin,
@@ -28,6 +33,9 @@ import { Child } from "../../types/child.types";
 
 import { validateEmail } from "../../utils/validation";
 import { logger } from "../../utils/logger";
+import { CacheConfig } from "../../constants/CacheConfig";
+import { FirestoreUserData } from "../../types/firestore.types";
+import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 import { FCMService } from "../fcm";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
@@ -38,61 +46,126 @@ interface AppleAuthError {
   message?: string;
 }
 
-interface FirestoreUserData {
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
-  createdAt?: { toDate(): Date };
-  children?: Child[];
-  isAdmin?: boolean;
-  fcmToken?: string;
-}
-
 // Constants
-const PROFILE_UPDATE_MAX_RETRIES = 5;
-const PROFILE_UPDATE_RETRY_DELAY = 200; // Start with 200ms, exponential backoff
-const AUTH_DEBOUNCE_DELAY = 100; // 100ms debounce to group rapid auth state changes
+const AUTH_DEBOUNCE_DELAY = CacheConfig.AUTH_DEBOUNCE_MS; // Use centralized config
 
 // FCM Initialization Strategy:
 // - New users (signup, first-time social): FCMService.initializeFCM(true) - Force re-initialization
 // - Existing users (sign-in, auth state observer): FCMService.initializeFCM() - Normal initialization
 
-// Helper function to wait for Firebase profile update to propagate
+// Helper function to consistently initialize FCM based on user type
+const initializeFCMForAuthOperation = async (
+  operationType: "signup" | "signin" | "observer",
+  userUid: string
+) => {
+  const forceReinitialization = operationType === "signup";
+
+  try {
+    logger.debug(`Starting FCM initialization for ${operationType}`, {
+      uid: userUid,
+      forceReinitialization,
+    });
+
+    await FCMService.initializeFCM(forceReinitialization);
+
+    logger.debug(
+      `FCM initialization completed successfully for ${operationType}`
+    );
+  } catch (error) {
+    logger.error(`FCM initialization failed for ${operationType}`, error);
+  }
+};
+
+// Helper function to wait for Firebase profile update to propagate using auth state listener
 const waitForProfileUpdate = async (
   user: FirebaseAuthTypes.User,
   expectedDisplayName: string,
-  maxRetries = PROFILE_UPDATE_MAX_RETRIES
+  timeoutMs = AUTH_TIMEOUTS.PROFILE_UPDATE_TIMEOUT_MS // Increased timeout for reliability
 ): Promise<boolean> => {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    await reload(user);
-    const currentUser = authService.currentUser;
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    let unsubscribe: (() => void) | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    if (currentUser?.displayName === expectedDisplayName) {
-      logger.debug("Profile update confirmed", {
-        displayName: currentUser.displayName,
-        attempts: attempt + 1,
+    // Set up timeout fallback
+    timeoutId = setTimeout(() => {
+      if (unsubscribe) unsubscribe();
+
+      logger.warn("Profile update verification timed out", {
+        expectedDisplayName,
+        finalDisplayName: authService.currentUser?.displayName,
+        elapsedMs: Date.now() - startTime,
       });
-      return true;
+
+      resolve(false);
+    }, timeoutMs);
+
+    // Check immediately first
+    if (authService.currentUser?.displayName === expectedDisplayName) {
+      if (timeoutId) clearTimeout(timeoutId);
+      logger.debug("Profile update confirmed immediately", {
+        displayName: expectedDisplayName,
+        elapsedMs: 0,
+      });
+      resolve(true);
+      return;
     }
 
-    // Exponential backoff: 200ms, 400ms, 800ms, 1600ms, 3200ms
-    const delay = PROFILE_UPDATE_RETRY_DELAY * Math.pow(2, attempt);
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    // Set up auth state change listener for more reliable detection
+    unsubscribe = onAuthStateChanged(authService, (authUser) => {
+      if (authUser?.displayName === expectedDisplayName) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (unsubscribe) unsubscribe();
 
-    logger.debug("Profile update not yet visible, retrying", {
-      attempt: attempt + 1,
-      expectedDisplayName,
-      currentDisplayName: currentUser?.displayName,
-      nextRetryDelay: delay * 2,
+        logger.debug("Profile update confirmed via auth state listener", {
+          displayName: authUser.displayName,
+          elapsedMs: Date.now() - startTime,
+        });
+
+        resolve(true);
+      }
     });
-  }
 
-  logger.warn("Profile update verification timed out", {
-    expectedDisplayName,
-    finalDisplayName: authService.currentUser?.displayName,
-    maxRetries,
+    // Also try reloading the user as a backup approach
+    const pollAsBackup = async () => {
+      // Wait a bit to let the auth state listener work first
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Only poll if we haven't resolved yet
+      let attempts = 0;
+      const maxAttempts = Math.floor((timeoutMs - 500) / 200); // Poll every 200ms
+
+      while (attempts < maxAttempts) {
+        try {
+          await reload(user);
+          const currentUser = authService.currentUser;
+
+          if (currentUser?.displayName === expectedDisplayName) {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (unsubscribe) unsubscribe();
+
+            logger.debug("Profile update confirmed via polling backup", {
+              displayName: currentUser.displayName,
+              elapsedMs: Date.now() - startTime,
+            });
+
+            resolve(true);
+            return;
+          }
+        } catch (error) {
+          logger.debug("Profile reload failed during verification", error);
+        }
+
+        attempts++;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    };
+
+    // Start backup polling
+    pollAsBackup().catch((error) => {
+      logger.debug("Profile update polling backup failed", error);
+    });
   });
-  return false;
 };
 
 // Convert Firebase User to our User type
@@ -340,15 +413,7 @@ export const signUpWithEmail = async ({
   });
 
   // Initialize FCM for push notifications
-  try {
-    logger.debug("Starting FCM initialization for new email signup user", {
-      uid: userCredential.user.uid,
-    });
-    await FCMService.initializeFCM(true); // Force re-initialization for new users
-    logger.debug("FCM initialization completed successfully for email signup");
-  } catch (error) {
-    logger.error("FCM initialization failed for email signup", error);
-  }
+  await initializeFCMForAuthOperation("signup", userCredential.user.uid);
 
   return appUser;
 };
@@ -364,11 +429,7 @@ export const signInWithEmail = async ({
   );
 
   // Initialize FCM for push notifications
-  try {
-    await FCMService.initializeFCM();
-  } catch (error) {
-    logger.error("FCM initialization failed for existing user sign-in", error);
-  }
+  await initializeFCMForAuthOperation("signin", userCredential.user.uid);
 
   return convertFirebaseUser(userCredential.user);
 };
@@ -427,11 +488,16 @@ export const signInWithGoogle = async (): Promise<User> => {
     );
 
     // Initialize FCM for push notifications
-    try {
-      await FCMService.initializeFCM(true); // Force re-initialization for new users
-    } catch (error) {
-      logger.error("FCM initialization failed", error);
-    }
+    // Check if this is a new user (created recently) to determine FCM strategy
+    const userCreationTime = new Date(
+      userCredential.user.metadata.creationTime!
+    ).getTime();
+    const now = Date.now();
+    const isNewUser =
+      now - userCreationTime < AUTH_TIMEOUTS.NEW_USER_THRESHOLD_MS; // Consider new if created within threshold
+
+    const operationType = isNewUser ? "signup" : "signin";
+    await initializeFCMForAuthOperation(operationType, userCredential.user.uid);
 
     return appUser;
   } catch (error) {
@@ -525,11 +591,16 @@ export const signInWithApple = async (): Promise<User> => {
     );
 
     // Initialize FCM for push notifications
-    try {
-      await FCMService.initializeFCM(true); // Force re-initialization for new users
-    } catch (error) {
-      logger.error("FCM initialization failed", error);
-    }
+    // Check if this is a new user (created recently) to determine FCM strategy
+    const userCreationTime = new Date(
+      userCredential.user.metadata.creationTime!
+    ).getTime();
+    const now = Date.now();
+    const isNewUser =
+      now - userCreationTime < AUTH_TIMEOUTS.NEW_USER_THRESHOLD_MS; // Consider new if created within threshold
+
+    const operationType = isNewUser ? "signup" : "signin";
+    await initializeFCMForAuthOperation(operationType, userCredential.user.uid);
 
     return appUser;
   } catch (error: unknown) {
@@ -594,9 +665,10 @@ export const resetPassword = async (email: string): Promise<void> => {
 
 // Sign Out
 export const signOutUser = async (): Promise<void> => {
-  // Cleanup FCM token before sign out
+  // Clean up FCM listeners but keep the token in the database
+  // This allows the user to receive notifications when they sign back in
   try {
-    await FCMService.cleanup();
+    await FCMService.cleanupListeners();
   } catch (error) {}
 
   await GoogleSignin.signOut();
@@ -611,6 +683,13 @@ export const deleteAccount = async (): Promise<void> => {
   }
 
   try {
+    // Clean up FCM token completely for account deletion
+    try {
+      await FCMService.cleanup();
+    } catch (error) {
+      logger.debug("FCM cleanup failed during account deletion", error);
+    }
+
     const deleteUserDataFunction = httpsCallable(
       functionsService,
       "deleteUserData"
@@ -636,7 +715,7 @@ export const deleteAccount = async (): Promise<void> => {
 };
 
 // Cache management for user data
-const CACHE_DURATION = 60000; // 60 seconds to reduce cache misses
+const CACHE_DURATION = CacheConfig.USER_DATA_TTL; // Use centralized cache duration
 
 class UserCache {
   private cache: { [uid: string]: { user: User; timestamp: number } } = {};
@@ -665,6 +744,38 @@ class UserCache {
 }
 
 const userCache = new UserCache();
+
+// Service function to fetch user data from Firestore with caching
+export const fetchUserData = async (
+  uid: string
+): Promise<FirestoreUserData | null> => {
+  logger.debug("Fetching user data from Firestore", { uid });
+
+  const userRef = doc(db, "users", uid);
+  const userDoc = await getDoc(userRef);
+
+  return userDoc.exists() ? (userDoc.data() as FirestoreUserData) : null;
+};
+
+// Service function to update user onboarding status
+export const updateUserOnboardingStatus = async (
+  uid: string,
+  completed: boolean = true
+): Promise<void> => {
+  logger.debug("Updating user onboarding status", { uid, completed });
+
+  const userRef = doc(db, "users", uid);
+  const updateData: any = {
+    hasCompletedOnboarding: completed,
+  };
+
+  // Only set completion timestamp if marking as completed
+  if (completed) {
+    updateData.onboardingCompletedAt = new Date();
+  }
+
+  await updateDoc(userRef, updateData);
+};
 
 // Debounce mechanism for auth state changes
 class AuthDebouncer {
@@ -763,13 +874,7 @@ export const subscribeToAuthChanges = (
           callback(user);
 
           // Initialize FCM for existing authenticated users
-          try {
-            await FCMService.initializeFCM();
-          } catch (error) {
-            logger.debug("FCM initialization failed in auth state observer", {
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
+          await initializeFCMForAuthOperation("observer", firebaseUser.uid);
         }
       }
     }, AUTH_DEBOUNCE_DELAY);

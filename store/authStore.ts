@@ -1,143 +1,363 @@
 import { create } from "zustand";
-import { subscribeToAuthChanges } from "../services/firebase/auth";
+import { subscribeToAuthChanges, signOutUser } from "../services/firebase/auth";
+import { clearStorageUrlCaches } from "../hooks/useStorageUrl";
 import { logger } from "../utils/logger";
-import { AuthState, User } from "../types/auth.types";
+import { AuthState, AuthStatus, User } from "../types/auth.types";
+import { CacheConfig } from "../constants/CacheConfig";
+import { getAuthErrorMessage } from "../utils/authErrorMessages";
+import { AuthCacheService } from "../services/auth/authCacheService";
+import {
+  OnboardingService,
+  OnboardingResult,
+} from "../services/auth/onboardingService";
+import {
+  AuthOperationService,
+  executeAuthOperation,
+} from "../services/auth/authOperationService";
+import {
+  AuthCleanupService,
+  createDebouncedFunction,
+} from "../services/auth/authCleanupService";
 
-interface AuthStore extends AuthState {
+// Strongly typed store state
+interface AuthStoreState extends AuthState {
+  // Additional auth loading state for operations
+  authLoading: boolean;
+
+  // Initialization flags
+  isInitialized: boolean;
+  isInitializing: boolean;
+
+  // Computed status timeout for debouncing
+  computeAuthStatusTimeoutId: ReturnType<typeof setTimeout> | null;
+}
+
+// Strongly typed store actions
+interface AuthStoreActions {
+  // Core actions
   initialize: () => void;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  signOut: () => Promise<void>;
-  authLoading: boolean;
   setAuthLoading: (loading: boolean) => void;
-  validateAuthState: () => boolean;
-  isInitialized: boolean;
-  isInitializing: boolean;
-  unsubscribe: (() => void) | null;
+  setAuthStatus: (status: AuthStatus) => void;
+  setOnboardingStatus: (status: boolean) => void;
+  signOut: () => Promise<void>;
+
+  // Advanced operations
+  initializeAuthStatus: () => Promise<void>;
+  computeAuthStatus: () => void;
+  debouncedComputeAuthStatus: () => void;
+
+  // Utility
+  cleanup: () => void;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  user: null,
-  loading: true,
-  error: null,
-  authLoading: false,
-  isInitialized: false,
-  isInitializing: false,
-  unsubscribe: null,
+type AuthStore = AuthStoreState & AuthStoreActions;
 
-  initialize: () => {
-    // Prevent concurrent initialization
-    if (get().isInitializing || get().isInitialized) {
-      return;
-    }
+// Create debounced auth status computation
+const createDebouncedAuthStatusComputation = (store: {
+  getState: () => AuthStore;
+}) =>
+  createDebouncedFunction(() => {
+    store.getState().computeAuthStatus();
+  }, CacheConfig.AUTH_DEBOUNCE_MS);
 
-    // Mark as initializing
-    set({ isInitializing: true });
+export const useAuthStore = create<AuthStore>((set, get) => {
+  // Create debounced function for this store instance
+  const debouncedComputeAuthStatus = createDebouncedAuthStatusComputation({
+    getState: get,
+  });
 
-    // Clean up any existing subscription
-    const existingUnsubscribe = get().unsubscribe;
-    if (existingUnsubscribe) {
-      existingUnsubscribe();
-    }
+  return {
+    // Initial state
+    user: null,
+    loading: true,
+    error: null,
+    authStatus: AuthStatus.INITIALIZING,
+    hasCompletedOnboarding: null,
+    authLoading: false,
+    isInitialized: false,
+    isInitializing: false,
+    computeAuthStatusTimeoutId: null,
 
-    const unsubscribe = subscribeToAuthChanges((user) => {
+    // Basic setters
+    setUser: (user: User | null) => {
       const currentState = get();
-      const { validateAuthState } = get();
+      // Clear error when successfully authenticated
+      if (user && currentState.error) {
+        set({ user, error: null });
+      } else {
+        set({ user });
+      }
+    },
 
-      // Validate auth state before updating
-      if (!validateAuthState()) {
-        logger.warn("Auth state validation failed, resetting to safe state");
-        set({
-          user: null,
-          loading: false,
-          error: "Authentication state corrupted",
+    setLoading: (loading: boolean) => set({ loading }),
+    setError: (error: string | null) => set({ error }),
+    setAuthLoading: (authLoading: boolean) => set({ authLoading }),
+    setAuthStatus: (authStatus: AuthStatus) => {
+      const currentStatus = get().authStatus;
+      if (currentStatus !== authStatus) {
+        logger.debug("Auth status changed", {
+          from: currentStatus,
+          to: authStatus,
         });
+        set({ authStatus });
+      }
+    },
+    setOnboardingStatus: (hasCompletedOnboarding: boolean) => {
+      set({ hasCompletedOnboarding });
+    },
+
+    // Initialize auth system
+    initialize: () => {
+      const currentState = get();
+      if (currentState.isInitialized || currentState.isInitializing) {
+        logger.debug("Auth already initialized or initializing");
         return;
       }
 
-      logger.debug("Received user from auth service", {
-        displayName: user?.displayName,
-        email: user?.email,
-        uid: user?.uid,
-      });
+      set({ isInitializing: true });
+      logger.debug("Initializing auth system");
 
-      // Clear error only when successfully authenticated
-      // This prevents stale errors from persisting after successful login
-      if (user && currentState.error) {
-        set({ user, loading: false, error: null });
-      } else {
-        // Keep error if auth fails or user logs out
-        set({ user, loading: false });
+      try {
+        // Set up Firebase auth listener
+        const unsubscribe = subscribeToAuthChanges((firebaseUser) => {
+          executeAuthOperation(
+            "firebase_auth_change",
+            async () => {
+              if (firebaseUser) {
+                // Fetch Firestore user data to get admin status and other fields
+                let firestoreUserData = null;
+                try {
+                  firestoreUserData = await AuthCacheService.getUserData(
+                    firebaseUser.uid
+                  );
+                } catch (error) {
+                  logger.warn(
+                    "Failed to fetch Firestore user data during auth change",
+                    error
+                  );
+                }
+
+                const user: User = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  displayName: firebaseUser.displayName,
+                  photoURL: firebaseUser.photoURL,
+                  emailVerified: firebaseUser.emailVerified,
+                  createdAt: (firebaseUser as any).metadata?.creationTime
+                    ? new Date((firebaseUser as any).metadata.creationTime)
+                    : new Date(),
+                  isAdmin: firestoreUserData?.isAdmin || false,
+                };
+
+                logger.debug("Firebase user authenticated", {
+                  uid: user.uid,
+                  email: user.email,
+                  verified: user.emailVerified,
+                  isAdmin: user.isAdmin,
+                });
+
+                set({ user, loading: false });
+                get().initializeAuthStatus();
+              } else {
+                logger.debug("Firebase user signed out");
+                set({
+                  user: null,
+                  loading: false,
+                  hasCompletedOnboarding: null,
+                  authStatus: AuthStatus.UNAUTHENTICATED,
+                });
+              }
+            },
+            undefined,
+            (error) => {
+              logger.error("Firebase auth state change error", error);
+              set({ error: getAuthErrorMessage(error), loading: false });
+            }
+          );
+        });
+
+        // Register cleanup for auth listener
+        AuthCleanupService.registerCleanupCallback(unsubscribe);
+
+        set({ isInitialized: true, isInitializing: false });
+        logger.debug("Auth system initialized");
+      } catch (error) {
+        logger.error("Failed to initialize auth system", error);
+        set({
+          error: getAuthErrorMessage(error),
+          isInitializing: false,
+          loading: false,
+        });
       }
-    });
+    },
 
-    // Store the unsubscribe function for cleanup and mark as initialized
-    set({ unsubscribe, isInitialized: true, isInitializing: false });
-  },
+    // Initialize auth status based on current user
+    initializeAuthStatus: async () => {
+      const currentState = get();
+      const startingUser = currentState.user;
 
-  setUser: (user) => set({ user }),
+      if (!startingUser) {
+        set({ hasCompletedOnboarding: false });
+        get().debouncedComputeAuthStatus();
+        return;
+      }
 
-  setLoading: (loading) => set({ loading }),
+      logger.debug("Initializing auth status", { uid: startingUser.uid });
 
-  setError: (error) => set({ error }),
+      const success = await executeAuthOperation(
+        "initialize_auth_status",
+        async () => {
+          const result =
+            await OnboardingService.checkOnboardingWithErrorHandling(
+              startingUser,
+              currentState.hasCompletedOnboarding
+            );
 
-  setAuthLoading: (loading) => set({ authLoading: loading }),
+          // Only update if operation is still current
+          const finalState = get();
+          if (finalState.user?.uid === startingUser.uid) {
+            set({ hasCompletedOnboarding: result.hasCompletedOnboarding });
+            logger.debug("Auth status initialized", {
+              uid: startingUser.uid,
+              hasCompletedOnboarding: result.hasCompletedOnboarding,
+              reason: result.reason,
+            });
+          }
 
-  signOut: async () => {
-    try {
-      logger.debug("Starting sign out process");
-      set({ loading: true, error: null });
-      const { signOutUser } = await import("../services/firebase/auth");
-      await signOutUser();
-      logger.debug("Sign out completed, clearing user state");
-      set({ user: null, loading: false, authLoading: false });
-    } catch (error) {
-      logger.error("Sign out error", error);
-      set({
-        error: error instanceof Error ? error.message : "Sign out failed",
-        loading: false,
-        authLoading: false,
+          return result;
+        },
+        undefined,
+        (error) => {
+          logger.error("Failed to initialize auth status", {
+            uid: startingUser.uid,
+            error,
+          });
+          // Don't set error state for initialization failures - just keep status as null
+        }
+      );
+
+      // Always trigger computation to ensure we don't get stuck
+      get().debouncedComputeAuthStatus();
+    },
+
+    // Compute current auth status based on state
+    computeAuthStatus: () => {
+      const { user, loading, hasCompletedOnboarding, setAuthStatus } = get();
+
+      logger.debug("Computing auth status", {
+        hasUser: !!user,
+        loading,
+        emailVerified: user?.emailVerified,
+        hasCompletedOnboarding,
+        userEmail: user?.email,
       });
-    }
-  },
 
-  validateAuthState: () => {
-    const state = get();
+      if (loading || hasCompletedOnboarding === null) {
+        setAuthStatus(AuthStatus.INITIALIZING);
+        return;
+      }
 
-    // Check for invalid state combinations and potential corruption
-    if (state.user && state.loading) {
-      // User is authenticated but still loading - suspicious
-      logger.warn("Invalid state: user authenticated but still loading");
-      return false;
-    }
+      if (!user) {
+        setAuthStatus(AuthStatus.UNAUTHENTICATED);
+        return;
+      }
 
-    if (state.user && !state.user.uid) {
-      // User object exists but missing required uid
-      logger.warn("Invalid state: user object missing uid");
-      return false;
-    }
+      if (!user.emailVerified) {
+        setAuthStatus(AuthStatus.UNVERIFIED);
+        return;
+      }
 
-    if (state.user && (!state.user.email || !state.user.email.includes("@"))) {
-      // User object exists but has invalid email
-      logger.warn("Invalid state: user object has invalid email");
-      return false;
-    }
+      if (!hasCompletedOnboarding) {
+        setAuthStatus(AuthStatus.ONBOARDING);
+        return;
+      }
 
-    // Check for memory corruption indicators
-    if (
-      typeof state.loading !== "boolean" ||
-      typeof state.authLoading !== "boolean"
-    ) {
-      logger.warn("Invalid state: loading flags are not boolean");
-      return false;
-    }
+      setAuthStatus(AuthStatus.AUTHENTICATED);
+    },
 
-    if (state.error !== null && typeof state.error !== "string") {
-      logger.warn("Invalid state: error is not null or string");
-      return false;
-    }
+    // Debounced version of computeAuthStatus
+    debouncedComputeAuthStatus,
 
-    return true;
-  },
-}));
+    // Sign out user
+    signOut: async () => {
+      logger.debug("Starting sign out process");
+
+      const success = await executeAuthOperation(
+        "sign_out",
+        async () => {
+          // Clear all caches and URLs first
+          clearStorageUrlCaches();
+          AuthCacheService.clearAll();
+
+          // Sign out from Firebase
+          await signOutUser();
+
+          // Reset state
+          set({
+            user: null,
+            loading: false,
+            error: null,
+            authStatus: AuthStatus.UNAUTHENTICATED,
+            hasCompletedOnboarding: null,
+          });
+
+          logger.debug("Sign out completed");
+          return true;
+        },
+        undefined,
+        (error) => {
+          logger.error("Sign out failed", error);
+          set({ error: getAuthErrorMessage(error) });
+        }
+      );
+
+      if (!success) {
+        throw new Error("Sign out failed");
+      }
+    },
+
+    // Complete cleanup
+    cleanup: () => {
+      logger.debug("Cleaning up auth store");
+
+      // Cancel any pending debounced operations
+      debouncedComputeAuthStatus.cancel();
+
+      // Clear current operation
+      AuthOperationService.clearCurrentOperation();
+
+      // Clean up all managed resources
+      AuthCleanupService.cleanupAll();
+
+      // Clear caches
+      AuthCacheService.clearAll();
+
+      // Reset state
+      set({
+        user: null,
+        loading: true,
+        error: null,
+        authStatus: AuthStatus.INITIALIZING,
+        hasCompletedOnboarding: null,
+        authLoading: false,
+        isInitialized: false,
+        isInitializing: false,
+        computeAuthStatusTimeoutId: null,
+      });
+
+      logger.debug("Auth store cleanup completed");
+    },
+  };
+});
+
+// Export cache clearing function for external use
+export const clearUserDataCache = (uid?: string) => {
+  if (uid) {
+    AuthCacheService.invalidateUser(uid);
+  } else {
+    AuthCacheService.clearAll();
+  }
+};

@@ -1,3 +1,11 @@
+export enum AuthStatus {
+  INITIALIZING = "initializing",
+  UNAUTHENTICATED = "unauthenticated",
+  UNVERIFIED = "unverified",
+  ONBOARDING = "onboarding",
+  AUTHENTICATED = "authenticated",
+}
+
 export interface User {
   uid: string;
   email: string | null;
@@ -12,6 +20,8 @@ export interface AuthState {
   user: User | null;
   loading: boolean;
   error: string | null;
+  authStatus: AuthStatus;
+  hasCompletedOnboarding: boolean | null;
 }
 
 export type AuthProvider = "google" | "apple" | "email";

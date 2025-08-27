@@ -2,7 +2,7 @@ import {
   getDownloadURL as rnGetDownloadURL,
   ref as rnRef,
 } from "@react-native-firebase/storage";
-import { storageService } from "./config";
+import { storageService, authService } from "./config";
 import { logger } from "../../utils/logger";
 
 /**
@@ -15,6 +15,11 @@ export async function uploadImageFromUrl(
   imageUrl: string,
   path: string
 ): Promise<string> {
+  // Check if user is authenticated before attempting upload
+  if (!authService.currentUser) {
+    throw new Error("User not authenticated - cannot upload to storage");
+  }
+
   try {
     // Fetch the image from the URL
     const response = await fetch(imageUrl);
@@ -40,6 +45,11 @@ export async function uploadImageFromUrl(
  * @param path - The storage path of the image to delete
  */
 export async function deleteImage(path: string): Promise<void> {
+  // Check if user is authenticated before attempting delete
+  if (!authService.currentUser) {
+    throw new Error("User not authenticated - cannot delete from storage");
+  }
+
   try {
     const reference = rnRef(storageService, path);
     await reference.delete();
@@ -74,6 +84,14 @@ export async function getAuthenticatedUrl(
 ): Promise<string | null> {
   if (!storagePath) return null;
 
+  // Check if user is authenticated before attempting storage operations
+  if (!authService.currentUser) {
+    logger.debug("User not authenticated, skipping storage URL request", {
+      storagePath,
+    });
+    return null;
+  }
+
   try {
     // Check if it's already a full URL (for backwards compatibility)
     if (
@@ -99,6 +117,14 @@ export async function getAuthenticatedUrl(
     const reference = rnRef(storageService, storagePath);
     return await rnGetDownloadURL(reference);
   } catch (error) {
+    // Handle authorization errors more gracefully during signout
+    if ((error as any).code === "storage/unauthorized") {
+      logger.debug("Storage unauthorized (user may have signed out)", {
+        storagePath,
+      });
+      return null;
+    }
+
     logger.error("Error getting authenticated URL", { storagePath, error });
 
     // If we get a "not found" error, it might mean the file doesn't exist

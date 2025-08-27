@@ -31,7 +31,7 @@ export const EmailVerificationBanner: React.FC<
 > = ({ onVerified }) => {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, computeAuthStatus } = useAuthStore();
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef<string>(AppState.currentState);
 
@@ -42,8 +42,14 @@ export const EmailVerificationBanner: React.FC<
     try {
       const isVerified = await checkEmailVerified();
       if (isVerified) {
+        logger.debug(
+          "Email verification detected, updating user and auth status"
+        );
         // Update user in store with verified status
         setUser({ ...user, emailVerified: true });
+        // CRITICAL: Trigger immediate auth status recomputation for user-facing verification
+        // Don't use debounced version here - user is waiting for feedback
+        computeAuthStatus();
         setMessage("Email verified successfully! ✓");
         onVerified?.();
         // Clear any intervals
@@ -58,7 +64,7 @@ export const EmailVerificationBanner: React.FC<
         userId: user?.uid,
       });
     }
-  }, [user, setUser, onVerified]);
+  }, [user, setUser, onVerified, computeAuthStatus]);
 
   // Set up automatic checking
   useEffect(() => {

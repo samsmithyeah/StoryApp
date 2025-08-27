@@ -1,78 +1,107 @@
 import { WelcomeOnboarding } from "@/components/onboarding/WelcomeOnboarding";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/hooks/useAuth";
-import { useOnboarding } from "@/hooks/useOnboarding";
+import { AuthStatus } from "@/types/auth.types";
 import { logger } from "@/utils/logger";
 import { Redirect } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Index() {
-  const { user, loading } = useAuth();
-  const {
-    hasCompletedOnboarding,
-    loading: onboardingLoading,
-    completeOnboarding,
-  } = useOnboarding();
+  const { user, authStatus, completeOnboarding, isReady, needsOnboarding } =
+    useAuth();
 
-  // State to ensure we only render/redirect once everything is confirmed ready.
-  const [isReady, setIsReady] = useState(false);
-
+  // Initialize auth when needed (including after signOut)
   useEffect(() => {
-    logger.debug("Index state change", {
-      userEmail: user?.email,
-      userVerified: user?.emailVerified,
-      loading,
-      onboardingLoading,
-      hasCompletedOnboarding,
-      isReady,
+    const { initialize, isInitialized } = useAuthStore.getState();
+    logger.debug("Index useEffect - checking auth initialization", {
+      isInitialized,
     });
 
-    // Only when both hooks are done loading, mark the app as ready to proceed.
-    // Add condition to prevent setting isReady multiple times
-    if (!loading && !onboardingLoading && !isReady) {
-      logger.debug("Setting isReady to true");
-      setIsReady(true);
+    if (!isInitialized) {
+      logger.debug("Auth not initialized, initializing now");
+      // Configure Google Sign-In once globally
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      if (webClientId) {
+        import("@/services/firebase/auth").then(({ configureGoogleSignIn }) => {
+          configureGoogleSignIn(webClientId);
+        });
+      }
+
+      // Initialize auth state listener
+      initialize();
     }
-  }, [loading, onboardingLoading, isReady, user, hasCompletedOnboarding]);
+  }, []); // Only run once on mount
+
+  // Also check if auth needs reinitialization when we have a user but status is wrong
+  useEffect(() => {
+    if (user && authStatus === AuthStatus.UNAUTHENTICATED) {
+      const { isInitialized, initialize } = useAuthStore.getState();
+      if (!isInitialized) {
+        logger.debug("User exists but auth not initialized - reinitializing");
+        initialize();
+      }
+    }
+  }, [user, authStatus]); // Check when user or authStatus changes
+
+  logger.debug("Index render", {
+    userEmail: user?.email,
+    userVerified: user?.emailVerified,
+    authStatus,
+    isReady,
+    needsOnboarding,
+  });
 
   const handleOnboardingComplete = async () => {
-    // The hook update will trigger a re-render, and the logic below will handle redirection.
-    await completeOnboarding();
+    try {
+      logger.debug("Handling onboarding complete - skip for now clicked");
+      await completeOnboarding();
+      logger.debug("Onboarding completion successful");
+    } catch (error) {
+      logger.error("Failed to complete onboarding", error);
+    }
   };
 
-  // While waiting for hooks to resolve, show a loading screen.
-  // This is our primary defense against the race condition.
-  if (!isReady) {
-    logger.debug("Showing loading screen - not ready yet");
-    return <LoadingScreen message="Setting up DreamWeaver..." />;
+  // Prevent redirects when user exists but auth status is transitioning
+  const isAuthStatusTransitioning =
+    user && authStatus === AuthStatus.UNAUTHENTICATED;
+  if (isAuthStatusTransitioning) {
+    logger.debug("Auth status transitioning - showing loading");
+    return <LoadingScreen message="Completing sign in..." />;
   }
 
-  // Once ready, we can safely check the state and render the correct screen.
-  if (user) {
-    // Check if email verification is required (skip for test accounts in dev)
-    const isTestAccount =
-      __DEV__ &&
-      (user.email?.endsWith("@test.dreamweaver") ||
-        user.email?.includes("test@example.com"));
-    if (user.email && !user.emailVerified && !isTestAccount) {
-      logger.debug("Redirecting to verify-email");
-      return <Redirect href="/(auth)/verify-email" />;
-    }
+  // Simple switch based on centralized auth status - no more race conditions!
+  switch (authStatus) {
+    case AuthStatus.INITIALIZING:
+      logger.debug("Showing loading screen - initializing");
+      return <LoadingScreen message="Setting up DreamWeaver..." />;
 
-    if (hasCompletedOnboarding) {
-      logger.debug("Redirecting to tabs (onboarding complete)");
-      return <Redirect href="/(tabs)" />;
-    } else {
-      logger.debug("Showing WelcomeOnboarding");
+    case AuthStatus.UNAUTHENTICATED:
+      logger.debug("Redirecting to login (unauthenticated)");
+      return <Redirect href="/(auth)/login" />;
+
+    case AuthStatus.UNVERIFIED:
+      logger.debug("Redirecting to verify-email (unverified)");
+      return <Redirect href="/(auth)/verify-email" />;
+
+    case AuthStatus.ONBOARDING:
+      logger.debug("Showing WelcomeOnboarding (onboarding required)");
       return (
         <WelcomeOnboarding
           visible={true}
           onComplete={handleOnboardingComplete}
         />
       );
-    }
-  } else {
-    logger.debug("Redirecting to login (no user)");
-    return <Redirect href="/(auth)/login" />;
+
+    case AuthStatus.AUTHENTICATED:
+      logger.debug("Redirecting to tabs (authenticated)");
+      return <Redirect href="/(tabs)" />;
+
+    default:
+      // Fallback for any edge cases - should never happen
+      logger.warn("Unknown auth status, falling back to loading", {
+        authStatus,
+      });
+      return <LoadingScreen message="Loading..." />;
   }
 }
