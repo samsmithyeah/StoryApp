@@ -27,184 +27,187 @@ interface StoryTitleScreenProps {
   onGoBack: () => void;
 }
 
-export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = ({
-  story,
-  onStartReading,
-  onGoBack,
-}) => {
-  const { width, height } = useWindowDimensions();
+export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = React.memo(
+  ({ story, onStartReading, onGoBack }) => {
+    const { width, height } = useWindowDimensions();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-  const isLandscape = width > height;
-  const minDim = Math.min(width, height);
-  const maxDim = Math.max(width, height);
-  const isTablet = maxDim >= 768 && minDim >= 500;
+    const isLandscape = width > height;
+    const minDim = Math.min(width, height);
+    const maxDim = Math.max(width, height);
+    const isTablet = maxDim >= 768 && minDim >= 500;
 
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
 
-  const coverImageUrl = useStorageUrl(story.coverImageUrl);
-  const hasCoverImagePath = !!story.coverImageUrl;
-  const isGeneratingCover =
-    !story.coverImageUrl &&
-    story.generationPhase !== "cover_complete" &&
-    story.generationPhase !== "all_complete";
-  const shouldShowImage = hasCoverImagePath && !imageError && coverImageUrl;
-  const shouldShowSpinner =
-    (hasCoverImagePath && imageLoading && !imageError) || isGeneratingCover;
+    const coverImageUrl = useStorageUrl(story.coverImageUrl);
+    const hasCoverImagePath = !!story.coverImageUrl;
+    const isGeneratingCover =
+      !story.coverImageUrl &&
+      story.generationPhase !== "cover_complete" &&
+      story.generationPhase !== "all_complete";
+    const shouldShowImage = hasCoverImagePath && !imageError && coverImageUrl;
+    const shouldShowSpinner =
+      (hasCoverImagePath && imageLoading && !imageError) || isGeneratingCover;
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim, scaleAnim]);
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [fadeAnim, slideAnim, scaleAnim]);
 
-  const styles = useMemo(
-    () => createStyles({ width, height, isTablet, isLandscape }),
-    [width, height, isTablet, isLandscape]
-  );
+    const styles = useMemo(
+      () => createStyles({ width, height, isTablet, isLandscape }),
+      [width, height, isTablet, isLandscape]
+    );
 
-  return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode={isTablet ? "cover" : "none"}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
+    return (
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode={isTablet ? "cover" : "none"}
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
 
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header with close button */}
-        <View style={styles.header}>
-          <View style={styles.placeholder} />
-          <View style={styles.headerContent} />
-          <CloseButton onPress={onGoBack} style={{ padding: 8 }} />
-        </View>
-        <ScrollView
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContent]}
-        >
-          <Animated.View
-            style={[
-              styles.animatedWrapper,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-              },
-            ]}
+        <SafeAreaView style={styles.safeArea}>
+          {/* Header with close button */}
+          <View style={styles.header}>
+            <View style={styles.placeholder} />
+            <View style={styles.headerContent} />
+            <CloseButton onPress={onGoBack} style={{ padding: 8 }} />
+          </View>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.scrollContent]}
           >
-            <View style={styles.mainRow}>
-              {/* TEXT COLUMN */}
-              <View style={styles.textBlock}>
-                <Text style={styles.title}>{story.title}</Text>
+            <Animated.View
+              style={[
+                styles.animatedWrapper,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+                },
+              ]}
+            >
+              <View style={styles.mainRow}>
+                {/* TEXT COLUMN */}
+                <View style={styles.textBlock}>
+                  <Text style={styles.title}>{story.title}</Text>
 
-                {/* PORTRAIT: image under title */}
-                {!isLandscape && (hasCoverImagePath || isGeneratingCover) && (
-                  <View style={styles.imagePortrait}>
-                    {shouldShowSpinner && (
-                      <View style={styles.imageLoader}>
-                        {isGeneratingCover ? (
-                          <LoadingSpinner size="medium" showGlow={false} />
-                        ) : (
-                          <ActivityIndicator
-                            size="large"
-                            color={Colors.primary}
-                          />
-                        )}
-                      </View>
-                    )}
-                    {shouldShowImage && (
-                      <Image
-                        source={{ uri: coverImageUrl }}
-                        style={styles.coverImage}
-                        contentFit="cover"
-                        onLoad={() => setImageLoading(false)}
-                        onError={() => {
-                          setImageLoading(false);
-                          setImageError(true);
-                        }}
-                      />
-                    )}
-                  </View>
-                )}
+                  {/* PORTRAIT: image under title */}
+                  {!isLandscape && (hasCoverImagePath || isGeneratingCover) && (
+                    <View style={styles.imagePortrait}>
+                      {shouldShowSpinner && (
+                        <View style={styles.imageLoader}>
+                          {isGeneratingCover ? (
+                            <LoadingSpinner size="medium" showGlow={false} />
+                          ) : (
+                            <ActivityIndicator
+                              size="large"
+                              color={Colors.primary}
+                            />
+                          )}
+                        </View>
+                      )}
+                      {shouldShowImage && (
+                        <Image
+                          source={{ uri: coverImageUrl }}
+                          style={styles.coverImage}
+                          contentFit="cover"
+                          onLoad={() => setImageLoading(false)}
+                          onError={() => {
+                            setImageLoading(false);
+                            setImageError(true);
+                          }}
+                        />
+                      )}
+                    </View>
+                  )}
 
-                {/* Portrait or no-image fallback */}
-                {(!isLandscape ||
-                  (!hasCoverImagePath && !isGeneratingCover)) && (
-                  <Text style={styles.detailsLine}>
-                    {story.storyContent.length} pages
-                  </Text>
-                )}
+                  {/* Portrait or no-image fallback */}
+                  {(!isLandscape ||
+                    (!hasCoverImagePath && !isGeneratingCover)) && (
+                    <Text style={styles.detailsLine}>
+                      {story.storyContent.length} pages
+                    </Text>
+                  )}
 
-                <Button
-                  title="Start reading"
-                  onPress={onStartReading}
-                  variant="wizard"
-                  size="large"
-                />
-              </View>
-
-              {/* LANDSCAPE: image right, bigger on phones, pages below */}
-              {isLandscape && (hasCoverImagePath || isGeneratingCover) && (
-                <View style={styles.imageColumn}>
-                  <View style={styles.imageLandscape}>
-                    {shouldShowSpinner && (
-                      <View style={styles.imageLoader}>
-                        {isGeneratingCover ? (
-                          <LoadingSpinner size="medium" showGlow={false} />
-                        ) : (
-                          <ActivityIndicator
-                            size="large"
-                            color={Colors.primary}
-                          />
-                        )}
-                      </View>
-                    )}
-                    {shouldShowImage && (
-                      <Image
-                        source={{ uri: coverImageUrl }}
-                        style={styles.coverImage}
-                        contentFit="cover"
-                        onLoad={() => setImageLoading(false)}
-                        onError={() => {
-                          setImageLoading(false);
-                          setImageError(true);
-                        }}
-                      />
-                    )}
-                  </View>
-                  <Text style={styles.detailsLineBelowImage}>
-                    {story.storyContent.length} pages
-                  </Text>
+                  <Button
+                    title="Start reading"
+                    onPress={onStartReading}
+                    variant="wizard"
+                    size="large"
+                  />
                 </View>
-              )}
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </SafeAreaView>
-    </ImageBackground>
-  );
-};
+
+                {/* LANDSCAPE: image right, bigger on phones, pages below */}
+                {isLandscape && (hasCoverImagePath || isGeneratingCover) && (
+                  <View style={styles.imageColumn}>
+                    <View style={styles.imageLandscape}>
+                      {shouldShowSpinner && (
+                        <View style={styles.imageLoader}>
+                          {isGeneratingCover ? (
+                            <LoadingSpinner size="medium" showGlow={false} />
+                          ) : (
+                            <ActivityIndicator
+                              size="large"
+                              color={Colors.primary}
+                            />
+                          )}
+                        </View>
+                      )}
+                      {shouldShowImage && (
+                        <Image
+                          source={{ uri: coverImageUrl }}
+                          style={styles.coverImage}
+                          contentFit="cover"
+                          onLoad={() => setImageLoading(false)}
+                          onError={() => {
+                            setImageLoading(false);
+                            setImageError(true);
+                          }}
+                        />
+                      )}
+                    </View>
+                    <Text style={styles.detailsLineBelowImage}>
+                      {story.storyContent.length} pages
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
+    );
+  }
+);
+
+StoryTitleScreen.displayName = "StoryTitleScreen";
 
 type StyleParams = {
   width: number;

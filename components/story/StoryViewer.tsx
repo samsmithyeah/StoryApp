@@ -41,7 +41,10 @@ interface StoryViewerProps {
   onClose?: () => void;
 }
 
-export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
+const StoryViewerComponent: React.FC<StoryViewerProps> = ({
+  story,
+  onClose,
+}) => {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -420,6 +423,54 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ story, onClose }) => {
     </ImageBackground>
   );
 };
+
+// Custom comparison function to prevent unnecessary re-renders during image generation
+export const StoryViewer = React.memo(
+  StoryViewerComponent,
+  (prevProps, nextProps) => {
+    // Always re-render if onClose function changes
+    if (prevProps.onClose !== nextProps.onClose) {
+      return false;
+    }
+
+    const prevStory = prevProps.story;
+    const nextStory = nextProps.story;
+
+    // Re-render if core story properties that affect UI have changed
+    if (
+      prevStory.id !== nextStory.id ||
+      prevStory.title !== nextStory.title ||
+      prevStory.storyContent !== nextStory.storyContent ||
+      prevStory.imageGenerationStatus !== nextStory.imageGenerationStatus
+    ) {
+      return false;
+    }
+
+    // Check if any page imageUrls have changed (affects image loading state)
+    if (prevStory.storyContent && nextStory.storyContent) {
+      for (
+        let i = 0;
+        i <
+        Math.max(prevStory.storyContent.length, nextStory.storyContent.length);
+        i++
+      ) {
+        const prevPage = prevStory.storyContent[i];
+        const nextPage = nextStory.storyContent[i];
+
+        if (!prevPage || !nextPage) {
+          return false; // Pages added/removed
+        }
+
+        if (prevPage.imageUrl !== nextPage.imageUrl) {
+          return false; // Image URL changed
+        }
+      }
+    }
+
+    // All UI-relevant props are the same, skip re-render
+    return true;
+  }
+);
 
 /* ---------- STYLES ---------- */
 const styles = StyleSheet.create({

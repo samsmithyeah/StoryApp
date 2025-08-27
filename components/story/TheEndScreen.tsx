@@ -28,105 +28,109 @@ interface TheEndScreenProps {
 
 const CREAM = "#F5E6C8";
 
-export const TheEndScreen: React.FC<TheEndScreenProps> = ({
-  onNewStory,
-  onBackToLibrary,
-}) => {
-  const { width, height } = useWindowDimensions();
+export const TheEndScreen: React.FC<TheEndScreenProps> = React.memo(
+  ({ onNewStory, onBackToLibrary }) => {
+    const { width, height } = useWindowDimensions();
 
-  // Same animation pattern as StoryTitleScreen
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.98)).current;
+    // Same animation pattern as StoryTitleScreen
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+    const scaleAnim = useRef(new Animated.Value(0.98)).current;
 
-  const isLandscape = width > height;
-  const minDim = Math.min(width, height);
-  const maxDim = Math.max(width, height);
-  const isTablet = maxDim >= 768 && minDim >= 500;
+    const isLandscape = width > height;
+    const minDim = Math.min(width, height);
+    const maxDim = Math.max(width, height);
+    const isTablet = maxDim >= 768 && minDim >= 500;
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim, scaleAnim]);
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [fadeAnim, slideAnim, scaleAnim]);
 
-  const styles = useMemo(
-    () => createStyles({ width, height, isTablet, isLandscape }),
-    [width, height, isTablet, isLandscape]
-  );
+    const styles = useMemo(
+      () => createStyles({ width, height, isTablet, isLandscape }),
+      [width, height, isTablet, isLandscape]
+    );
 
-  return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
+    return (
+      <ImageBackground
+        source={require("../../assets/images/background-landscape.png")}
+        resizeMode="cover"
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundGradientStart,
+            Colors.backgroundGradientEnd,
+          ]}
+          style={StyleSheet.absoluteFill}
+        />
 
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Animated.View
-            style={[
-              styles.animatedWrapper,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-              },
-            ]}
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
           >
-            <View style={styles.mainRow}>
-              {/* CARD COLUMN */}
-              <View style={styles.cardColumn}>
-                {/* Single-layer card: matches StoryViewer.storyCard */}
-                <View style={styles.card}>
-                  <Text accessibilityRole="header" style={styles.title}>
-                    {`THE\nEND`}
-                  </Text>
+            <Animated.View
+              style={[
+                styles.animatedWrapper,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+                },
+              ]}
+            >
+              <View style={styles.mainRow}>
+                {/* CARD COLUMN */}
+                <View style={styles.cardColumn}>
+                  {/* Single-layer card: matches StoryViewer.storyCard */}
+                  <View style={styles.card}>
+                    <Text accessibilityRole="header" style={styles.title}>
+                      {`THE\nEND`}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* CTA COLUMN (right on landscape, below on portrait) */}
-              <View style={styles.ctaColumn}>
-                <View style={styles.ctaStack}>
-                  <Button
-                    title="Generate a new story"
-                    onPress={onNewStory}
-                    variant="wizard"
-                    size="large"
-                  />
-                  <TouchableOpacity onPress={onBackToLibrary}>
-                    <Text style={styles.backText}>Back to library</Text>
-                  </TouchableOpacity>
+                {/* CTA COLUMN (right on landscape, below on portrait) */}
+                <View style={styles.ctaColumn}>
+                  <View style={styles.ctaStack}>
+                    <Button
+                      title="Generate a new story"
+                      onPress={onNewStory}
+                      variant="wizard"
+                      size="large"
+                    />
+                    <TouchableOpacity onPress={onBackToLibrary}>
+                      <Text style={styles.backText}>Back to library</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </SafeAreaView>
-    </ImageBackground>
-  );
-};
+            </Animated.View>
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
+    );
+  }
+);
+
+TheEndScreen.displayName = "TheEndScreen";
 
 type StyleParams = {
   width: number;
