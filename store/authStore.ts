@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { subscribeToAuthChanges, signOutUser } from "../services/firebase/auth";
 import { clearStorageUrlCaches } from "../hooks/useStorageUrl";
 import { logger } from "../utils/logger";
-import { AuthState, AuthStatus, User } from "../types/auth.types";
+import {
+  AuthState,
+  AuthStatus,
+  User,
+  FirebaseUserWithMetadata,
+} from "../types/auth.types";
 import { CacheConfig } from "../constants/CacheConfig";
 import { getAuthErrorMessage } from "../utils/authErrorMessages";
 import { AuthCacheService } from "../services/auth/authCacheService";
@@ -146,8 +151,13 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                   displayName: firebaseUser.displayName,
                   photoURL: firebaseUser.photoURL,
                   emailVerified: firebaseUser.emailVerified,
-                  createdAt: (firebaseUser as any).metadata?.creationTime
-                    ? new Date((firebaseUser as any).metadata.creationTime)
+                  createdAt: (firebaseUser as FirebaseUserWithMetadata).metadata
+                    ?.creationTime
+                    ? new Date(
+                        (
+                          firebaseUser as FirebaseUserWithMetadata
+                        ).metadata!.creationTime!
+                      )
                     : new Date(),
                   isAdmin: firestoreUserData?.isAdmin || false,
                 };

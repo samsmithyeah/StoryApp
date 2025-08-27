@@ -4,6 +4,7 @@ import { User } from "../../types/auth.types";
 import { updateUserOnboardingStatus } from "../firebase/auth";
 import { AuthCacheService } from "./authCacheService";
 import { ErrorNotificationService } from "./errorNotificationService";
+import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 
 export interface OnboardingResult {
   hasCompletedOnboarding: boolean;
@@ -129,7 +130,9 @@ export class OnboardingService {
 
     // For new users (created recently), assume not onboarded
     const isRecentUser =
-      user.createdAt && Date.now() - user.createdAt.getTime() < 60000; // Less than 1 minute
+      user.createdAt &&
+      Date.now() - user.createdAt.getTime() <
+        AUTH_TIMEOUTS.NEW_USER_THRESHOLD_MS;
 
     if (isRecentUser) {
       logger.debug("New user detected, defaulting onboarding to false", {

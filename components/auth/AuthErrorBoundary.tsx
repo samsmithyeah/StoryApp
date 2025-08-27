@@ -14,9 +14,15 @@ interface State {
 }
 
 export class AuthErrorBoundary extends Component<Props, State> {
+  private isMounted = true;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
+  }
+
+  componentWillUnmount() {
+    this.isMounted = false;
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -44,9 +50,6 @@ export class AuthErrorBoundary extends Component<Props, State> {
 
     if (isAuthError) {
       // Reset auth state to a safe state with comprehensive cleanup
-      // Add proper memory management with mounted flag
-      let isMounted = true;
-
       try {
         logger.debug(
           "AuthErrorBoundary: Starting auth reset for auth-related error"
@@ -59,12 +62,12 @@ export class AuthErrorBoundary extends Component<Props, State> {
         const { signOut, initialize } = useAuthStore.getState();
 
         try {
-          if (isMounted) {
+          if (this.isMounted) {
             await signOut();
             logger.debug("AuthErrorBoundary: Sign out completed successfully");
           }
         } catch (signOutError) {
-          if (isMounted) {
+          if (this.isMounted) {
             logger.warn(
               "AuthErrorBoundary: Sign out failed, continuing with reset",
               signOutError
@@ -74,12 +77,12 @@ export class AuthErrorBoundary extends Component<Props, State> {
 
         // Reinitialize auth system after cleanup
         try {
-          if (isMounted) {
+          if (this.isMounted) {
             initialize();
             logger.debug("AuthErrorBoundary: Auth system reinitialized");
           }
         } catch (initError) {
-          if (isMounted) {
+          if (this.isMounted) {
             logger.error(
               "AuthErrorBoundary: Failed to reinitialize auth system",
               initError
@@ -87,15 +90,13 @@ export class AuthErrorBoundary extends Component<Props, State> {
           }
         }
       } catch (error) {
-        if (isMounted) {
+        if (this.isMounted) {
           logger.error(
             "AuthErrorBoundary: Comprehensive auth reset failed",
             error
           );
         }
         // If all else fails, just continue - the app may still recover
-      } finally {
-        isMounted = false; // Cleanup flag
       }
     } else {
       logger.debug(

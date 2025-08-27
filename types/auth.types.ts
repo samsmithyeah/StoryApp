@@ -34,3 +34,18 @@ export interface LoginCredentials {
 export interface SignUpCredentials extends LoginCredentials {
   displayName?: string;
 }
+
+// Firebase user metadata types
+export interface FirebaseUserMetadata {
+  creationTime?: string;
+  lastSignInTime?: string;
+}
+
+export interface FirebaseUserWithMetadata {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
+  metadata?: FirebaseUserMetadata;
+}
