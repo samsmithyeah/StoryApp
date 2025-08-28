@@ -1,25 +1,10 @@
 import * as admin from "firebase-admin";
 import { https } from "firebase-functions/v2";
 import { logger } from "./utils/logger";
-import * as crypto from "crypto";
-import { defineSecret } from "firebase-functions/params";
+import { emailHashSalt, hashEmail } from "./utils/crypto";
 
 const db = admin.firestore();
 const storage = admin.storage();
-
-const emailHashSalt = defineSecret("EMAIL_HASH_SALT");
-
-// Helper function to hash email addresses for deletion markers
-const hashEmail = (email: string): string => {
-  const salt = emailHashSalt.value();
-  if (!salt) {
-    throw new Error("EMAIL_HASH_SALT secret is not configured");
-  }
-  return crypto
-    .createHmac("sha256", salt)
-    .update(email.toLowerCase().trim())
-    .digest("hex");
-};
 
 export const deleteUserData = https.onCall(
   {
@@ -156,7 +141,9 @@ export const deleteUserData = https.onCall(
 
       creditTransactionsSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
-        logger.debug("Queued credit transaction for deletion", { transactionId: doc.id });
+        logger.debug("Queued credit transaction for deletion", {
+          transactionId: doc.id,
+        });
       });
 
       // Delete purchase history
@@ -167,7 +154,9 @@ export const deleteUserData = https.onCall(
 
       purchaseHistorySnapshot.forEach((doc) => {
         batch.delete(doc.ref);
-        logger.debug("Queued purchase history for deletion", { purchaseId: doc.id });
+        logger.debug("Queued purchase history for deletion", {
+          purchaseId: doc.id,
+        });
       });
 
       // Commit all Firestore deletions

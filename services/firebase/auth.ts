@@ -265,29 +265,26 @@ const createUserDocument = async (
     let shouldGrantFreeCredits = true;
 
     if (isNewUser) {
-      logger.debug("New user detected - checking deletion marker before document creation");
-      
+      logger.debug(
+        "New user detected - checking deletion marker before document creation"
+      );
+
       const userEmail = user.email;
       if (userEmail) {
-        try {
-          const hasMarker = await checkDeletionMarker(userEmail);
-          if (hasMarker) {
-            logger.debug("Deletion marker found - will not grant free credits", { 
-              uid: user.uid 
-            });
-            shouldGrantFreeCredits = false;
-          } else {
-            logger.debug("No deletion marker found - will grant free credits", {
-              uid: user.uid 
-            });
-          }
-        } catch (error) {
-          logger.error("Error checking deletion marker, defaulting to no free credits", error);
+        const hasMarker = await checkDeletionMarker(userEmail);
+        if (hasMarker) {
+          logger.debug("Deletion marker found - will not grant free credits", {
+            uid: user.uid,
+          });
           shouldGrantFreeCredits = false;
+        } else {
+          logger.debug("No deletion marker found - will grant free credits", {
+            uid: user.uid,
+          });
         }
       } else {
-        logger.warn("No email found for user, not granting free credits", { 
-          uid: user.uid 
+        logger.warn("No email found for user, not granting free credits", {
+          uid: user.uid,
         });
         shouldGrantFreeCredits = false;
       }
