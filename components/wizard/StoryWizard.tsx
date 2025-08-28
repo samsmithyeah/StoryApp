@@ -89,7 +89,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
     const storyRef = doc(db, "stories", generatedStoryId);
     const unsubscribe = onSnapshot(storyRef, (doc) => {
-      if (doc.exists()) {
+      if (doc && doc.exists()) {
         const story = {
           id: doc.id,
           ...doc.data(),

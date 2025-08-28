@@ -39,6 +39,7 @@ import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
+import { serverTimestamp } from "@react-native-firebase/firestore";
 
 // Type definitions
 interface AppleAuthError {
@@ -168,6 +169,23 @@ const waitForProfileUpdate = async (
   });
 };
 
+// Helper function to check if user has a deletion marker
+const checkDeletionMarker = async (email: string): Promise<boolean> => {
+  try {
+    const checkDeletionMarkerFunction = httpsCallable(
+      functionsService,
+      "checkDeletionMarker"
+    );
+
+    const result = await checkDeletionMarkerFunction({ email });
+    return (result.data as { hasMarker: boolean }).hasMarker;
+  } catch (error) {
+    logger.error("Error checking deletion marker", error);
+    // Default to not granting credits for security if check fails
+    return true;
+  }
+};
+
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
   firebaseUser: FirebaseAuthTypes.User
@@ -242,13 +260,46 @@ const createUserDocument = async (
       source: overrideDisplayName ? "override" : "user profile",
     });
 
+    // Check for deletion marker BEFORE creating any documents for new users
+    const isNewUser = !userSnapshot.exists();
+    let shouldGrantFreeCredits = true;
+
+    if (isNewUser) {
+      logger.debug("New user detected - checking deletion marker before document creation");
+      
+      const userEmail = user.email;
+      if (userEmail) {
+        try {
+          const hasMarker = await checkDeletionMarker(userEmail);
+          if (hasMarker) {
+            logger.debug("Deletion marker found - will not grant free credits", { 
+              uid: user.uid 
+            });
+            shouldGrantFreeCredits = false;
+          } else {
+            logger.debug("No deletion marker found - will grant free credits", {
+              uid: user.uid 
+            });
+          }
+        } catch (error) {
+          logger.error("Error checking deletion marker, defaulting to no free credits", error);
+          shouldGrantFreeCredits = false;
+        }
+      } else {
+        logger.warn("No email found for user, not granting free credits", { 
+          uid: user.uid 
+        });
+        shouldGrantFreeCredits = false;
+      }
+    }
+
     // Always set core user data with merge: true to ensure it exists
     const userData = {
       email: user.email,
       displayName: finalDisplayName,
       photoURL: user.photoURL,
       // Only set createdAt and children for new users, not existing ones
-      ...(userSnapshot.exists() ? {} : { createdAt: new Date(), children: [] }),
+      ...(isNewUser ? { createdAt: new Date(), children: [] } : {}),
     };
     logger.debug("User data to set/merge", userData);
 
@@ -265,10 +316,24 @@ const createUserDocument = async (
         hasFcmToken: !!savedData?.fcmToken,
       });
 
-      if (!userSnapshot.exists()) {
-        logger.debug("New user - initializing credits");
-        await creditsService.initializeUserCredits(user.uid);
-        logger.debug("Credits initialized successfully");
+      if (isNewUser) {
+        if (shouldGrantFreeCredits) {
+          logger.debug("Initializing credits with free credits");
+          await creditsService.initializeUserCredits(user.uid);
+          logger.debug("Credits initialized successfully with free credits");
+        } else {
+          logger.debug("Creating credits document without free credits");
+          // Create credits document manually without free credits
+          await setDoc(doc(db, "userCredits", user.uid), {
+            userId: user.uid,
+            balance: 0,
+            lifetimeUsed: 0,
+            subscriptionActive: false,
+            freeCreditsGranted: false,
+            lastUpdated: serverTimestamp(),
+          });
+          logger.debug("Credits document created without free credits");
+        }
       } else {
         logger.debug("Existing user - checking credits");
         // Check if user has credits initialized (for existing users before credits system)

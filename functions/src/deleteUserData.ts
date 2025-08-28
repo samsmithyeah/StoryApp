@@ -1,15 +1,32 @@
 import * as admin from "firebase-admin";
 import { https } from "firebase-functions/v2";
 import { logger } from "./utils/logger";
+import * as crypto from "crypto";
+import { defineSecret } from "firebase-functions/params";
 
 const db = admin.firestore();
 const storage = admin.storage();
+
+const emailHashSalt = defineSecret("EMAIL_HASH_SALT");
+
+// Helper function to hash email addresses for deletion markers
+const hashEmail = (email: string): string => {
+  const salt = emailHashSalt.value();
+  if (!salt) {
+    throw new Error("EMAIL_HASH_SALT secret is not configured");
+  }
+  return crypto
+    .createHmac("sha256", salt)
+    .update(email.toLowerCase().trim())
+    .digest("hex");
+};
 
 export const deleteUserData = https.onCall(
   {
     region: "us-central1",
     cors: true,
     invoker: "public",
+    secrets: [emailHashSalt],
   },
   async (request: https.CallableRequest) => {
     logger.info("deleteUserData function called", {
@@ -41,6 +58,43 @@ export const deleteUserData = https.onCall(
     logger.info("Starting data deletion for user", { userId });
 
     try {
+      // Create deletion marker before deleting any data
+      const userEmail = auth.token.email;
+      if (userEmail) {
+        try {
+          const hashedEmail = hashEmail(userEmail);
+          const markerRef = db
+            .collection("deletedAccountMarkers")
+            .doc(hashedEmail);
+
+          // Check if marker already exists to handle repeated deletions
+          const existingMarker = await markerRef.get();
+          if (existingMarker && existingMarker.exists) {
+            // Update existing marker
+            await markerRef.update({
+              lastDeletedAt: admin.firestore.FieldValue.serverTimestamp(),
+              deletionCount: admin.firestore.FieldValue.increment(1),
+            });
+            logger.debug("Updated existing deletion marker", { hashedEmail });
+          } else {
+            // Create new marker
+            await markerRef.set({
+              lastDeletedAt: admin.firestore.FieldValue.serverTimestamp(),
+              deletionCount: 1,
+            });
+            logger.debug("Created new deletion marker", { hashedEmail });
+          }
+        } catch (markerError) {
+          logger.error("Failed to create deletion marker", markerError, {
+            userId,
+          });
+          // Continue with deletion even if marker creation fails
+        }
+      } else {
+        logger.warn("No email found in auth token, skipping deletion marker", {
+          userId,
+        });
+      }
       // Create a batch for Firestore operations
       const batch = db.batch();
 
@@ -53,6 +107,11 @@ export const deleteUserData = https.onCall(
       const preferencesDocRef = db.collection("userPreferences").doc(userId);
       batch.delete(preferencesDocRef);
       logger.debug("Queued user preferences for deletion", { userId });
+
+      // Delete user credits
+      const userCreditsDocRef = db.collection("userCredits").doc(userId);
+      batch.delete(userCreditsDocRef);
+      logger.debug("Queued user credits for deletion", { userId });
 
       // Delete children documents
       const childrenSnapshot = await db
@@ -87,6 +146,28 @@ export const deleteUserData = https.onCall(
       storiesSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
         logger.debug("Queued story for deletion", { storyId: doc.id });
+      });
+
+      // Delete credit transactions
+      const creditTransactionsSnapshot = await db
+        .collection("creditTransactions")
+        .where("userId", "==", userId)
+        .get();
+
+      creditTransactionsSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+        logger.debug("Queued credit transaction for deletion", { transactionId: doc.id });
+      });
+
+      // Delete purchase history
+      const purchaseHistorySnapshot = await db
+        .collection("purchaseHistory")
+        .where("userId", "==", userId)
+        .get();
+
+      purchaseHistorySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+        logger.debug("Queued purchase history for deletion", { purchaseId: doc.id });
       });
 
       // Commit all Firestore deletions
@@ -132,11 +213,15 @@ export const deleteUserData = https.onCall(
         deletedCollections: [
           "users",
           "userPreferences",
+          "userCredits",
           "children",
           "savedCharacters",
           "stories",
+          "creditTransactions",
+          "purchaseHistory",
           "storage",
           "auth",
+          "deletedAccountMarkers",
         ],
       };
     } catch (error) {

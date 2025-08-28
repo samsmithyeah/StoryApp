@@ -17,6 +17,7 @@ export { deleteUserData } from "./deleteUserData";
 export { deleteStory } from "./deleteStory";
 export { reportStory } from "./reportStory";
 export { retryImageGeneration } from "./retryImageGeneration";
+export { checkDeletionMarker } from "./checkDeletionMarker";
 
 // Credit and purchase management functions
 export { revenueCatWebhook } from "./revenueCatWebhook";
