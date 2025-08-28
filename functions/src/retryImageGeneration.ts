@@ -16,6 +16,7 @@ const pubsub = new PubSub();
 
 interface RetryImageGenerationRequest {
   storyId: string;
+  pageIndex: number;
 }
 
 // Helper function to convert Firebase Storage URL to base64 data URL
@@ -60,10 +61,14 @@ export const retryImageGeneration = onCall(
     }
 
     const userId = request.auth.uid;
-    const { storyId } = request.data;
+    const { storyId, pageIndex } = request.data;
 
     if (!storyId) {
       throw new HttpsError("invalid-argument", "Story ID is required");
+    }
+
+    if (typeof pageIndex !== "number" || pageIndex < 0) {
+      throw new HttpsError("invalid-argument", "Valid page index is required");
     }
 
     try {
@@ -85,132 +90,150 @@ export const retryImageGeneration = onCall(
         );
       }
 
-      // 3. Check if retry is needed (only retry if failed)
-      if (storyData.imageGenerationStatus !== "failed") {
+      // 3. Validate the page index and check if retry is needed
+      if (!storyData.storyContent || !Array.isArray(storyData.storyContent)) {
+        throw new HttpsError("not-found", "Story content not found");
+      }
+
+      if (pageIndex >= storyData.storyContent.length) {
+        throw new HttpsError(
+          "invalid-argument",
+          `Page index ${pageIndex} is out of range. Story has ${storyData.storyContent.length} pages.`
+        );
+      }
+
+      const targetPage = storyData.storyContent[pageIndex];
+      if (targetPage.imageUrl) {
         throw new HttpsError(
           "failed-precondition",
-          `Cannot retry image generation. Current status: ${storyData.imageGenerationStatus}`
+          `Page ${pageIndex} already has an image. No retry needed.`
         );
       }
 
-      // 4. Reset the story's image generation status and clear failed images
-      const updateData: any = {
-        imageGenerationStatus: "pending",
-        imagesGenerated: 0,
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-
-      // Clear imageUrl from pages that don't have images (indicating they failed)
-      if (storyData.storyContent && Array.isArray(storyData.storyContent)) {
-        const updatedContent = storyData.storyContent.map((page: any) => {
-          // Keep imageUrl if it exists, otherwise ensure it's cleared
-          return {
-            ...page,
-            imageUrl: page.imageUrl || null,
-          };
-        });
-        updateData.storyContent = updatedContent;
-      }
-
-      await storyRef.update(updateData);
-
-      // 5. Get the story data needed for image generation
-      const updatedStoryDoc = await storyRef.get();
-      const updatedStoryData = updatedStoryDoc.data();
-
-      if (!updatedStoryData || !updatedStoryData.storyContent) {
-        throw new HttpsError(
-          "internal",
-          "Story content not found after update"
-        );
-      }
-
-      // 6. Re-trigger image generation for each page
-      const pages = updatedStoryData.storyContent;
-      const artStyleDescriptions = [
-        updatedStoryData.illustrationAiDescription,
-        updatedStoryData.illustrationAiDescriptionBackup1,
-        updatedStoryData.illustrationAiDescriptionBackup2,
-      ].filter(Boolean);
-
-      // Update status to generating
+      // 4. Update story status to generating for this retry
       await storyRef.update({
         imageGenerationStatus: "generating",
         updatedAt: FieldValue.serverTimestamp(),
       });
 
-      logger.info(`Updated story status to generating for ${storyId}`);
+      // 5. Get the story data needed for image generation
+      const artStyleDescriptions = [
+        storyData.illustrationAiDescription,
+        storyData.illustrationAiDescriptionBackup1,
+        storyData.illustrationAiDescriptionBackup2,
+      ].filter(Boolean);
 
-      // Convert cover image storage URL to base64 for consistency input
-      const coverImageBase64 = await convertStorageUrlToBase64(
-        updatedStoryData.coverImageUrl || ""
+      logger.info(
+        `Updated story status to generating for ${storyId} page ${pageIndex}`
       );
 
-      // Publish image generation messages for each page
-      const publishPromises = pages.map(async (page: any, index: number) => {
-        // Get the model and prompt from pageImageGenerationData
-        const pageData =
-          updatedStoryData.pageImageGenerationData?.page?.[index];
-        const imageModel = pageData?.model || "gpt-image-1";
-        const imagePrompt =
-          pageData?.prompt ||
-          page.imagePrompt ||
-          `Illustration for: ${page.text}`;
-
-        // Use the converted base64 cover image for consistency
-        const consistencyInput = {
-          imageUrl: coverImageBase64,
-          text: updatedStoryData.consistencyPrompt || "",
-        };
-
-        const imageGenerationPayload = {
-          storyId,
-          userId,
-          pageIndex: index,
-          imagePrompt,
-          imageProvider: imageModel,
-          consistencyInput,
-          characters: {
-            names: updatedStoryData.characterNames || "",
-            descriptions: updatedStoryData.characterDescriptions || "",
-          },
-          artStyle: artStyleDescriptions[0] || "",
-          artStyleBackup1: artStyleDescriptions[1] || "",
-          artStyleBackup2: artStyleDescriptions[2] || "",
-        };
-
-        const messageBuffer = Buffer.from(
-          JSON.stringify(imageGenerationPayload)
+      // Convert cover image storage URL to base64 for consistency input
+      let coverImageBase64 = "";
+      try {
+        coverImageBase64 = await convertStorageUrlToBase64(
+          storyData.coverImageUrl || ""
         );
-        return pubsub.topic("generate-story-image").publishMessage({
+        if (!coverImageBase64 && storyData.coverImageUrl) {
+          logger.warn(
+            `Failed to convert cover image to base64 for story ${storyId}`,
+            {
+              coverImageUrl: storyData.coverImageUrl,
+            }
+          );
+        }
+      } catch (error) {
+        logger.error(
+          `Critical error converting cover image to base64 for story ${storyId}`,
+          {
+            coverImageUrl: storyData.coverImageUrl,
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
+        // Continue with empty consistency input rather than failing entire retry
+        coverImageBase64 = "";
+      }
+
+      // Generate image for the specific page
+      const targetPageData =
+        storyData.pageImageGenerationData?.page?.[pageIndex];
+      const imageModel = targetPageData?.model || "gpt-image-1";
+      const imagePrompt =
+        targetPageData?.prompt ||
+        targetPage.imagePrompt ||
+        `Illustration for: ${targetPage.text}`;
+
+      // Use the converted base64 cover image for consistency
+      const consistencyInput = {
+        imageUrl: coverImageBase64,
+        text: storyData.consistencyPrompt || "",
+      };
+
+      const imageGenerationPayload = {
+        storyId,
+        userId,
+        pageIndex,
+        imagePrompt,
+        imageProvider: imageModel,
+        consistencyInput,
+        characters: {
+          names: storyData.characterNames || "",
+          descriptions: storyData.characterDescriptions || "",
+        },
+        artStyle: artStyleDescriptions[0] || "",
+        artStyleBackup1: artStyleDescriptions[1] || "",
+        artStyleBackup2: artStyleDescriptions[2] || "",
+      };
+
+      const messageBuffer = Buffer.from(JSON.stringify(imageGenerationPayload));
+      const publishPromise = pubsub
+        .topic("generate-story-image")
+        .publishMessage({
           data: messageBuffer,
         });
-      });
 
-      await Promise.all(publishPromises);
+      // Execute the single page publish
+      try {
+        await publishPromise;
 
-      // Log the models being used for each page
-      const pageModels = pages.map((_page: any, index: number) => {
-        const pageData =
-          updatedStoryData.pageImageGenerationData?.page?.[index];
-        return pageData?.model || "gpt-image-1";
-      });
+        logger.info(
+          `Image generation retry initiated for story ${storyId} page ${pageIndex}`,
+          {
+            userId,
+            storyId,
+            pageIndex,
+            imageModel,
+            hasCoverImageBase64: coverImageBase64.length > 0,
+            coverImageStorageUrl: storyData.coverImageUrl,
+          }
+        );
 
-      logger.info(`Image generation retry initiated for story ${storyId}`, {
-        userId,
-        storyId,
-        pagesCount: pages.length,
-        pageModels,
-        publishedMessages: publishPromises.length,
-        hasCoverImageBase64: coverImageBase64.length > 0,
-        coverImageStorageUrl: updatedStoryData.coverImageUrl,
-      });
+        return {
+          success: true,
+          message: `Image generation retry initiated for page ${pageIndex}`,
+          storyId,
+          pageIndex,
+        };
+      } catch (error) {
+        // Revert story status to failed if publish fails
+        await storyRef.update({
+          imageGenerationStatus: "failed",
+          updatedAt: FieldValue.serverTimestamp(),
+          "generationMetadata.retryError": `Failed to publish retry message for page ${pageIndex}`,
+        });
 
-      return {
-        success: true,
-        message: "Image generation retry initiated successfully",
-        storyId,
-      };
+        logger.error(
+          `Failed to publish retry message for page ${pageIndex} in story ${storyId}`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+            pageIndex,
+          }
+        );
+
+        throw new HttpsError(
+          "internal",
+          `Failed to publish retry message for page ${pageIndex}. Story status reverted to failed.`
+        );
+      }
     } catch (error) {
       logger.error("Error retrying image generation", {
         userId,

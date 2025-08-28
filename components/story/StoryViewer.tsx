@@ -40,7 +40,7 @@ const CREAM_COLOR = "#F5E6C8";
 interface StoryViewerProps {
   story: Story;
   onClose?: () => void;
-  onRetryImageGeneration?: (storyId: string) => void;
+  onRetryImageGeneration?: (storyId: string, pageIndex: number) => void;
 }
 
 const StoryViewerComponent: React.FC<StoryViewerProps> = ({
@@ -156,22 +156,35 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
     });
   };
 
-  const handleRetryClick = useCallback(async () => {
-    if (!onRetryImageGeneration) return;
+  const handleRetryClick = useCallback(
+    async (pageIndex: number) => {
+      if (!onRetryImageGeneration) return;
 
-    setRetryingGeneration(true);
-    try {
-      await onRetryImageGeneration(story.id);
-      // Reset error states since we're retrying
-      setImageErrors(story.storyContent?.map(() => false) || []);
-      setImageLoading(story.storyContent?.map(() => true) || []);
-    } catch (error) {
-      // Error is already handled in the parent component
-      console.error("Retry failed:", error);
-    } finally {
-      setRetryingGeneration(false);
-    }
-  }, [onRetryImageGeneration, story.id, story.storyContent]);
+      setRetryingGeneration(true);
+      try {
+        await onRetryImageGeneration(story.id, pageIndex);
+        // Only reset states for the specific page if the retry call succeeded
+        setImageErrors((prev) => {
+          const next = [...prev];
+          next[pageIndex] = false;
+          return next;
+        });
+        setImageLoading((prev) => {
+          const next = [...prev];
+          next[pageIndex] = true;
+          return next;
+        });
+      } catch (error) {
+        // If retry failed, keep the error states as they were
+        // The parent component will show user-facing error messages
+        console.error("Retry failed:", error);
+        // Don't reset error states on failure - let user see the original errors
+      } finally {
+        setRetryingGeneration(false);
+      }
+    },
+    [onRetryImageGeneration, story.id]
+  );
 
   const goToPage = useCallback(
     (idx: number) => {
@@ -243,7 +256,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
                         onRetryImageGeneration && (
                           <Button
                             title={retryingGeneration ? "Retrying..." : "Retry"}
-                            onPress={handleRetryClick}
+                            onPress={() => handleRetryClick(index)}
                             variant="outline"
                             size="small"
                             style={styles.retryButton}

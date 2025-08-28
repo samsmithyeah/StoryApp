@@ -39,62 +39,65 @@ export default function StoryScreen() {
     router.replace("/(tabs)");
   }, []);
 
-  const handleRetryImageGeneration = useCallback(async (storyId: string) => {
-    try {
-      logger.info(`Retrying image generation for story ${storyId}`);
+  const handleRetryImageGeneration = useCallback(
+    async (storyId: string, pageIndex: number) => {
+      try {
+        logger.info(`Retrying image generation for story ${storyId}`);
 
-      const retryImageGenerationFn = httpsCallable(
-        functionsService,
-        "retryImageGeneration"
-      );
+        const retryImageGenerationFn = httpsCallable(
+          functionsService,
+          "retryImageGeneration"
+        );
 
-      const result = await retryImageGenerationFn({ storyId });
-      const data = result.data as any;
+        const result = await retryImageGenerationFn({ storyId, pageIndex });
+        const data = result.data as any;
 
-      if (data?.success) {
-        logger.info(`Image generation retry initiated for story ${storyId}`);
+        if (data?.success) {
+          logger.info(`Image generation retry initiated for story ${storyId}`);
 
-        // Show success message
+          // Show success message
+          Toast.show({
+            type: "success",
+            text1: "Retry started",
+            text2: `Image generation restarted for page ${pageIndex + 1}. You'll see the image appear when it's ready.`,
+            visibilityTime: 4000,
+          });
+        } else {
+          throw new Error(data?.message || "Unknown error occurred");
+        }
+      } catch (error) {
+        logger.error("Error retrying image generation", error);
+
+        // Parse error message for user-friendly display
+        let errorMessage =
+          "Failed to retry image generation. Please try again.";
+
+        if (error && typeof error === "object" && "message" in error) {
+          const message = error.message as string;
+          if (message.includes("permission-denied")) {
+            errorMessage = "You don't have permission to retry this story.";
+          } else if (message.includes("not-found")) {
+            errorMessage = "Story not found.";
+          } else if (message.includes("failed-precondition")) {
+            errorMessage = "Cannot retry - images are not in a failed state.";
+          } else if (message.includes("unauthenticated")) {
+            errorMessage = "Please sign in to retry image generation.";
+          }
+        }
+
         Toast.show({
-          type: "success",
-          text1: "Retry started",
-          text2:
-            "Image generation has been restarted. You'll see the images appear as they're generated.",
+          type: "error",
+          text1: "Retry Failed",
+          text2: errorMessage,
           visibilityTime: 4000,
         });
-      } else {
-        throw new Error(data?.message || "Unknown error occurred");
+
+        // Re-throw so the UI can handle loading states
+        throw error;
       }
-    } catch (error) {
-      logger.error("Error retrying image generation", error);
-
-      // Parse error message for user-friendly display
-      let errorMessage = "Failed to retry image generation. Please try again.";
-
-      if (error && typeof error === "object" && "message" in error) {
-        const message = error.message as string;
-        if (message.includes("permission-denied")) {
-          errorMessage = "You don't have permission to retry this story.";
-        } else if (message.includes("not-found")) {
-          errorMessage = "Story not found.";
-        } else if (message.includes("failed-precondition")) {
-          errorMessage = "Cannot retry - images are not in a failed state.";
-        } else if (message.includes("unauthenticated")) {
-          errorMessage = "Please sign in to retry image generation.";
-        }
-      }
-
-      Toast.show({
-        type: "error",
-        text1: "Retry Failed",
-        text2: errorMessage,
-        visibilityTime: 4000,
-      });
-
-      // Re-throw so the UI can handle loading states
-      throw error;
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!id) {
