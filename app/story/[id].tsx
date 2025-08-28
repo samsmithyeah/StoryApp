@@ -1,7 +1,7 @@
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
+import { httpsCallable } from "@react-native-firebase/functions";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, usePathname } from "expo-router";
-import { logger } from "../../utils/logger";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,13 +11,15 @@ import {
   Text,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { StoryTitleScreen } from "../../components/story/StoryTitleScreen";
 import { StoryViewer } from "../../components/story/StoryViewer";
 import { Button } from "../../components/ui/Button";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
-import { db } from "../../services/firebase/config";
+import { db, functionsService } from "../../services/firebase/config";
 import { Story } from "../../types/story.types";
+import { logger } from "../../utils/logger";
 
 export default function StoryScreen() {
   const pathname = usePathname();
@@ -36,6 +38,92 @@ export default function StoryScreen() {
   const handleGoBack = useCallback(() => {
     router.replace("/(tabs)");
   }, []);
+
+  const handleRetryImageGeneration = useCallback(
+    async (storyId: string, pageIndex: number) => {
+      try {
+        logger.info(
+          `Retrying image generation for story ${storyId}, page ${pageIndex}`
+        );
+
+        const retryImageGenerationFn = httpsCallable(
+          functionsService,
+          "retryImageGeneration"
+        );
+
+        const payload = { storyId, pageIndex };
+        logger.info("Calling retryImageGeneration with payload:", payload);
+
+        const result = await retryImageGenerationFn(payload);
+        const data = result.data as { success?: boolean; message?: string };
+
+        if (data?.success) {
+          logger.info(`Image generation retry initiated for story ${storyId}`);
+
+          // Show success message
+          Toast.show({
+            type: "success",
+            text1: "Retry started",
+            text2: `Image generation restarted for page ${pageIndex + 1}. You'll see the image appear when it's ready.`,
+            visibilityTime: 4000,
+          });
+        } else {
+          throw new Error(data?.message || "Unknown error occurred");
+        }
+      } catch (error) {
+        logger.error("Error retrying image generation", error);
+        logger.info("Error structure for debugging:", {
+          hasCode: error && typeof error === "object" && "code" in error,
+          code:
+            error && typeof error === "object" && "code" in error
+              ? (error as any).code
+              : undefined,
+          message:
+            error && typeof error === "object" && "message" in error
+              ? (error as any).message
+              : undefined,
+        });
+
+        // Parse error code for user-friendly display
+        let errorMessage =
+          "Failed to retry image generation. Please try again.";
+
+        if (error && typeof error === "object" && "code" in error) {
+          switch ((error as { code: string }).code) {
+            case "permission-denied":
+              errorMessage = "You don't have permission to retry this story.";
+              break;
+            case "not-found":
+              errorMessage = "Story not found.";
+              break;
+            case "failed-precondition":
+              errorMessage = "Cannot retry - images are not in a failed state.";
+              break;
+            case "unauthenticated":
+              errorMessage = "Please sign in to retry image generation.";
+              break;
+            case "invalid-argument":
+              errorMessage = "Invalid retry request. Please try again.";
+              break;
+            case "internal":
+              errorMessage = "Server error occurred. Please try again later.";
+              break;
+          }
+        }
+
+        Toast.show({
+          type: "error",
+          text1: "Retry Failed",
+          text2: errorMessage,
+          visibilityTime: 4000,
+        });
+
+        // Re-throw so the UI can handle loading states
+        throw error;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!id) {
@@ -224,7 +312,12 @@ export default function StoryScreen() {
     );
   }
 
-  return <StoryViewer story={story} />;
+  return (
+    <StoryViewer
+      story={story}
+      onRetryImageGeneration={handleRetryImageGeneration}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

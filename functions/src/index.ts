@@ -16,6 +16,7 @@ export { getStory } from "./getStory";
 export { deleteUserData } from "./deleteUserData";
 export { deleteStory } from "./deleteStory";
 export { reportStory } from "./reportStory";
+export { retryImageGeneration } from "./retryImageGeneration";
 
 // Credit and purchase management functions
 export { revenueCatWebhook } from "./revenueCatWebhook";
