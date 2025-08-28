@@ -1,16 +1,24 @@
-// Mock Firebase dependencies first
-const mockGet = jest.fn();
-const mockDoc = jest.fn(() => ({ get: mockGet }));
-const mockCollection = jest.fn(() => ({ doc: mockDoc }));
-const mockDb = { collection: mockCollection };
+// Mock Firebase Admin SDK directly in the factory
+jest.mock("firebase-admin", () => {
+  const mockGet = jest.fn();
+  const mockDoc = jest.fn(() => ({ get: mockGet }));
+  const mockCollection = jest.fn(() => ({ doc: mockDoc }));
 
-jest.mock("firebase-admin", () => ({
-  firestore: jest.fn(() => mockDb),
-}));
+  return {
+    firestore: jest.fn(() => ({ collection: mockCollection })),
+  };
+});
 
+// Store the handler function for testing
+let actualHandler: any;
+
+// Mock Firebase Functions
 jest.mock("firebase-functions/v2", () => ({
   https: {
-    onCall: jest.fn((config, handler) => handler),
+    onCall: jest.fn((config, handler) => {
+      actualHandler = handler;
+      return handler;
+    }),
     HttpsError: class MockHttpsError extends Error {
       constructor(code: string, message: string) {
         super(`${code}: ${message}`);
@@ -21,13 +29,15 @@ jest.mock("firebase-functions/v2", () => ({
 }));
 
 // Mock crypto utility
-const mockHashEmail = jest.fn();
-jest.mock("../utils/crypto", () => ({
-  hashEmail: mockHashEmail,
-  emailHashSalt: {
-    value: jest.fn(() => "test-salt-value"),
-  },
-}));
+jest.mock("../utils/crypto", () => {
+  const mockHashEmailDirect = jest.fn();
+  return {
+    hashEmail: mockHashEmailDirect,
+    emailHashSalt: {
+      value: jest.fn(() => "test-salt-value"),
+    },
+  };
+});
 
 // Mock logger
 jest.mock("../utils/logger", () => ({
@@ -39,23 +49,31 @@ jest.mock("../utils/logger", () => ({
   },
 }));
 
-// Import the function after mocking
-let checkDeletionMarker: any;
+// Import the function after mocking to trigger the handler capture
+import "../checkDeletionMarker";
+import { hashEmail } from "../utils/crypto";
+import * as admin from "firebase-admin";
 
-// Get the handler function from the mocked onCall
-jest.isolateModules(() => {
-  require("../checkDeletionMarker");
-  // The function is wrapped, we need to extract the handler
-  checkDeletionMarker = jest.requireActual(
-    "../checkDeletionMarker"
-  ).checkDeletionMarker;
-});
+// Get access to the mocked functions
+const mockHashEmail = hashEmail as jest.MockedFunction<typeof hashEmail>;
+const mockFirestore = admin.firestore as jest.MockedFunction<
+  typeof admin.firestore
+>;
 
 describe("checkDeletionMarker", () => {
   let mockRequest: any;
+  let mockGet: jest.Mock;
+  let mockDoc: jest.Mock;
+  let mockCollection: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Get the mock functions from the mocked firestore
+    const firestoreInstance = mockFirestore();
+    mockCollection = firestoreInstance.collection as jest.Mock;
+    mockDoc = mockCollection().doc as jest.Mock;
+    mockGet = mockDoc().get as jest.Mock;
 
     // Setup default request
     mockRequest = {
@@ -80,7 +98,7 @@ describe("checkDeletionMarker", () => {
       exists: false,
     });
 
-    const result = await checkDeletionMarker(mockRequest);
+    const result = await actualHandler(mockRequest);
 
     expect(result).toEqual({ hasMarker: false });
     expect(mockHashEmail).toHaveBeenCalledWith("test@example.com");
@@ -94,7 +112,7 @@ describe("checkDeletionMarker", () => {
       exists: true,
     });
 
-    const result = await checkDeletionMarker(mockRequest);
+    const result = await actualHandler(mockRequest);
 
     expect(result).toEqual({ hasMarker: true });
     expect(mockHashEmail).toHaveBeenCalledWith("test@example.com");
@@ -106,14 +124,14 @@ describe("checkDeletionMarker", () => {
     // Test missing auth
     mockRequest.auth = null;
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "unauthenticated: User must be authenticated."
     );
 
     // Test missing uid
     mockRequest.auth = { token: { email: "test@example.com" } };
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "unauthenticated: User must be authenticated."
     );
 
@@ -123,7 +141,7 @@ describe("checkDeletionMarker", () => {
       token: {},
     };
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "permission-denied: Unable to verify user email."
     );
   });
@@ -132,7 +150,7 @@ describe("checkDeletionMarker", () => {
     // Mock network error
     mockGet.mockRejectedValue(new Error("Network error"));
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "unknown: Failed to check deletion marker."
     );
   });
@@ -142,7 +160,7 @@ describe("checkDeletionMarker", () => {
     mockRequest.data.email = "different@example.com";
     mockRequest.auth.token.email = "user@example.com";
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "permission-denied: You can only check deletion markers for your own email address."
     );
 
@@ -151,7 +169,7 @@ describe("checkDeletionMarker", () => {
     mockRequest.auth.token.email = "test@example.com";
     mockGet.mockResolvedValue({ exists: false });
 
-    const result = await checkDeletionMarker(mockRequest);
+    const result = await actualHandler(mockRequest);
     expect(result).toEqual({ hasMarker: false });
   });
 
@@ -159,21 +177,21 @@ describe("checkDeletionMarker", () => {
     // Test missing email
     mockRequest.data = {};
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "invalid-argument: Email address is required and must be a string."
     );
 
     // Test non-string email
     mockRequest.data = { email: 123 };
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "invalid-argument: Email address is required and must be a string."
     );
 
     // Test null email
     mockRequest.data = { email: null };
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "invalid-argument: Email address is required and must be a string."
     );
   });
@@ -182,13 +200,13 @@ describe("checkDeletionMarker", () => {
     // Test document is null (shouldn't happen but defensive)
     mockGet.mockResolvedValue(null);
 
-    const result = await checkDeletionMarker(mockRequest);
+    const result = await actualHandler(mockRequest);
     expect(result).toEqual({ hasMarker: null });
 
     // Test document is undefined
     mockGet.mockResolvedValue(undefined);
 
-    const result2 = await checkDeletionMarker(mockRequest);
+    const result2 = await actualHandler(mockRequest);
     expect(result2).toEqual({ hasMarker: undefined });
   });
 
@@ -198,7 +216,7 @@ describe("checkDeletionMarker", () => {
       throw new Error("Crypto error");
     });
 
-    await expect(checkDeletionMarker(mockRequest)).rejects.toThrow(
+    await expect(actualHandler(mockRequest)).rejects.toThrow(
       "unknown: Failed to check deletion marker."
     );
   });

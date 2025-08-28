@@ -12,6 +12,7 @@ module.exports = {
     "**/__tests__/**/*.(ts|tsx|js)",
     "**/?(*.)+(spec|test).(ts|tsx|js)",
   ],
+  testPathIgnorePatterns: ["/node_modules/", "/functions/"],
   collectCoverageFrom: [
     "**/*.{ts,tsx}",
     "!**/node_modules/**",
