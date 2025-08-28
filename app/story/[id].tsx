@@ -55,7 +55,7 @@ export default function StoryScreen() {
         logger.info("Calling retryImageGeneration with payload:", payload);
 
         const result = await retryImageGenerationFn(payload);
-        const data = result.data as any;
+        const data = result.data as { success?: boolean; message?: string };
 
         if (data?.success) {
           logger.info(`Image generation retry initiated for story ${storyId}`);
