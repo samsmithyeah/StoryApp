@@ -6,11 +6,11 @@ import {
   HttpsError,
   onCall,
 } from "firebase-functions/v2/https";
+import { TIMEOUTS } from "./constants";
 import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { openaiApiKey } from "./utils/openai";
-import { TIMEOUTS } from "./constants";
 
 const pubsub = new PubSub();
 
@@ -154,8 +154,19 @@ export const retryImageGeneration = onCall(
       }
 
       // Generate image for the specific page
+      const pageKey = `page${pageIndex + 1}`;
       const targetPageData =
-        storyData.pageImageGenerationData?.page?.[pageIndex];
+        storyData.generationMetadata?.pageImageGenerationData?.[pageKey];
+
+      logger.info(`Looking for page data with key: ${pageKey}`, {
+        hasGenerationMetadata: !!storyData.generationMetadata,
+        hasPageImageGenerationData:
+          !!storyData.generationMetadata?.pageImageGenerationData,
+        pageDataFound: !!targetPageData,
+        pageDataModel: targetPageData?.model,
+        pageDataPrompt: targetPageData?.prompt ? "present" : "missing",
+      });
+
       const imageModel = targetPageData?.model || "gpt-image-1";
       const imagePrompt =
         targetPageData?.prompt ||
@@ -201,7 +212,10 @@ export const retryImageGeneration = onCall(
             userId,
             storyId,
             pageIndex,
+            pageKey,
             imageModel,
+            imagePrompt: imagePrompt.substring(0, 100) + "...", // First 100 chars
+            usingStoredData: !!targetPageData,
             hasCoverImageBase64: coverImageBase64.length > 0,
             coverImageStorageUrl: storyData.coverImageUrl,
           }

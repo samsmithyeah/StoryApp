@@ -161,9 +161,13 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       if (!onRetryImageGeneration) return;
 
       setRetryingGeneration(true);
+
+      // Store original states in case we need to revert
+      const originalImageErrors = [...imageErrors];
+      const originalImageLoading = [...imageLoading];
+
       try {
-        await onRetryImageGeneration(story.id, pageIndex);
-        // Only reset states for the specific page if the retry call succeeded
+        // Optimistically update UI before the call
         setImageErrors((prev) => {
           const next = [...prev];
           next[pageIndex] = false;
@@ -174,16 +178,23 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
           next[pageIndex] = true;
           return next;
         });
+
+        console.log(
+          `StoryViewer calling retry for story ${story.id}, page ${pageIndex}`
+        );
+        await onRetryImageGeneration(story.id, pageIndex);
+        // If we get here, the call succeeded and UI is already updated correctly
       } catch (error) {
-        // If retry failed, keep the error states as they were
-        // The parent component will show user-facing error messages
-        console.error("Retry failed:", error);
-        // Don't reset error states on failure - let user see the original errors
+        // If retry failed, revert to original states
+        console.error("Retry failed, reverting UI state:", error);
+        setImageErrors(originalImageErrors);
+        setImageLoading(originalImageLoading);
+        // Parent component will show user-facing error messages via toast
       } finally {
         setRetryingGeneration(false);
       }
     },
-    [onRetryImageGeneration, story.id]
+    [onRetryImageGeneration, story.id, imageErrors, imageLoading]
   );
 
   const goToPage = useCallback(

@@ -42,14 +42,19 @@ export default function StoryScreen() {
   const handleRetryImageGeneration = useCallback(
     async (storyId: string, pageIndex: number) => {
       try {
-        logger.info(`Retrying image generation for story ${storyId}`);
+        logger.info(
+          `Retrying image generation for story ${storyId}, page ${pageIndex}`
+        );
 
         const retryImageGenerationFn = httpsCallable(
           functionsService,
           "retryImageGeneration"
         );
 
-        const result = await retryImageGenerationFn({ storyId, pageIndex });
+        const payload = { storyId, pageIndex };
+        logger.info("Calling retryImageGeneration with payload:", payload);
+
+        const result = await retryImageGenerationFn(payload);
         const data = result.data as any;
 
         if (data?.success) {
@@ -67,21 +72,42 @@ export default function StoryScreen() {
         }
       } catch (error) {
         logger.error("Error retrying image generation", error);
+        logger.info("Error structure for debugging:", {
+          hasCode: error && typeof error === "object" && "code" in error,
+          code:
+            error && typeof error === "object" && "code" in error
+              ? (error as any).code
+              : undefined,
+          message:
+            error && typeof error === "object" && "message" in error
+              ? (error as any).message
+              : undefined,
+        });
 
-        // Parse error message for user-friendly display
+        // Parse error code for user-friendly display
         let errorMessage =
           "Failed to retry image generation. Please try again.";
 
-        if (error && typeof error === "object" && "message" in error) {
-          const message = error.message as string;
-          if (message.includes("permission-denied")) {
-            errorMessage = "You don't have permission to retry this story.";
-          } else if (message.includes("not-found")) {
-            errorMessage = "Story not found.";
-          } else if (message.includes("failed-precondition")) {
-            errorMessage = "Cannot retry - images are not in a failed state.";
-          } else if (message.includes("unauthenticated")) {
-            errorMessage = "Please sign in to retry image generation.";
+        if (error && typeof error === "object" && "code" in error) {
+          switch ((error as { code: string }).code) {
+            case "permission-denied":
+              errorMessage = "You don't have permission to retry this story.";
+              break;
+            case "not-found":
+              errorMessage = "Story not found.";
+              break;
+            case "failed-precondition":
+              errorMessage = "Cannot retry - images are not in a failed state.";
+              break;
+            case "unauthenticated":
+              errorMessage = "Please sign in to retry image generation.";
+              break;
+            case "invalid-argument":
+              errorMessage = "Invalid retry request. Please try again.";
+              break;
+            case "internal":
+              errorMessage = "Server error occurred. Please try again later.";
+              break;
           }
         }
 
