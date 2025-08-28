@@ -39,7 +39,6 @@ import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
-import { serverTimestamp } from "@react-native-firebase/firestore";
 
 // Type definitions
 interface AppleAuthError {
@@ -178,7 +177,7 @@ const checkDeletionMarker = async (email: string): Promise<boolean> => {
     );
 
     const result = await checkDeletionMarkerFunction({ email });
-    return (result.data as { hasMarker: boolean }).hasMarker;
+    return (result.data as { hasMarker?: boolean })?.hasMarker ?? true;
   } catch (error) {
     logger.error("Error checking deletion marker", error);
     // Default to not granting credits for security if check fails
@@ -320,15 +319,7 @@ const createUserDocument = async (
           logger.debug("Credits initialized successfully with free credits");
         } else {
           logger.debug("Creating credits document without free credits");
-          // Create credits document manually without free credits
-          await setDoc(doc(db, "userCredits", user.uid), {
-            userId: user.uid,
-            balance: 0,
-            lifetimeUsed: 0,
-            subscriptionActive: false,
-            freeCreditsGranted: false,
-            lastUpdated: serverTimestamp(),
-          });
+          await creditsService.createEmptyUserCredits(user.uid);
           logger.debug("Credits document created without free credits");
         }
       } else {
