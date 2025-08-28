@@ -180,47 +180,56 @@ const checkDeletionMarker = async (email: string): Promise<boolean> => {
     return (result.data as { hasMarker?: boolean })?.hasMarker ?? true;
   } catch (error: any) {
     logger.error("Error checking deletion marker", error);
-    
+
     // Classify errors to determine appropriate response
     const errorCode = error?.code;
-    const errorMessage = error?.message?.toLowerCase() || '';
-    
+    const errorMessage = error?.message?.toLowerCase() || "";
+
     // Network/infrastructure errors - allow credits (temporary issue)
     if (
-      errorCode === 'unavailable' ||           // Service temporarily unavailable
-      errorCode === 'deadline-exceeded' ||    // Timeout
-      errorCode === 'resource-exhausted' ||   // Rate limiting
-      errorMessage.includes('network') ||
-      errorMessage.includes('timeout') ||
-      errorMessage.includes('connection') ||
-      errorMessage.includes('unreachable')
+      errorCode === "unavailable" || // Service temporarily unavailable
+      errorCode === "deadline-exceeded" || // Timeout
+      errorCode === "resource-exhausted" || // Rate limiting
+      errorMessage.includes("network") ||
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("connection") ||
+      errorMessage.includes("unreachable")
     ) {
-      logger.warn("Infrastructure error during deletion marker check - allowing credits", {
-        errorCode,
-        errorMessage: error?.message
-      });
+      logger.warn(
+        "Infrastructure error during deletion marker check - allowing credits",
+        {
+          errorCode,
+          errorMessage: error?.message,
+        }
+      );
       return false; // Allow credits for temporary infrastructure issues
     }
-    
+
     // Authentication/permission errors - deny credits (security concern)
     if (
-      errorCode === 'unauthenticated' ||
-      errorCode === 'permission-denied' ||
-      errorCode === 'invalid-argument'
+      errorCode === "unauthenticated" ||
+      errorCode === "permission-denied" ||
+      errorCode === "invalid-argument"
     ) {
-      logger.error("Security-related error during deletion marker check - denying credits", {
-        errorCode,
-        errorMessage: error?.message
-      });
+      logger.error(
+        "Security-related error during deletion marker check - denying credits",
+        {
+          errorCode,
+          errorMessage: error?.message,
+        }
+      );
       return true; // Deny credits for security-related errors
     }
-    
+
     // Unknown errors - be conservative but log for monitoring
-    logger.error("Unknown error during deletion marker check - denying credits for safety", {
-      errorCode,
-      errorMessage: error?.message,
-      errorType: typeof error
-    });
+    logger.error(
+      "Unknown error during deletion marker check - denying credits for safety",
+      {
+        errorCode,
+        errorMessage: error?.message,
+        errorType: typeof error,
+      }
+    );
     return true; // Default to secure behavior for unknown errors
   }
 };
