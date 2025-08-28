@@ -134,6 +134,29 @@ export const creditsService = {
     }
   },
 
+  async createEmptyUserCredits(userId: string): Promise<void> {
+    try {
+      const creditsDoc = await getDoc(doc(db, "userCredits", userId));
+
+      if (!creditsDoc.exists()) {
+        const emptyCredits = {
+          userId,
+          balance: 0,
+          lifetimeUsed: 0,
+          subscriptionActive: false,
+          freeCreditsGranted: false,
+          lastUpdated: serverTimestamp(),
+        };
+
+        await setDoc(doc(db, "userCredits", userId), emptyCredits);
+        logger.debug("Empty credits document created", { userId });
+      }
+    } catch (error) {
+      logger.error("Error creating empty user credits", error);
+      throw error;
+    }
+  },
+
   // Fixed race condition by keeping transaction atomic
   async useCredits(
     userId: string,

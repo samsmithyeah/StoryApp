@@ -50,5 +50,10 @@ service cloud.firestore {
       // No updates or deletes allowed
       allow update, delete: if false;
     }
+    
+    // Deleted account markers - completely private, only accessible by Cloud Functions
+    match /deletedAccountMarkers/{markerId} {
+      allow read, write: if false;
+    }
   }
 }

@@ -1,12 +1,7 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-} from "@react-native-firebase/firestore";
 import { getAuth } from "@react-native-firebase/auth";
-import { db } from "./config";
+import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { logger } from "../../utils/logger";
+import { db } from "./config";
 
 /**
  * Firebase Cloud Messaging token management for push notifications
@@ -43,22 +38,43 @@ export class NotificationService {
       };
       logger.debug("Token data to save", tokenData);
 
-      // Use setDoc with merge: true to create the document if it doesn't exist
-      // or update it if it does exist
-      await setDoc(userRef, tokenData, { merge: true });
-      logger.debug("FCM token successfully saved to Firestore");
+      // Only update existing documents, don't create new ones during signup
+      // This prevents FCM from interfering with the signup deletion marker check
+      let tokenSaved = false;
+      try {
+        const docSnapshot = await getDoc(userRef);
+        if (docSnapshot.exists()) {
+          await updateDoc(userRef, tokenData);
+          logger.debug(
+            "FCM token successfully saved to existing Firestore document"
+          );
+          tokenSaved = true;
+        } else {
+          logger.debug(
+            "User document doesn't exist yet, skipping FCM token save (will retry later)"
+          );
+          // Don't create the document - let the signup process handle it first
+        }
+      } catch (error) {
+        logger.error("Error saving FCM token", error);
+        // Don't throw - FCM registration can be retried later
+      }
 
-      // Verify the token was actually written by reading it back
-      const verifySnapshot = await getDoc(userRef);
-      if (verifySnapshot.exists()) {
-        const savedData = verifySnapshot.data();
-        logger.debug("Token verification successful", {
-          documentData: savedData,
-          fcmTokenExists: !!savedData?.fcmToken,
-          savedToken: savedData?.fcmToken,
-        });
+      // Verify the token was actually written by reading it back (only if we tried to save it)
+      if (tokenSaved) {
+        const verifySnapshot = await getDoc(userRef);
+        if (verifySnapshot.exists()) {
+          const savedData = verifySnapshot.data();
+          logger.debug("Token verification successful", {
+            documentData: savedData,
+            fcmTokenExists: !!savedData?.fcmToken,
+            savedToken: savedData?.fcmToken,
+          });
+        } else {
+          logger.error("Token verification FAILED - document does not exist!");
+        }
       } else {
-        logger.error("Token verification FAILED - document does not exist!");
+        logger.debug("Skipping token verification - token save was deferred");
       }
     } catch (error) {
       logger.error("Failed to register FCM token", error);

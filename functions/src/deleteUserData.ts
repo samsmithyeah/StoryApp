@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { https } from "firebase-functions/v2";
 import { logger } from "./utils/logger";
+import { emailHashSalt, hashEmail } from "./utils/crypto";
 
 const db = admin.firestore();
 const storage = admin.storage();
@@ -10,6 +11,7 @@ export const deleteUserData = https.onCall(
     region: "us-central1",
     cors: true,
     invoker: "public",
+    secrets: [emailHashSalt],
   },
   async (request: https.CallableRequest) => {
     logger.info("deleteUserData function called", {
@@ -41,57 +43,138 @@ export const deleteUserData = https.onCall(
     logger.info("Starting data deletion for user", { userId });
 
     try {
-      // Create a batch for Firestore operations
-      const batch = db.batch();
+      // Create deletion marker before deleting any data
+      const userEmail = auth.token.email;
+      if (userEmail) {
+        try {
+          const hashedEmail = hashEmail(userEmail);
+          const markerRef = db
+            .collection("deletedAccountMarkers")
+            .doc(hashedEmail);
 
-      // Delete user document
-      const userDocRef = db.collection("users").doc(userId);
-      batch.delete(userDocRef);
-      logger.debug("Queued user document for deletion", { userId });
+          // Use atomic operation to avoid race condition
+          // This will create the document if it doesn't exist or increment if it does
+          await markerRef.set(
+            {
+              lastDeletedAt: admin.firestore.FieldValue.serverTimestamp(),
+              deletionCount: admin.firestore.FieldValue.increment(1),
+            },
+            { merge: true }
+          );
+          logger.debug("Created/updated deletion marker atomically", {
+            hashedEmail,
+          });
+        } catch (markerError) {
+          logger.error("Failed to create deletion marker", markerError, {
+            userId,
+          });
+          // Continue with deletion even if marker creation fails
+        }
+      } else {
+        logger.warn("No email found in auth token, skipping deletion marker", {
+          userId,
+        });
+      }
 
-      // Delete user preferences
-      const preferencesDocRef = db.collection("userPreferences").doc(userId);
-      batch.delete(preferencesDocRef);
-      logger.debug("Queued user preferences for deletion", { userId });
+      // Helper function to handle batch operations with size limits
+      const executeBatchDeletions = async (
+        deletionRefs: admin.firestore.DocumentReference[]
+      ) => {
+        const BATCH_SIZE = 500; // Firestore batch limit
+        const batches: admin.firestore.WriteBatch[] = [];
 
-      // Delete children documents
+        // Split deletions into batches
+        for (let i = 0; i < deletionRefs.length; i += BATCH_SIZE) {
+          const batchRefs = deletionRefs.slice(i, i + BATCH_SIZE);
+          const batch = db.batch();
+
+          batchRefs.forEach((ref) => {
+            batch.delete(ref);
+          });
+
+          batches.push(batch);
+        }
+
+        // Execute all batches
+        await Promise.all(batches.map((batch) => batch.commit()));
+        logger.debug(
+          `Executed ${batches.length} batches for ${deletionRefs.length} deletions`,
+          { userId }
+        );
+      };
+
+      // Collect all document references for deletion
+      const deletionRefs: admin.firestore.DocumentReference[] = [];
+
+      // Add core user documents
+      deletionRefs.push(
+        db.collection("users").doc(userId),
+        db.collection("userPreferences").doc(userId),
+        db.collection("userCredits").doc(userId)
+      );
+
+      // Collect children documents
       const childrenSnapshot = await db
         .collection("children")
         .where("userId", "==", userId)
         .get();
-
       childrenSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
+        deletionRefs.push(doc.ref);
         logger.debug("Queued child document for deletion", { childId: doc.id });
       });
 
-      // Delete saved characters documents
+      // Collect saved characters documents
       const charactersSnapshot = await db
         .collection("savedCharacters")
         .where("userId", "==", userId)
         .get();
-
       charactersSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
+        deletionRefs.push(doc.ref);
         logger.debug("Queued saved character for deletion", {
           characterId: doc.id,
         });
       });
 
-      // Delete stories documents
+      // Collect stories documents
       const storiesSnapshot = await db
         .collection("stories")
         .where("userId", "==", userId)
         .get();
-
       storiesSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
+        deletionRefs.push(doc.ref);
         logger.debug("Queued story for deletion", { storyId: doc.id });
       });
 
-      // Commit all Firestore deletions
-      await batch.commit();
-      logger.info("Firestore data deleted successfully for user", { userId });
+      // Collect credit transactions
+      const creditTransactionsSnapshot = await db
+        .collection("creditTransactions")
+        .where("userId", "==", userId)
+        .get();
+      creditTransactionsSnapshot.forEach((doc) => {
+        deletionRefs.push(doc.ref);
+        logger.debug("Queued credit transaction for deletion", {
+          transactionId: doc.id,
+        });
+      });
+
+      // Collect purchase history
+      const purchaseHistorySnapshot = await db
+        .collection("purchaseHistory")
+        .where("userId", "==", userId)
+        .get();
+      purchaseHistorySnapshot.forEach((doc) => {
+        deletionRefs.push(doc.ref);
+        logger.debug("Queued purchase history for deletion", {
+          purchaseId: doc.id,
+        });
+      });
+
+      // Execute all deletions with batch size handling
+      await executeBatchDeletions(deletionRefs);
+      logger.info(
+        `Firestore data deleted successfully for user (${deletionRefs.length} documents)`,
+        { userId }
+      );
 
       // Delete all user files from Firebase Storage
       try {
@@ -132,11 +215,15 @@ export const deleteUserData = https.onCall(
         deletedCollections: [
           "users",
           "userPreferences",
+          "userCredits",
           "children",
           "savedCharacters",
           "stories",
+          "creditTransactions",
+          "purchaseHistory",
           "storage",
           "auth",
+          "deletedAccountMarkers",
         ],
       };
     } catch (error) {

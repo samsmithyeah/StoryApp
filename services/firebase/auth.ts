@@ -168,6 +168,72 @@ const waitForProfileUpdate = async (
   });
 };
 
+// Helper function to check if user has a deletion marker
+const checkDeletionMarker = async (email: string): Promise<boolean> => {
+  try {
+    const checkDeletionMarkerFunction = httpsCallable(
+      functionsService,
+      "checkDeletionMarker"
+    );
+
+    const result = await checkDeletionMarkerFunction({ email });
+    return (result.data as { hasMarker?: boolean })?.hasMarker ?? true;
+  } catch (error: any) {
+    logger.error("Error checking deletion marker", error);
+
+    // Classify errors to determine appropriate response
+    const errorCode = error?.code;
+    const errorMessage = error?.message?.toLowerCase() || "";
+
+    // Network/infrastructure errors - allow credits (temporary issue)
+    if (
+      errorCode === "unavailable" || // Service temporarily unavailable
+      errorCode === "deadline-exceeded" || // Timeout
+      errorCode === "resource-exhausted" || // Rate limiting
+      errorMessage.includes("network") ||
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("connection") ||
+      errorMessage.includes("unreachable")
+    ) {
+      logger.warn(
+        "Infrastructure error during deletion marker check - allowing credits",
+        {
+          errorCode,
+          errorMessage: error?.message,
+        }
+      );
+      return false; // Allow credits for temporary infrastructure issues
+    }
+
+    // Authentication/permission errors - deny credits (security concern)
+    if (
+      errorCode === "unauthenticated" ||
+      errorCode === "permission-denied" ||
+      errorCode === "invalid-argument"
+    ) {
+      logger.error(
+        "Security-related error during deletion marker check - denying credits",
+        {
+          errorCode,
+          errorMessage: error?.message,
+        }
+      );
+      return true; // Deny credits for security-related errors
+    }
+
+    // Unknown errors - be conservative but log for monitoring
+    logger.error(
+      "Unknown error during deletion marker check - denying credits for safety",
+      {
+        errorCode,
+        errorMessage: error?.message,
+        errorType: typeof error,
+      }
+    );
+    return true; // Default to secure behavior for unknown errors
+  }
+};
+
 // Convert Firebase User to our User type
 const convertFirebaseUser = async (
   firebaseUser: FirebaseAuthTypes.User
@@ -242,13 +308,43 @@ const createUserDocument = async (
       source: overrideDisplayName ? "override" : "user profile",
     });
 
+    // Check for deletion marker BEFORE creating any documents for new users
+    const isNewUser = !userSnapshot.exists();
+    let shouldGrantFreeCredits = true;
+
+    if (isNewUser) {
+      logger.debug(
+        "New user detected - checking deletion marker before document creation"
+      );
+
+      const userEmail = user.email;
+      if (userEmail) {
+        const hasMarker = await checkDeletionMarker(userEmail);
+        if (hasMarker) {
+          logger.debug("Deletion marker found - will not grant free credits", {
+            uid: user.uid,
+          });
+          shouldGrantFreeCredits = false;
+        } else {
+          logger.debug("No deletion marker found - will grant free credits", {
+            uid: user.uid,
+          });
+        }
+      } else {
+        logger.warn("No email found for user, not granting free credits", {
+          uid: user.uid,
+        });
+        shouldGrantFreeCredits = false;
+      }
+    }
+
     // Always set core user data with merge: true to ensure it exists
     const userData = {
       email: user.email,
       displayName: finalDisplayName,
       photoURL: user.photoURL,
       // Only set createdAt and children for new users, not existing ones
-      ...(userSnapshot.exists() ? {} : { createdAt: new Date(), children: [] }),
+      ...(isNewUser ? { createdAt: new Date(), children: [] } : {}),
     };
     logger.debug("User data to set/merge", userData);
 
@@ -265,10 +361,16 @@ const createUserDocument = async (
         hasFcmToken: !!savedData?.fcmToken,
       });
 
-      if (!userSnapshot.exists()) {
-        logger.debug("New user - initializing credits");
-        await creditsService.initializeUserCredits(user.uid);
-        logger.debug("Credits initialized successfully");
+      if (isNewUser) {
+        if (shouldGrantFreeCredits) {
+          logger.debug("Initializing credits with free credits");
+          await creditsService.initializeUserCredits(user.uid);
+          logger.debug("Credits initialized successfully with free credits");
+        } else {
+          logger.debug("Creating credits document without free credits");
+          await creditsService.createEmptyUserCredits(user.uid);
+          logger.debug("Credits document created without free credits");
+        }
       } else {
         logger.debug("Existing user - checking credits");
         // Check if user has credits initialized (for existing users before credits system)

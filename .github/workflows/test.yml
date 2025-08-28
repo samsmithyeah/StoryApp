@@ -19,7 +19,7 @@ jobs:
       - run: npm run format:check
       - run: npm test -- --watchAll=false
 
-  functions-check:
+  functions-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +31,5 @@ jobs:
         run: cd functions && npm ci
       - name: Type check functions
         run: cd functions && npm run build
+      - name: Test functions
+        run: cd functions && npm test
