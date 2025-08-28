@@ -89,7 +89,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
     const storyRef = doc(db, "stories", generatedStoryId);
     const unsubscribe = onSnapshot(storyRef, (doc) => {
-      if (doc && doc.exists()) {
+      // @ts-ignore - TypeScript definitions are incorrect, exists is a property not a method
+      if (doc?.exists) {
         const story = {
           id: doc.id,
           ...doc.data(),
