@@ -38,6 +38,31 @@ export const checkDeletionMarker = https.onCall(
       );
     }
 
+    // Security check: Users can only check their own email address
+    const userEmail = auth.token.email;
+    if (!userEmail) {
+      logger.error("No email found in auth token", { userId: auth.uid });
+      throw new https.HttpsError(
+        "permission-denied",
+        "Unable to verify user email."
+      );
+    }
+
+    if (email.toLowerCase().trim() !== userEmail.toLowerCase().trim()) {
+      logger.warn(
+        "User attempted to check deletion marker for different email",
+        {
+          userId: auth.uid,
+          requestedEmail: email.toLowerCase().trim(),
+          userEmail: userEmail.toLowerCase().trim(),
+        }
+      );
+      throw new https.HttpsError(
+        "permission-denied",
+        "You can only check deletion markers for your own email address."
+      );
+    }
+
     try {
       const hashedEmail = hashEmail(email);
       logger.debug("Checking for deletion marker", {
