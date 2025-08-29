@@ -4,27 +4,20 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendReferralNotification } from "./sendReferralNotification";
+import { checkRateLimit, recordRateLimitAttempt } from "./utils/rateLimiter";
 
 const db = admin.firestore();
 
-// Referral system configuration
-// These values can be modified to adjust referral system behavior
-const REFERRAL_CONFIG = {
-  // Referral code format
-  CODE_LENGTH: 5, // Total length of referral code (all random chars)
+// Import shared configuration
+import {
+  REFERRAL_CONFIG,
+  REFERRAL_SERVER_CONFIG,
+} from "./constants/ReferralConfig";
 
-  // Usage limits
-  MAX_USAGE_PER_CODE: 1000, // Maximum times a code can be used
-  RATE_LIMIT_WINDOW_MS: 60 * 1000, // Rate limit window (1 minute)
-  RATE_LIMIT_MAX_ATTEMPTS: 10, // Max validation attempts per window
-
-  // Credit rewards
-  REFERRER_CREDITS: 10, // Credits awarded to referrer
-  REFEREE_CREDITS: 5, // Credits awarded to referee
-
-  // Data cleanup settings
-  VALIDATION_RETENTION_DAYS: 7, // How long to keep validation logs
-  INACTIVE_CODE_RETENTION_YEARS: 1, // How long to keep unused inactive codes
+// Combined config for server use
+const SERVER_CONFIG = {
+  ...REFERRAL_CONFIG,
+  ...REFERRAL_SERVER_CONFIG,
 } as const;
 
 interface CreateReferralCodeRequest {
@@ -46,7 +39,7 @@ function generateUniqueCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
 
-  for (let i = 0; i < REFERRAL_CONFIG.CODE_LENGTH; i++) {
+  for (let i = 0; i < SERVER_CONFIG.CODE_LENGTH; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
 
@@ -69,6 +62,20 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
       }
 
       const userId = auth.uid;
+
+      // Rate limiting check
+      const rateLimitExceeded = await checkRateLimit(userId, {
+        windowMs: SERVER_CONFIG.RATE_LIMIT_WINDOW_MS,
+        maxAttempts: 5, // Allow 5 code generations per minute
+        action: "getUserReferralCode",
+      });
+
+      if (rateLimitExceeded) {
+        throw new Error("Too many requests. Please try again later.");
+      }
+
+      // Record the attempt
+      await recordRateLimitAttempt(userId, "getUserReferralCode");
 
       // Check if user already has a code
       const userDoc = await db.collection("users").doc(userId).get();
@@ -100,7 +107,7 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
             ownerId: userId,
             createdAt: FieldValue.serverTimestamp(),
             isActive: true,
-            usageLimit: REFERRAL_CONFIG.MAX_USAGE_PER_CODE,
+            usageLimit: SERVER_CONFIG.MAX_USAGE_PER_CODE,
             timesUsed: 0,
           });
 
@@ -127,8 +134,8 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
         {
           userId,
           attempts,
-          codeLength: REFERRAL_CONFIG.CODE_LENGTH,
-          totalPossibleCodes: Math.pow(36, REFERRAL_CONFIG.CODE_LENGTH),
+          codeLength: SERVER_CONFIG.CODE_LENGTH,
+          totalPossibleCodes: Math.pow(36, SERVER_CONFIG.CODE_LENGTH),
         }
       );
       throw new Error(
@@ -150,8 +157,17 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
   },
   async (request) => {
     try {
+      logger.info("FUNCTION CALLED - Request received");
       const { data, auth } = request;
+      logger.info("FUNCTION CALLED - Destructured data:", data);
       const { code } = data;
+
+      
+      logger.info("validateReferralCode called", {
+        code: code,
+        userId: auth?.uid,
+        codeType: typeof code,
+      });
 
       if (!auth?.uid) {
         throw new Error("Authentication required");
@@ -161,14 +177,20 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       if (!code || typeof code !== "string") {
         return {
           isValid: false,
-          error: "Invalid code format",
+          error: `Invalid code format - received: ${JSON.stringify(code)} type: ${typeof code}`,
         };
       }
 
       const trimmedCode = code.trim();
 
-      // Check code length and format
-      if (trimmedCode.length !== REFERRAL_CONFIG.CODE_LENGTH) {
+      // Check code length
+      if (trimmedCode.length !== SERVER_CONFIG.CODE_LENGTH) {
+        logger.info("Code length validation failed", {
+          providedCode: trimmedCode,
+          providedLength: trimmedCode.length,
+          expectedLength: SERVER_CONFIG.CODE_LENGTH,
+          userId: auth.uid,
+        });
         return {
           isValid: false,
           error: "Invalid code format",
@@ -176,17 +198,23 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       }
 
       // Check if code contains only allowed characters (alphanumeric)
-      if (!/^[A-Z0-9]+$/.test(trimmedCode.toUpperCase())) {
+      const upperCode = trimmedCode.toUpperCase();
+      if (!/^[A-Z0-9]+$/.test(upperCode)) {
+        logger.info("Code format validation failed", {
+          providedCode: trimmedCode,
+          upperCode,
+          userId: auth.uid,
+        });
         return {
           isValid: false,
           error: "Invalid code format",
         };
       }
 
-      // Rate limiting in production (skip in test environment)
-      if (process.env.NODE_ENV !== "test") {
+      // Rate limiting in production (skip in test environment and emulator)
+      if (process.env.NODE_ENV !== "test" && !process.env.FUNCTIONS_EMULATOR) {
         const rateLimitWindow = new Date(
-          Date.now() - REFERRAL_CONFIG.RATE_LIMIT_WINDOW_MS
+          Date.now() - SERVER_CONFIG.RATE_LIMIT_WINDOW_MS
         );
         const recentValidations = await db
           .collection("referralValidations")
@@ -194,7 +222,7 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
           .where("timestamp", ">", rateLimitWindow)
           .get();
 
-        if (recentValidations.size >= REFERRAL_CONFIG.RATE_LIMIT_MAX_ATTEMPTS) {
+        if (recentValidations.size >= SERVER_CONFIG.RATE_LIMIT_MAX_ATTEMPTS) {
           return {
             isValid: false,
             error: "Too many validation attempts. Please try again later.",
@@ -213,6 +241,13 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
         .collection("referralCodes")
         .doc(trimmedCode.toUpperCase())
         .get();
+
+      
+      logger.info("Database lookup result", {
+        code: trimmedCode.toUpperCase(),
+        exists: codeDoc.exists,
+        userId: auth.uid,
+      });
 
       if (!codeDoc.exists) {
         return {
@@ -255,7 +290,7 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       logger.error("Error validating referral code", error);
       return {
         isValid: false,
-        error: "Error validating referral code",
+        error: "Error validating referral code - EXCEPTION CAUGHT",
       };
     }
   }
@@ -278,6 +313,20 @@ export const recordReferral = onCall<RecordReferralRequest>(
       }
 
       const userId = auth.uid;
+
+      // Rate limiting check
+      const rateLimitExceeded = await checkRateLimit(userId, {
+        windowMs: SERVER_CONFIG.RATE_LIMIT_WINDOW_MS,
+        maxAttempts: 3, // Allow 3 referral records per minute
+        action: "recordReferral",
+      });
+
+      if (rateLimitExceeded) {
+        throw new Error("Too many requests. Please try again later.");
+      }
+
+      // Record the attempt
+      await recordRateLimitAttempt(userId, "recordReferral");
 
       // Validate referral code first
       const codeDoc = await db
@@ -327,8 +376,8 @@ export const recordReferral = onCall<RecordReferralRequest>(
             referrerId: codeData.ownerId,
             refereeId: userId,
             redeemedAt: FieldValue.serverTimestamp(),
-            referrerCreditsAwarded: REFERRAL_CONFIG.REFERRER_CREDITS,
-            refereeCreditsAwarded: REFERRAL_CONFIG.REFEREE_CREDITS,
+            referrerCreditsAwarded: SERVER_CONFIG.REFERRER_CREDITS,
+            refereeCreditsAwarded: SERVER_CONFIG.REFEREE_CREDITS,
             status: "pending",
           }
         );
@@ -600,7 +649,7 @@ export const cleanupReferralData = onSchedule(
       const now = new Date();
       const validationCutoff = new Date(
         now.getTime() -
-          REFERRAL_CONFIG.VALIDATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+          SERVER_CONFIG.VALIDATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
       );
 
       // Clean up old referral validation attempts
@@ -619,14 +668,14 @@ export const cleanupReferralData = onSchedule(
         await batch.commit();
         logger.info("Cleaned up old referral validation attempts", {
           count: oldValidations.size,
-          retentionDays: REFERRAL_CONFIG.VALIDATION_RETENTION_DAYS,
+          retentionDays: SERVER_CONFIG.VALIDATION_RETENTION_DAYS,
         });
       }
 
       // Clean up inactive referral codes with no usage
       const inactiveCodeCutoff = new Date(
         now.getTime() -
-          REFERRAL_CONFIG.INACTIVE_CODE_RETENTION_YEARS *
+          SERVER_CONFIG.INACTIVE_CODE_RETENTION_YEARS *
             365 *
             24 *
             60 *
@@ -650,11 +699,63 @@ export const cleanupReferralData = onSchedule(
         await batch.commit();
         logger.info("Cleaned up old inactive referral codes", {
           count: inactiveCodes.size,
-          retentionYears: REFERRAL_CONFIG.INACTIVE_CODE_RETENTION_YEARS,
+          retentionYears: SERVER_CONFIG.INACTIVE_CODE_RETENTION_YEARS,
         });
       }
 
-      logger.info("Referral data cleanup completed");
+      // Clean up old rate limit records
+      const rateLimitCutoff = new Date(
+        now.getTime() - 24 * 60 * 60 * 1000 // 24 hours
+      );
+      const oldRateLimits = await db
+        .collection("rateLimits")
+        .where("timestamp", "<", rateLimitCutoff)
+        .limit(1000) // Rate limits can be numerous
+        .get();
+
+      if (!oldRateLimits.empty) {
+        const batch = db.batch();
+        oldRateLimits.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        logger.info("Cleaned up old rate limit records", {
+          count: oldRateLimits.size,
+          retentionHours: 24,
+        });
+      }
+
+      // Clean up expired/cancelled referral redemptions older than 90 days
+      const expiredRedemptionsCutoff = new Date(
+        now.getTime() - 90 * 24 * 60 * 60 * 1000 // 90 days
+      );
+      const expiredRedemptions = await db
+        .collection("referralRedemptions")
+        .where("status", "==", "cancelled")
+        .where("redeemedAt", "<", expiredRedemptionsCutoff)
+        .limit(200)
+        .get();
+
+      if (!expiredRedemptions.empty) {
+        const batch = db.batch();
+        expiredRedemptions.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        logger.info("Cleaned up old cancelled referral redemptions", {
+          count: expiredRedemptions.size,
+          retentionDays: 90,
+        });
+      }
+
+      logger.info("Referral data cleanup completed", {
+        validationsDeleted: oldValidations.size || 0,
+        inactiveCodesDeleted: inactiveCodes.size || 0,
+        rateLimitsDeleted: oldRateLimits.size || 0,
+        redemptionsDeleted: expiredRedemptions.size || 0,
+      });
     } catch (error) {
       logger.error("Error during referral data cleanup", error);
     }

@@ -1,10 +1,11 @@
 import { httpsCallable } from "@react-native-firebase/functions";
-import { logger } from "../../utils/logger";
 import type {
   ReferralRedemption,
   ReferralStats,
   ValidateReferralCodeResponse,
 } from "../../types/referral.types";
+import { logger } from "../../utils/logger";
+import { CacheKeys, referralCache } from "../../functions/src/cache/referralCache";
 import { functionsService } from "./config";
 
 /**
@@ -72,14 +73,18 @@ export const referralService = {
     code: string
   ): Promise<ValidateReferralCodeResponse> {
     try {
+      console.log("referralService.validateReferralCode called", { code });
       const validateReferralCodeFunction = httpsCallable(
         functionsService,
         "validateReferralCode"
       );
 
+      console.log("About to call cloud function");
       const result = await validateReferralCodeFunction({ code });
+      console.log("Cloud function returned", result);
       return result.data as ValidateReferralCodeResponse;
     } catch (error) {
+      console.log("Error in referralService.validateReferralCode", error);
       logger.error("Error validating referral code", error);
       return {
         isValid: false,
@@ -99,6 +104,10 @@ export const referralService = {
       );
 
       await recordReferralFunction({ referralCode });
+
+      // Invalidate caches that might be affected
+      referralCache.delete(CacheKeys.referralStats("current_user"));
+      referralCache.delete(CacheKeys.referralHistory("current_user", 10));
 
       logger.debug("Referral recorded successfully", {
         refereeId,
@@ -123,6 +132,10 @@ export const referralService = {
       const result = await completeReferralFunction({ userId: refereeId });
 
       if ((result.data as { success: boolean }).success) {
+        // Invalidate caches for both referrer and referee
+        referralCache.delete(CacheKeys.referralStats("current_user"));
+        referralCache.delete(CacheKeys.referralHistory("current_user", 10));
+
         logger.debug("Referral completed successfully", { refereeId });
       } else {
         logger.debug("No pending referral found", { refereeId });
@@ -134,17 +147,32 @@ export const referralService = {
   },
 
   /**
-   * Get referral stats for a user
+   * Get referral stats for a user (cached)
    */
-  async getReferralStats(): Promise<ReferralStats> {
+  async getReferralStats(userId?: string): Promise<ReferralStats> {
     try {
+      // Use provided userId or get from auth context
+      const cacheKey = CacheKeys.referralStats(userId || "current_user");
+
+      // Check cache first
+      const cachedStats = referralCache.get<ReferralStats>(cacheKey);
+      if (cachedStats) {
+        logger.debug("Returning cached referral stats", { userId });
+        return cachedStats;
+      }
+
       const getReferralStatsFunction = httpsCallable(
         functionsService,
         "getReferralStats"
       );
 
       const result = await getReferralStatsFunction({});
-      return (result.data as { stats: ReferralStats }).stats;
+      const stats = (result.data as { stats: ReferralStats }).stats;
+
+      // Cache the result for 2 minutes
+      referralCache.set(cacheKey, stats, 2 * 60 * 1000);
+
+      return stats;
     } catch (error) {
       logger.error("Error getting referral stats", error);
       return {
@@ -156,12 +184,28 @@ export const referralService = {
   },
 
   /**
-   * Get referral history for a user
+   * Get referral history for a user (cached)
    */
   async getReferralHistory(
-    limitCount: number = 10
+    limitCount: number = 10,
+    userId?: string
   ): Promise<ReferralRedemption[]> {
     try {
+      const cacheKey = CacheKeys.referralHistory(
+        userId || "current_user",
+        limitCount
+      );
+
+      // Check cache first
+      const cachedHistory = referralCache.get<ReferralRedemption[]>(cacheKey);
+      if (cachedHistory) {
+        logger.debug("Returning cached referral history", {
+          userId,
+          limitCount,
+        });
+        return cachedHistory;
+      }
+
       const getReferralHistoryFunction = httpsCallable(
         functionsService,
         "getReferralHistory"
@@ -171,11 +215,16 @@ export const referralService = {
       const history = (result.data as { history: any[] }).history;
 
       // Convert Firestore timestamps to Date objects safely
-      return history.map((item: any) => ({
+      const processedHistory = history.map((item: any) => ({
         ...item,
         redeemedAt: safeTimestampToDate(item.redeemedAt) || new Date(),
         completedAt: safeTimestampToDate(item.completedAt),
       })) as ReferralRedemption[];
+
+      // Cache the result for 1 minute
+      referralCache.set(cacheKey, processedHistory, 1 * 60 * 1000);
+
+      return processedHistory;
     } catch (error) {
       logger.error("Error getting referral history", error);
       return [];

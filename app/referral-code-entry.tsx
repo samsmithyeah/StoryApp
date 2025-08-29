@@ -27,6 +27,8 @@ export default function ReferralCodeEntryScreen() {
   };
 
   const handleSubmit = async () => {
+    console.log("handleSubmit called", { referralCode, userId: user?.uid });
+    
     if (!user?.uid) {
       logger.error("No user found when submitting referral code");
       return;
@@ -41,7 +43,9 @@ export default function ReferralCodeEntryScreen() {
     if (referralInputRef.current) {
       try {
         setIsSubmitting(true);
+        console.log("About to validate referral code", { code: referralCode });
         const result = await referralInputRef.current.validate();
+        console.log("Validation result", result);
 
         // Check if validation passed
         if (!result.isValid) {

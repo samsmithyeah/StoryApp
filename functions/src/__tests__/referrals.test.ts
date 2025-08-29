@@ -122,7 +122,7 @@ describe("Referral Functions", () => {
 
       // Mock user doc with existing referral code
       const mockUserDoc = {
-        data: () => ({ referralCode: "ABC12" }),
+        data: () => ({ referralCode: "ABC123" }),
       };
       // Mock referral code doc exists and is active
       const mockCodeDoc = {
@@ -135,7 +135,7 @@ describe("Referral Functions", () => {
 
       const result = await referralFunctions.getUserReferralCode(mockRequest);
 
-      expect(result).toEqual({ referralCode: "ABC12" });
+      expect(result).toEqual({ referralCode: "ABC123" });
     });
 
     it("should create new referral code if user doesn't have one", async () => {
@@ -160,7 +160,7 @@ describe("Referral Functions", () => {
 
       expect(result).toHaveProperty("referralCode");
       expect(typeof result.referralCode).toBe("string");
-      expect(result.referralCode).toMatch(/^[A-Z0-9]{5}$/); // Total length is 5: all random chars
+      expect(result.referralCode).toMatch(/^[A-Z0-9]{6}$/); // Total length is 6: all random chars
     });
 
     it("should throw error if no authentication", async () => {
@@ -179,7 +179,7 @@ describe("Referral Functions", () => {
     it("should return valid for active referral code from different user", async () => {
       const mockRequest = {
         auth: { uid: "test-user-id" },
-        data: { code: "ABC12" },
+        data: { code: "ABC123" },
       };
 
       // Mock referral code doc exists and is valid
@@ -205,7 +205,7 @@ describe("Referral Functions", () => {
     it("should return invalid for user's own referral code", async () => {
       const mockRequest = {
         auth: { uid: "test-user-id" },
-        data: { code: "ABC12" },
+        data: { code: "ABC123" },
       };
 
       // Mock referral code doc exists but belongs to same user
@@ -231,7 +231,7 @@ describe("Referral Functions", () => {
     it("should return invalid for non-existent code", async () => {
       const mockRequest = {
         auth: { uid: "test-user-id" },
-        data: { code: "ZZZ99" }, // Valid length but non-existent
+        data: { code: "ZZZ999" }, // Valid length but non-existent
       };
 
       // Mock referral code doc doesn't exist
@@ -251,7 +251,7 @@ describe("Referral Functions", () => {
     it("should return invalid for inactive code", async () => {
       const mockRequest = {
         auth: { uid: "test-user-id" },
-        data: { code: "ABC12" },
+        data: { code: "ABC123" },
       };
 
       // Mock referral code doc exists but is inactive
@@ -277,7 +277,7 @@ describe("Referral Functions", () => {
     it("should return invalid for code at usage limit", async () => {
       const mockRequest = {
         auth: { uid: "test-user-id" },
-        data: { code: "ABC12" },
+        data: { code: "ABC123" },
       };
 
       // Mock referral code doc exists but at usage limit
@@ -319,7 +319,7 @@ describe("Referral Functions", () => {
     it("should successfully record a valid referral", async () => {
       const mockRequest = {
         auth: { uid: "referee-user-id" },
-        data: { referralCode: "ABC12" },
+        data: { referralCode: "ABC123" },
       };
 
       // Mock valid referral code
@@ -353,7 +353,7 @@ describe("Referral Functions", () => {
         "Referral recorded successfully",
         expect.objectContaining({
           refereeId: "referee-user-id",
-          referralCode: "ABC12",
+          referralCode: "ABC123",
           referrerId: "referrer-user-id",
         })
       );
@@ -362,7 +362,7 @@ describe("Referral Functions", () => {
     it("should throw error for duplicate referral", async () => {
       const mockRequest = {
         auth: { uid: "referee-user-id" },
-        data: { referralCode: "ABC12" },
+        data: { referralCode: "ABC123" },
       };
 
       // Mock valid referral code
@@ -425,7 +425,7 @@ describe("Referral Functions", () => {
             data: () => ({
               referrerId: "referrer-user-id",
               refereeId: "referee-user-id",
-              referralCode: "ABC12",
+              referralCode: "ABC123",
               referrerCreditsAwarded: 10,
               refereeCreditsAwarded: 5,
             }),
@@ -558,7 +558,7 @@ describe("Referral Functions", () => {
           {
             id: "redemption-1",
             data: () => ({
-              referralCode: "ABC12",
+              referralCode: "ABC123",
               refereeId: "referee-1",
               redeemedAt: "2024-01-01",
               status: "completed",
@@ -567,7 +567,7 @@ describe("Referral Functions", () => {
           {
             id: "redemption-2",
             data: () => ({
-              referralCode: "DEF34",
+              referralCode: "DEF345",
               refereeId: "referee-2",
               redeemedAt: "2024-01-02",
               status: "pending",
@@ -583,14 +583,14 @@ describe("Referral Functions", () => {
         history: [
           {
             id: "redemption-1",
-            referralCode: "ABC12",
+            referralCode: "ABC123",
             refereeId: "referee-1",
             redeemedAt: "2024-01-01",
             status: "completed",
           },
           {
             id: "redemption-2",
-            referralCode: "DEF34",
+            referralCode: "DEF345",
             refereeId: "referee-2",
             redeemedAt: "2024-01-02",
             status: "pending",

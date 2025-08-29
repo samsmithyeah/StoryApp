@@ -1,3 +1,6 @@
+// Import shared configuration
+import { REFERRAL_CONFIG } from "../functions/src/constants/ReferralConfig";
+
 export interface ReferralCode {
   id: string; // Auto-generated unique code (8-10 chars)
   ownerId: string; // User who owns this code
@@ -45,16 +48,10 @@ export interface ReferralReward {
   refereeCredits: number;
 }
 
-// Default rewards configuration
-export const REFERRAL_REWARDS: ReferralReward = {
-  referrerCredits: 10,
-  refereeCredits: 5,
-} as const;
+export { REFERRAL_CONFIG };
 
-// Referral code configuration
-// Note: Main config is in functions/src/referrals.ts - this is a client-side subset
-export const REFERRAL_CONFIG = {
-  CODE_LENGTH: 5, // Keep in sync with server - all random chars
-  MAX_USAGE_PER_CODE: 1000, // Keep in sync with server
-  DEFAULT_EXPIRY_DAYS: 365,
+// Default rewards configuration (derived from shared config)
+export const REFERRAL_REWARDS: ReferralReward = {
+  referrerCredits: REFERRAL_CONFIG.REFERRER_CREDITS,
+  refereeCredits: REFERRAL_CONFIG.REFEREE_CREDITS,
 } as const;
