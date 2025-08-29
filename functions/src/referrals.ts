@@ -157,9 +157,9 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
   },
   async (request) => {
     try {
-      logger.info("FUNCTION CALLED - Request received");
+      logger.debug("FUNCTION CALLED - Request received");
       const { data, auth } = request;
-      logger.info("FUNCTION CALLED - Destructured data:", data);
+      logger.debug("FUNCTION CALLED - Destructured data:", data);
       const { code } = data;
 
       logger.info("validateReferralCode called", {

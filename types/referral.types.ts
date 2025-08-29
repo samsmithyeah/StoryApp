@@ -39,7 +39,7 @@ export interface CreateReferralCodeRequest {
 
 export interface ValidateReferralCodeResponse {
   isValid: boolean;
-  code?: ReferralCode;
+  ownerId?: string;
   error?: string;
 }
 

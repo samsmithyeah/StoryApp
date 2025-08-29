@@ -1,4 +1,5 @@
 import { Colors, Spacing, Typography } from "@/constants/Theme";
+import { toastConfig } from "@/components/ui/CustomToast";
 import { logger } from "@/utils/logger";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -10,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import CreditsScreen from "./(tabs)/credits";
 
 export default function CreditsModal() {
@@ -40,6 +42,7 @@ export default function CreditsModal() {
 
       {/* Credits Screen Content */}
       <CreditsScreen isModal={true} onPurchaseSuccess={handlePurchaseSuccess} />
+      <Toast config={toastConfig} />
     </View>
   );
 }

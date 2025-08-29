@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "@/components/ui/CustomToast";
 import { ChildProfileForm } from "../components/settings/ChildProfileForm";
 import { Colors, Spacing, Typography } from "../constants/Theme";
 import { useChildren } from "../hooks/useChildren";
@@ -108,6 +110,7 @@ export default function ChildProfileScreen() {
           loading={loading}
         />
       </SafeAreaView>
+      <Toast config={toastConfig} />
     </ImageBackground>
   );
 }

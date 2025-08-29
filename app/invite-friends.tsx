@@ -1,5 +1,6 @@
 import { ReferralCodeCard } from "@/components/referrals/ReferralCodeCard";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { toastConfig } from "@/components/ui/CustomToast";
 import { Colors, Spacing, Typography } from "@/constants/Theme";
 import { router } from "expo-router";
 import React from "react";
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function InviteFriendsScreen() {
   const handleClose = () => {
@@ -67,6 +69,7 @@ export default function InviteFriendsScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      <Toast config={toastConfig} />
     </BackgroundContainer>
   );
 }

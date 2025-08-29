@@ -6,11 +6,11 @@ import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { Button } from "@/components/ui/Button";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthStore } from "@/store/authStore";
 import { referralService } from "@/services/firebase/referrals";
+import { AuthStatus } from "@/types/auth.types";
 import { logger } from "@/utils/logger";
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -19,32 +19,19 @@ export default function ReferralCodeEntryScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const referralInputRef = useRef<ReferralCodeInputRef>(null);
-  const { user, setHasSeenReferralEntry, setJustAppliedReferral } = useAuth();
+  const { user, authStatus, setHasSeenReferralEntry, setJustAppliedReferral } =
+    useAuth();
 
-  const handleSkip = async () => {
-    // Mark that user has seen this screen
+  // Watch for auth status changes and redirect when no longer on referral entry
+  useEffect(() => {
+    if (authStatus !== AuthStatus.REFERRAL_ENTRY) {
+      router.replace("/");
+    }
+  }, [authStatus]);
+
+  const handleSkip = () => {
+    // Mark that user has seen this screen. The reactive system will handle navigation.
     setHasSeenReferralEntry(true);
-
-    // Wait for auth status to update properly (same as handleSubmit)
-    const waitForAuthUpdate = () => {
-      return new Promise<void>((resolve) => {
-        const unsubscribe = useAuthStore.subscribe((state) => {
-          if (state.user?.hasSeenReferralEntry === true) {
-            unsubscribe();
-            resolve();
-          }
-        });
-
-        // Fallback timeout after 500ms
-        setTimeout(() => {
-          unsubscribe();
-          resolve();
-        }, 500);
-      });
-    };
-
-    await waitForAuthUpdate();
-    router.replace("/");
   };
 
   const handleSubmit = async () => {
@@ -101,29 +88,9 @@ export default function ReferralCodeEntryScreen() {
         }
 
         // Mark that referral was just applied and user has seen this screen
+        // The reactive system will handle navigation.
         setJustAppliedReferral(true);
         setHasSeenReferralEntry(true);
-
-        // Wait for auth status to update properly
-        const waitForAuthUpdate = () => {
-          return new Promise<void>((resolve) => {
-            const unsubscribe = useAuthStore.subscribe((state) => {
-              if (state.user?.hasSeenReferralEntry === true) {
-                unsubscribe();
-                resolve();
-              }
-            });
-
-            // Fallback timeout after 500ms
-            setTimeout(() => {
-              unsubscribe();
-              resolve();
-            }, 500);
-          });
-        };
-
-        await waitForAuthUpdate();
-        router.replace("/");
       } catch (error) {
         logger.error("Error submitting referral code", error);
         Toast.show({
