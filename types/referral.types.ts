@@ -52,9 +52,9 @@ export const REFERRAL_REWARDS: ReferralReward = {
 } as const;
 
 // Referral code configuration
+// Note: Main config is in functions/src/referrals.ts - this is a client-side subset
 export const REFERRAL_CONFIG = {
-  CODE_LENGTH: 8,
-  CODE_PREFIX: "STORY",
-  MAX_USAGE_PER_CODE: 1000, // Prevent abuse
+  CODE_LENGTH: 5, // Keep in sync with server - all random chars
+  MAX_USAGE_PER_CODE: 1000, // Keep in sync with server
   DEFAULT_EXPIRY_DAYS: 365,
 } as const;

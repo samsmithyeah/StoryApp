@@ -11,8 +11,7 @@ const db = admin.firestore();
 // These values can be modified to adjust referral system behavior
 const REFERRAL_CONFIG = {
   // Referral code format
-  CODE_LENGTH: 8, // Total length of referral code
-  CODE_PREFIX: "STORY", // Prefix for all codes (4 chars + 3 random = 8 total)
+  CODE_LENGTH: 5, // Total length of referral code (all random chars)
 
   // Usage limits
   MAX_USAGE_PER_CODE: 1000, // Maximum times a code can be used
@@ -45,13 +44,9 @@ interface RecordReferralRequest {
  */
 function generateUniqueCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = REFERRAL_CONFIG.CODE_PREFIX;
+  let result = "";
 
-  for (
-    let i = 0;
-    i < REFERRAL_CONFIG.CODE_LENGTH - REFERRAL_CONFIG.CODE_PREFIX.length;
-    i++
-  ) {
+  for (let i = 0; i < REFERRAL_CONFIG.CODE_LENGTH; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
 
@@ -127,6 +122,15 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
         }
       }
 
+      logger.error(
+        "CRITICAL: Unable to generate unique referral code after multiple attempts",
+        {
+          userId,
+          attempts,
+          codeLength: REFERRAL_CONFIG.CODE_LENGTH,
+          totalPossibleCodes: Math.pow(36, REFERRAL_CONFIG.CODE_LENGTH),
+        }
+      );
       throw new Error(
         "Unable to generate unique referral code after multiple attempts"
       );

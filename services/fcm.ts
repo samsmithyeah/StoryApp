@@ -46,7 +46,9 @@ export class FCMService {
     // For existing initialized instances, always update the token for device switching
     // but skip the full re-initialization of listeners unless forced
     if (this.isInitialized && !forceReInit) {
-      logger.debug("Already initialized, updating token for potential device switch");
+      logger.debug(
+        "Already initialized, updating token for potential device switch"
+      );
       try {
         // Get the Expo push token for this device
         const tokenData = await Notifications.getExpoPushTokenAsync({
@@ -55,7 +57,9 @@ export class FCMService {
         const expoPushToken = tokenData.data;
 
         if (expoPushToken) {
-          logger.debug("Updating FCM token for device switch", { expoPushToken });
+          logger.debug("Updating FCM token for device switch", {
+            expoPushToken,
+          });
           // Always update the token to ensure it reflects the current device
           await NotificationService.registerFCMToken(expoPushToken);
           logger.debug("Token update completed successfully");
@@ -63,7 +67,7 @@ export class FCMService {
       } catch (error) {
         logger.error("Failed to update FCM token for device switch", error);
       }
-      
+
       // Return existing cleanup function if available, otherwise undefined
       return this.cleanupFunction || undefined;
     }
@@ -316,7 +320,7 @@ export class FCMService {
   static async refreshFCMToken(): Promise<void> {
     try {
       logger.debug("Refreshing FCM token for current device");
-      
+
       // Request permissions first
       const hasPermission = await this.requestPermissions();
       if (!hasPermission) {
@@ -331,7 +335,9 @@ export class FCMService {
       const expoPushToken = tokenData.data;
 
       if (expoPushToken) {
-        logger.debug("Registering refreshed token with backend", { expoPushToken });
+        logger.debug("Registering refreshed token with backend", {
+          expoPushToken,
+        });
         // Always update the token in the database
         await NotificationService.registerFCMToken(expoPushToken);
         logger.debug("Token refresh completed successfully");

@@ -797,8 +797,8 @@ const handleEmailVerificationComplete = async (
     // Generate referral code for the newly verified user
     await referralService.getUserReferralCode();
 
-    // Note: Referral completion is now handled automatically by the Cloud Function trigger
-    // when the user document is updated with emailVerified: true
+    // Note: Referral completion happens automatically during code entry since
+    // users can only access the referral code screen after email verification.
 
     logger.debug("Post-verification actions completed", { userId });
   } catch (error) {
