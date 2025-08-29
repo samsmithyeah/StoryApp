@@ -39,6 +39,7 @@ import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
+import { referralService } from "./referrals";
 
 // Type definitions
 interface AppleAuthError {
@@ -67,6 +68,12 @@ const initializeFCMForAuthOperation = async (
     });
 
     await FCMService.initializeFCM(forceReinitialization);
+
+    // For signin operations, also explicitly refresh the token to ensure it's for the current device
+    if (operationType === "signin") {
+      logger.debug("Explicitly refreshing FCM token after signin");
+      await FCMService.refreshFCMToken();
+    }
 
     logger.debug(
       `FCM initialization completed successfully for ${operationType}`
@@ -169,7 +176,7 @@ const waitForProfileUpdate = async (
 };
 
 // Helper function to check if user has a deletion marker
-const checkDeletionMarker = async (email: string): Promise<boolean> => {
+export const checkDeletionMarker = async (email: string): Promise<boolean> => {
   try {
     const checkDeletionMarkerFunction = httpsCallable(
       functionsService,
@@ -749,9 +756,33 @@ export const checkEmailVerified = async (): Promise<boolean> => {
   if (currentUser) {
     // Reload user to get latest email verification status
     await reload(currentUser);
+
+    // If email is now verified, handle post-verification actions
+    if (currentUser.emailVerified) {
+      await handleEmailVerificationComplete(currentUser.uid);
+    }
+
     return currentUser.emailVerified;
   }
   return false;
+};
+
+// Handle actions that should occur when email verification is completed
+const handleEmailVerificationComplete = async (
+  userId: string
+): Promise<void> => {
+  try {
+    // Generate referral code for the newly verified user
+    await referralService.getUserReferralCode();
+
+    // Note: Referral completion happens automatically during code entry since
+    // users can only access the referral code screen after email verification.
+
+    logger.debug("Post-verification actions completed", { userId });
+  } catch (error) {
+    logger.error("Error handling post-verification actions", { userId, error });
+    // Don't throw error - email verification was successful, these are just bonus features
+  }
 };
 
 // Password Reset
@@ -936,10 +967,10 @@ export const subscribeToAuthChanges = (
         } else {
           const user = await convertFirebaseUser(firebaseUser);
           callback(user);
-
-          // Initialize FCM for existing authenticated users
-          await initializeFCMForAuthOperation("observer", firebaseUser.uid);
         }
+
+        // Initialize FCM for all authenticated users (cached or fresh)
+        await initializeFCMForAuthOperation("observer", firebaseUser.uid);
       }
     }, AUTH_DEBOUNCE_DELAY);
   });

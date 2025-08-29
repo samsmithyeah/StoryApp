@@ -26,6 +26,8 @@ if (!SENTRY_DSN) {
   logger.warn(
     "EXPO_PUBLIC_SENTRY_DSN environment variable is not set. Sentry will not be initialized."
   );
+} else if (__DEV__) {
+  logger.debug("Sentry disabled in development mode");
 } else {
   try {
     Sentry.init({
@@ -107,8 +109,16 @@ function RootLayout() {
                 animation: "slide_from_bottom",
               }}
             />
+            <Stack.Screen
+              name="invite-friends"
+              options={{
+                presentation: "modal",
+                headerShown: false,
+                animation: "slide_from_bottom",
+              }}
+            />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
           <Toast config={toastConfig} />
         </ThemeProvider>
       </GestureHandlerRootView>

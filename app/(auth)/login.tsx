@@ -1,6 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -126,9 +125,10 @@ export default function LoginScreen() {
   const handleDebugTap = async () => {
     // Only allow in development mode
     if (__DEV__) {
-      setDebugTapCount((prev) => prev + 1);
+      const newCount = debugTapCount + 1;
+      setDebugTapCount(newCount);
 
-      if (debugTapCount >= 4) {
+      if (newCount >= 5) {
         setDebugTapCount(0);
         const testEmail = `test${Date.now()}@test.dreamweaver`;
         const testPassword = "test123456";
@@ -138,10 +138,11 @@ export default function LoginScreen() {
             email: testEmail,
             password: testPassword,
             displayName: "Test User",
+            // Don't include referralCode to simulate Google/Apple signup
           });
           Alert.alert(
             "Test User Created",
-            `Email: ${testEmail}\nPassword: ${testPassword}\n\nThis account bypasses email verification.`,
+            `Email: ${testEmail}\nPassword: ${testPassword}\n\nThis account will show the referral entry screen to simulate Google/Apple signup flow.`,
             [{ text: "OK" }]
           );
         } catch (err) {
@@ -157,7 +158,6 @@ export default function LoginScreen() {
       resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
-      <StatusBar style="light" />
       <LinearGradient
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={StyleSheet.absoluteFill}

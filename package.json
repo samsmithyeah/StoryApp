@@ -16,7 +16,10 @@
     "fix-all": "npm run type-check && npm run lint:fix && npm run format",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy:all": "firebase deploy"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

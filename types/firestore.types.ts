@@ -1,4 +1,5 @@
 import { Child } from "./child.types";
+import { ReferralStats } from "./referral.types";
 import { logger } from "../utils/logger";
 
 // Firestore user document structure
@@ -21,6 +22,11 @@ export interface FirestoreUserData {
   lastStateUpdate?: Date | { toDate(): Date };
   appState?: string;
   savedCharacters?: any[];
+
+  // Referral system fields
+  referralCode?: string; // User's personal referral code
+  referredBy?: string; // Referral code used during signup
+  referralStats?: ReferralStats;
 
   // Allow any additional fields that might be added over time
   [key: string]: any;

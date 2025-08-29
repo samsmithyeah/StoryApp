@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { subscribeToAuthChanges, signOutUser } from "../services/firebase/auth";
+import {
+  subscribeToAuthChanges,
+  signOutUser,
+  checkDeletionMarker,
+} from "../services/firebase/auth";
 import { clearStorageUrlCaches } from "../hooks/useStorageUrl";
 import { logger } from "../utils/logger";
 import {
@@ -45,6 +49,8 @@ interface AuthStoreActions {
   setAuthLoading: (loading: boolean) => void;
   setAuthStatus: (status: AuthStatus) => void;
   setOnboardingStatus: (status: boolean) => void;
+  setHasSeenReferralEntry: (seen: boolean) => void;
+  setJustAppliedReferral: (applied: boolean) => void;
   signOut: () => Promise<void>;
 
   // Advanced operations
@@ -112,6 +118,24 @@ export const useAuthStore = create<AuthStore>((set, get) => {
       set({ hasCompletedOnboarding });
     },
 
+    setHasSeenReferralEntry: (seen: boolean) => {
+      const currentUser = get().user;
+      if (currentUser) {
+        set({
+          user: {
+            ...currentUser,
+            hasSeenReferralEntry: seen,
+          },
+        });
+        // Recompute auth status after marking referral entry as seen
+        get().debouncedComputeAuthStatus();
+      }
+    },
+
+    setJustAppliedReferral: (applied: boolean) => {
+      set({ justAppliedReferral: applied });
+    },
+
     // Initialize auth system
     initialize: () => {
       const currentState = get();
@@ -157,6 +181,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                   emailVerified: firebaseUser.emailVerified,
                   createdAt: creationTime ? new Date(creationTime) : new Date(),
                   isAdmin: firestoreUserData?.isAdmin || false,
+                  referralCode: firestoreUserData?.referralCode,
                 };
 
                 logger.debug("Firebase user authenticated", {
@@ -167,6 +192,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                 });
 
                 set({ user, loading: false });
+
                 get().initializeAuthStatus();
               } else {
                 logger.debug("Firebase user signed out");
@@ -259,6 +285,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         loading,
         emailVerified: user?.emailVerified,
         hasCompletedOnboarding,
+        hasSeenReferralEntry: user?.hasSeenReferralEntry,
         userEmail: user?.email,
       });
 
@@ -272,9 +299,83 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         return;
       }
 
-      if (!user.emailVerified && !isTestAccount(user.email)) {
+      const isCurrentUserTestAccount =
+        __DEV__ && user.email?.includes("@test.dreamweaver");
+
+      if (
+        !user.emailVerified &&
+        !isTestAccount(user.email) &&
+        !isCurrentUserTestAccount
+      ) {
         setAuthStatus(AuthStatus.UNVERIFIED);
         return;
+      }
+
+      // Check if user needs to see referral entry screen
+      // For all verified signups (email, Google, Apple) and test accounts
+      const isVerifiedOrTestUser =
+        user.emailVerified || isCurrentUserTestAccount;
+
+      if (
+        isVerifiedOrTestUser &&
+        !user.hasSeenReferralEntry &&
+        !hasCompletedOnboarding
+      ) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const isRecentSignup =
+          user.createdAt && user.createdAt > fiveMinutesAgo;
+
+        // Show referral entry for all recent signups (email, Google, Apple) or test accounts
+        if (isRecentSignup || isCurrentUserTestAccount) {
+          // Check if user has a deletion marker (returning user)
+          if (user.email) {
+            checkDeletionMarker(user.email)
+              .then((hasMarker) => {
+                if (hasMarker) {
+                  logger.debug(
+                    "User has deletion marker - skipping referral entry",
+                    {
+                      userId: user.uid,
+                    }
+                  );
+                  // Mark as seen and skip to onboarding
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    set({
+                      user: {
+                        ...currentState.user,
+                        hasSeenReferralEntry: true,
+                      },
+                    });
+                    // Recompute auth status after updating the user
+                    currentState.computeAuthStatus();
+                  }
+                } else {
+                  // No deletion marker - show referral entry
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                  }
+                }
+              })
+              .catch((error) => {
+                logger.error(
+                  "Error checking deletion marker during auth status computation",
+                  error
+                );
+                // On error, show referral entry as fallback
+                const currentState = get();
+                if (currentState.user?.uid === user.uid) {
+                  setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                }
+              });
+            return;
+          } else {
+            // No email available - show referral entry as fallback
+            setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+            return;
+          }
+        }
       }
 
       if (!hasCompletedOnboarding) {

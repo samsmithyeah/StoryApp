@@ -10,6 +10,10 @@ import { NotificationService } from "./firebase/notifications";
 export class FCMService {
   private static isInitialized = false;
   private static cleanupFunction: (() => void) | null = null;
+
+  static get initialized() {
+    return this.isInitialized;
+  }
   /**
    * Request notification permissions (required for iOS)
    */
@@ -43,9 +47,31 @@ export class FCMService {
       isInitialized: this.isInitialized,
     });
 
-    // Skip if already initialized (unless forced)
+    // For existing initialized instances, always update the token for device switching
+    // but skip the full re-initialization of listeners unless forced
     if (this.isInitialized && !forceReInit) {
-      logger.debug("Already initialized, returning existing cleanup function");
+      logger.debug(
+        "Already initialized, updating token for potential device switch"
+      );
+      try {
+        // Get the Expo push token for this device
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: "1bd7d4bd-9179-4cab-acee-fe6fa69367d3",
+        });
+        const expoPushToken = tokenData.data;
+
+        if (expoPushToken) {
+          logger.debug("Updating FCM token for device switch", {
+            expoPushToken,
+          });
+          // Always update the token to ensure it reflects the current device
+          await NotificationService.registerFCMToken(expoPushToken);
+          logger.debug("Token update completed successfully");
+        }
+      } catch (error) {
+        logger.error("Failed to update FCM token for device switch", error);
+      }
+
       // Return existing cleanup function if available, otherwise undefined
       return this.cleanupFunction || undefined;
     }
@@ -289,5 +315,42 @@ export class FCMService {
         seconds: 2,
       } as any,
     });
+  }
+
+  /**
+   * Refresh FCM token for the current device
+   * This is useful when a user logs in on a different device
+   */
+  static async refreshFCMToken(): Promise<void> {
+    try {
+      logger.debug("Refreshing FCM token for current device");
+
+      // Request permissions first
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        logger.warn("Notification permissions not granted for token refresh");
+        return;
+      }
+
+      // Get the current Expo push token for this device
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: "1bd7d4bd-9179-4cab-acee-fe6fa69367d3",
+      });
+      const expoPushToken = tokenData.data;
+
+      if (expoPushToken) {
+        logger.debug("Registering refreshed token with backend", {
+          expoPushToken,
+        });
+        // Always update the token in the database
+        await NotificationService.registerFCMToken(expoPushToken);
+        logger.debug("Token refresh completed successfully");
+      } else {
+        logger.error("No push token received during refresh");
+      }
+    } catch (error) {
+      logger.error("Failed to refresh FCM token", error);
+      throw error;
+    }
   }
 }

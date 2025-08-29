@@ -51,6 +51,24 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    // Referral codes - users can only read their own codes, creation/updates via Cloud Functions only
+    match /referralCodes/{codeId} {
+      // Users can read codes they own (for validation)
+      allow read: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      // Only Cloud Functions can create/update/delete referral codes
+      allow write: if false;
+    }
+    
+    // Referral redemptions - users can read their own referrals, creation/updates via Cloud Functions only
+    match /referralRedemptions/{redemptionId} {
+      // Users can read redemptions where they are the referrer or referee
+      allow read: if request.auth != null && 
+                  (request.auth.uid == resource.data.referrerId || 
+                   request.auth.uid == resource.data.refereeId);
+      // Only Cloud Functions can create/update/delete redemptions
+      allow write: if false;
+    }
+    
     // Deleted account markers - completely private, only accessible by Cloud Functions
     match /deletedAccountMarkers/{markerId} {
       allow read, write: if false;

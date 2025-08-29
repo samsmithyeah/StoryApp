@@ -23,10 +23,11 @@ class Logger {
   warn(message: string, extra?: any) {
     if (this.isDev) {
       console.warn(`[WARN] ${message}`, extra || "");
-    }
-    Sentry.captureMessage(`Warning: ${message}`, "warning");
-    if (extra) {
-      Sentry.setContext("warning_context", extra);
+    } else {
+      Sentry.captureMessage(`Warning: ${message}`, "warning");
+      if (extra) {
+        Sentry.setContext("warning_context", extra);
+      }
     }
   }
 
@@ -36,16 +37,16 @@ class Logger {
   error(message: string, error?: Error | any, extra?: any) {
     if (this.isDev) {
       console.error(`[ERROR] ${message}`, error || "", extra || "");
-    }
-
-    if (error instanceof Error) {
-      Sentry.captureException(error);
     } else {
-      Sentry.captureMessage(`Error: ${message}`, "error");
-    }
+      if (error instanceof Error) {
+        Sentry.captureException(error);
+      } else {
+        Sentry.captureMessage(`Error: ${message}`, "error");
+      }
 
-    if (extra) {
-      Sentry.setContext("error_context", extra);
+      if (extra) {
+        Sentry.setContext("error_context", extra);
+      }
     }
   }
 

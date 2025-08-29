@@ -1,7 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dimensions,
   ImageBackground,
@@ -22,16 +21,25 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
+import { AuthStatus } from "../../types/auth.types";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 export default function VerifyEmailScreen() {
-  const { signOut } = useAuth();
+  const { signOut, authStatus } = useAuth();
+
+  // Watch for auth status changes after verification
+  useEffect(() => {
+    if (authStatus !== AuthStatus.UNVERIFIED) {
+      // Auth status has changed from UNVERIFIED - redirect to index to let it handle routing
+      router.replace("/");
+    }
+  }, [authStatus]);
 
   const handleVerified = () => {
-    // Redirect to home after verification
-    router.replace("/");
+    // Don't redirect immediately - let the auth status change trigger the redirect
+    // This allows the async deletion marker check to complete first
   };
 
   const handleSignOut = async () => {
@@ -44,7 +52,6 @@ export default function VerifyEmailScreen() {
 
   return (
     <>
-      <StatusBar style="light" />
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
         resizeMode={isTablet ? "cover" : "none"}
