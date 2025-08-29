@@ -1,5 +1,4 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   Dimensions,
@@ -243,7 +242,6 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
       presentationStyle="fullScreen"
       statusBarTranslucent={Platform.OS === "android"}
     >
-      <StatusBar style="light" />
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
         resizeMode={isTablet ? "cover" : "none"}

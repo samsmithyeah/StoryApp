@@ -1,6 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
   Dimensions,
@@ -44,7 +43,6 @@ export default function VerifyEmailScreen() {
 
   return (
     <>
-      <StatusBar style="light" />
       <ImageBackground
         source={require("../../assets/images/background-landscape.png")}
         resizeMode={isTablet ? "cover" : "none"}

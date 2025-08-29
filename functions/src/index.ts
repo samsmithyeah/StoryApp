@@ -26,3 +26,13 @@ export {
   checkCreditsAvailable,
   repairUserCredits,
 } from "./creditOperations";
+
+// Referral system functions
+export {
+  getUserReferralCode,
+  validateReferralCode,
+  recordReferral,
+  completeReferral,
+  getReferralStats,
+  getReferralHistory,
+} from "./referrals";

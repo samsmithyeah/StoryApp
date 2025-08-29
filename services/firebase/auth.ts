@@ -39,6 +39,7 @@ import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
+import { referralService } from "./referrals";
 
 // Type definitions
 interface AppleAuthError {
@@ -287,7 +288,8 @@ const convertFirebaseUser = async (
 // Create user document in Firestore and return the complete user data
 const createUserDocument = async (
   user: FirebaseAuthTypes.User,
-  overrideDisplayName?: string
+  overrideDisplayName?: string,
+  referralCode?: string
 ): Promise<FirestoreUserData | null> => {
   try {
     logger.debug("Starting user document creation", {
@@ -384,6 +386,25 @@ const createUserDocument = async (
         }
       }
 
+      // Handle referral code if provided for new users
+      if (isNewUser && referralCode) {
+        try {
+          logger.debug("Recording referral for new user", {
+            userId: user.uid,
+            referralCode,
+          });
+          await referralService.recordReferral(user.uid, referralCode);
+          logger.debug("Referral recorded successfully");
+        } catch (referralError) {
+          logger.error("Failed to record referral", {
+            userId: user.uid,
+            referralCode,
+            error: referralError,
+          });
+          // Don't fail user creation due to referral issues
+        }
+      }
+
       logger.debug("User document creation process completed, returning data");
       return savedData;
     } else {
@@ -416,6 +437,7 @@ export const signUpWithEmail = async ({
   email,
   password,
   displayName,
+  referralCode,
 }: SignUpCredentials): Promise<User> => {
   const userCredential = await createUserWithEmailAndPassword(
     authService,
@@ -489,7 +511,8 @@ export const signUpWithEmail = async ({
 
   const firestoreData = await createUserDocument(
     userCredential.user,
-    finalDisplayName || undefined
+    finalDisplayName || undefined,
+    referralCode
   );
 
   // Create the complete user object with Firestore data
@@ -749,9 +772,33 @@ export const checkEmailVerified = async (): Promise<boolean> => {
   if (currentUser) {
     // Reload user to get latest email verification status
     await reload(currentUser);
+
+    // If email is now verified, handle post-verification actions
+    if (currentUser.emailVerified) {
+      await handleEmailVerificationComplete(currentUser.uid);
+    }
+
     return currentUser.emailVerified;
   }
   return false;
+};
+
+// Handle actions that should occur when email verification is completed
+const handleEmailVerificationComplete = async (
+  userId: string
+): Promise<void> => {
+  try {
+    // Generate referral code for the newly verified user
+    await referralService.getUserReferralCode();
+
+    // Note: Referral completion is now handled automatically by the Cloud Function trigger
+    // when the user document is updated with emailVerified: true
+
+    logger.debug("Post-verification actions completed", { userId });
+  } catch (error) {
+    logger.error("Error handling post-verification actions", { userId, error });
+    // Don't throw error - email verification was successful, these are just bonus features
+  }
 };
 
 // Password Reset

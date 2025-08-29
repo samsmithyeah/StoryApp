@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   Alert,
@@ -59,8 +58,6 @@ export default function CreateScreen() {
 
   return (
     <BackgroundContainer showDecorations={true}>
-      <StatusBar style="light" />
-
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={[styles.scrollView, { marginTop: -insets.top }]}

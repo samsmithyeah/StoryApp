@@ -2,6 +2,7 @@ export enum AuthStatus {
   INITIALIZING = "initializing",
   UNAUTHENTICATED = "unauthenticated",
   UNVERIFIED = "unverified",
+  REFERRAL_ENTRY = "referral_entry",
   ONBOARDING = "onboarding",
   AUTHENTICATED = "authenticated",
 }
@@ -14,6 +15,7 @@ export interface User {
   createdAt: Date;
   isAdmin?: boolean;
   emailVerified?: boolean;
+  hasSeenReferralEntry?: boolean;
 }
 
 export interface AuthState {
@@ -22,6 +24,7 @@ export interface AuthState {
   error: string | null;
   authStatus: AuthStatus;
   hasCompletedOnboarding: boolean | null;
+  needsReferralEntry?: boolean;
 }
 
 export type AuthProvider = "google" | "apple" | "email";
@@ -33,6 +36,7 @@ export interface LoginCredentials {
 
 export interface SignUpCredentials extends LoginCredentials {
   displayName?: string;
+  referralCode?: string;
 }
 
 // Firebase user metadata types

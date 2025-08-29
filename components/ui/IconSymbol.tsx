@@ -44,6 +44,7 @@ const MAPPING = {
   "arrow.up.forward": "open-in-new",
   shield: "security",
   "doc.text": "description",
+  "doc.on.clipboard": "content-copy",
   "questionmark.circle": "help",
   "info.circle": "info",
 

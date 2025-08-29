@@ -236,7 +236,9 @@ export const useAuth = () => {
     isReady: authStatus !== AuthStatus.INITIALIZING,
     isAuthenticated: authStatus === AuthStatus.AUTHENTICATED,
     needsVerification: authStatus === AuthStatus.UNVERIFIED,
+    needsReferralEntry: authStatus === AuthStatus.REFERRAL_ENTRY,
     needsOnboarding: authStatus === AuthStatus.ONBOARDING,
     isUnauthenticated: authStatus === AuthStatus.UNAUTHENTICATED,
+    setHasSeenReferralEntry: useAuthStore.getState().setHasSeenReferralEntry,
   };
 };

@@ -45,6 +45,7 @@ interface AuthStoreActions {
   setAuthLoading: (loading: boolean) => void;
   setAuthStatus: (status: AuthStatus) => void;
   setOnboardingStatus: (status: boolean) => void;
+  setHasSeenReferralEntry: (seen: boolean) => void;
   signOut: () => Promise<void>;
 
   // Advanced operations
@@ -112,6 +113,20 @@ export const useAuthStore = create<AuthStore>((set, get) => {
       set({ hasCompletedOnboarding });
     },
 
+    setHasSeenReferralEntry: (seen: boolean) => {
+      const currentUser = get().user;
+      if (currentUser) {
+        set({ 
+          user: { 
+            ...currentUser, 
+            hasSeenReferralEntry: seen 
+          } 
+        });
+        // Recompute auth status after marking referral entry as seen
+        get().debouncedComputeAuthStatus();
+      }
+    },
+
     // Initialize auth system
     initialize: () => {
       const currentState = get();
@@ -167,6 +182,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                 });
 
                 set({ user, loading: false });
+
                 get().initializeAuthStatus();
               } else {
                 logger.debug("Firebase user signed out");
@@ -259,6 +275,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         loading,
         emailVerified: user?.emailVerified,
         hasCompletedOnboarding,
+        hasSeenReferralEntry: user?.hasSeenReferralEntry,
         userEmail: user?.email,
       });
 
@@ -272,9 +289,26 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         return;
       }
 
-      if (!user.emailVerified && !isTestAccount(user.email)) {
+      const isCurrentUserTestAccount = __DEV__ && user.email?.includes("@test.dreamweaver");
+      
+      if (!user.emailVerified && !isTestAccount(user.email) && !isCurrentUserTestAccount) {
         setAuthStatus(AuthStatus.UNVERIFIED);
         return;
+      }
+
+      // Check if user needs to see referral entry screen
+      // For all verified signups (email, Google, Apple) and test accounts
+      const isVerifiedOrTestUser = user.emailVerified || isCurrentUserTestAccount;
+      
+      if (isVerifiedOrTestUser && !user.hasSeenReferralEntry && !hasCompletedOnboarding) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const isRecentSignup = user.createdAt && user.createdAt > fiveMinutesAgo;
+        
+        // Show referral entry for all recent signups (email, Google, Apple) or test accounts
+        if (isRecentSignup || isCurrentUserTestAccount) {
+          setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+          return;
+        }
       }
 
       if (!hasCompletedOnboarding) {
