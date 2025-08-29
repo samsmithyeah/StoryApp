@@ -21,9 +21,29 @@ export default function ReferralCodeEntryScreen() {
   const referralInputRef = useRef<ReferralCodeInputRef>(null);
   const { user, setHasSeenReferralEntry, setJustAppliedReferral } = useAuth();
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     // Mark that user has seen this screen
     setHasSeenReferralEntry(true);
+
+    // Wait for auth status to update properly (same as handleSubmit)
+    const waitForAuthUpdate = () => {
+      return new Promise<void>((resolve) => {
+        const unsubscribe = useAuthStore.subscribe((state) => {
+          if (state.user?.hasSeenReferralEntry === true) {
+            unsubscribe();
+            resolve();
+          }
+        });
+
+        // Fallback timeout after 500ms
+        setTimeout(() => {
+          unsubscribe();
+          resolve();
+        }, 500);
+      });
+    };
+
+    await waitForAuthUpdate();
     router.replace("/");
   };
 

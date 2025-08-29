@@ -176,7 +176,7 @@ const waitForProfileUpdate = async (
 };
 
 // Helper function to check if user has a deletion marker
-const checkDeletionMarker = async (email: string): Promise<boolean> => {
+export const checkDeletionMarker = async (email: string): Promise<boolean> => {
   try {
     const checkDeletionMarkerFunction = httpsCallable(
       functionsService,

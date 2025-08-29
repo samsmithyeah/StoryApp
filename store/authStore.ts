@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { subscribeToAuthChanges, signOutUser } from "../services/firebase/auth";
+import {
+  subscribeToAuthChanges,
+  signOutUser,
+  checkDeletionMarker,
+} from "../services/firebase/auth";
 import { clearStorageUrlCaches } from "../hooks/useStorageUrl";
 import { logger } from "../utils/logger";
 import {
@@ -322,8 +326,54 @@ export const useAuthStore = create<AuthStore>((set, get) => {
 
         // Show referral entry for all recent signups (email, Google, Apple) or test accounts
         if (isRecentSignup || isCurrentUserTestAccount) {
-          setAuthStatus(AuthStatus.REFERRAL_ENTRY);
-          return;
+          // Check if user has a deletion marker (returning user)
+          if (user.email) {
+            checkDeletionMarker(user.email)
+              .then((hasMarker) => {
+                if (hasMarker) {
+                  logger.debug(
+                    "User has deletion marker - skipping referral entry",
+                    {
+                      userId: user.uid,
+                    }
+                  );
+                  // Mark as seen and skip to onboarding
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    set({
+                      user: {
+                        ...currentState.user,
+                        hasSeenReferralEntry: true,
+                      },
+                    });
+                    // Recompute auth status after updating the user
+                    currentState.computeAuthStatus();
+                  }
+                } else {
+                  // No deletion marker - show referral entry
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                  }
+                }
+              })
+              .catch((error) => {
+                logger.error(
+                  "Error checking deletion marker during auth status computation",
+                  error
+                );
+                // On error, show referral entry as fallback
+                const currentState = get();
+                if (currentState.user?.uid === user.uid) {
+                  setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                }
+              });
+            return;
+          } else {
+            // No email available - show referral entry as fallback
+            setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+            return;
+          }
         }
       }
 
