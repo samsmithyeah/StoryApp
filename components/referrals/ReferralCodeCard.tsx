@@ -1,13 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState, useEffect, useRef } from "react";
-import {
-  Animated,
-  Clipboard,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useState } from "react";
+import { Clipboard, Share, StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { useReferrals } from "../../hooks/useReferrals";
@@ -26,7 +19,6 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
   const {
     referralCode,
     referralStats,
-    loading,
     generateShareText,
     generateShareURL,
     totalReferred,
@@ -34,28 +26,6 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
   } = useReferrals();
 
   const [copying, setCopying] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (loading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 0.6,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseAnimation.start();
-      return () => pulseAnimation.stop();
-    }
-  }, [loading, pulseAnim]);
 
   const handleCopyCode = async () => {
     if (!referralCode) return;
@@ -109,65 +79,6 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
       });
     }
   };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, compact && styles.compactContainer]}>
-        {!compact && (
-          <View style={styles.header}>
-            <Ionicons name="gift-outline" size={24} color={Colors.primary} />
-            <Text style={styles.title}>Your referral code</Text>
-          </View>
-        )}
-
-        <View style={styles.codeContainer}>
-          <View style={styles.codeBox}>
-            <Animated.View
-              style={[styles.skeletonCode, { opacity: pulseAnim }]}
-            />
-          </View>
-
-          <View style={styles.buttonRow}>
-            <Animated.View
-              style={[styles.skeletonButton, { opacity: pulseAnim }]}
-            />
-            <Animated.View
-              style={[styles.skeletonButton, { opacity: pulseAnim }]}
-            />
-          </View>
-        </View>
-
-        {showStats && !compact && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Animated.View
-                style={[styles.skeletonStatNumber, { opacity: pulseAnim }]}
-              />
-              <Animated.View
-                style={[styles.skeletonStatLabel, { opacity: pulseAnim }]}
-              />
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Animated.View
-                style={[styles.skeletonStatNumber, { opacity: pulseAnim }]}
-              />
-              <Animated.View
-                style={[styles.skeletonStatLabel, { opacity: pulseAnim }]}
-              />
-            </View>
-          </View>
-        )}
-
-        {!compact && (
-          <Text style={styles.description}>
-            Share your code with friends to earn 10 credits when they verify
-            their email. They'll get 5 bonus credits too!
-          </Text>
-        )}
-      </View>
-    );
-  }
 
   if (!referralCode) {
     return (
@@ -271,44 +182,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text,
     marginLeft: Spacing.sm,
-  },
-  skeletonIcon: {
-    width: 24,
-    height: 24,
-    backgroundColor: Colors.cardSectionBackground,
-    borderRadius: 12,
-  },
-  skeletonTitle: {
-    height: 20,
-    backgroundColor: Colors.cardSectionBackground,
-    borderRadius: 4,
-    marginLeft: Spacing.sm,
-    flex: 0.6,
-  },
-  skeletonCode: {
-    height: 32,
-    backgroundColor: Colors.cardSectionBackground,
-    borderRadius: 4,
-    width: "60%",
-  },
-  skeletonButton: {
-    height: 36,
-    backgroundColor: Colors.cardSectionBackground,
-    borderRadius: 8,
-    flex: 1,
-  },
-  skeletonStatNumber: {
-    height: Math.round(Typography.fontSize.h4 * 1.8),
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 4,
-    width: "50%",
-  },
-  skeletonStatLabel: {
-    height: Math.round(Typography.fontSize.tiny * 2),
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 4,
-    width: "85%",
-    marginTop: Spacing.xs,
   },
   errorContainer: {
     flexDirection: "row",

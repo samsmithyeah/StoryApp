@@ -16,6 +16,7 @@ export interface User {
   isAdmin?: boolean;
   emailVerified?: boolean;
   hasSeenReferralEntry?: boolean;
+  referralCode?: string;
 }
 
 export interface AuthState {

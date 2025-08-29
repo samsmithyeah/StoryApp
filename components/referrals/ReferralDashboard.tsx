@@ -19,10 +19,13 @@ export const ReferralDashboard: React.FC<ReferralDashboardProps> = ({
   showHistory = true,
   maxHistoryItems = 5,
 }) => {
-  const { loadReferralData, loading } = useReferrals();
+  const { loadReferralData } = useReferrals();
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const handleRefresh = async () => {
+    setRefreshing(true);
     await loadReferralData();
+    setRefreshing(false);
   };
 
   return (
@@ -31,7 +34,7 @@ export const ReferralDashboard: React.FC<ReferralDashboardProps> = ({
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
-          refreshing={loading}
+          refreshing={refreshing}
           onRefresh={handleRefresh}
           colors={["#8b5cf6"]}
           tintColor="#8b5cf6"

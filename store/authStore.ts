@@ -181,6 +181,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
                   emailVerified: firebaseUser.emailVerified,
                   createdAt: creationTime ? new Date(creationTime) : new Date(),
                   isAdmin: firestoreUserData?.isAdmin || false,
+                  referralCode: firestoreUserData?.referralCode,
                 };
 
                 logger.debug("Firebase user authenticated", {

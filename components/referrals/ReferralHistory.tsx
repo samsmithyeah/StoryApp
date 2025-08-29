@@ -19,7 +19,7 @@ export const ReferralHistory: React.FC<ReferralHistoryProps> = ({
   maxItems,
   showHeader = true,
 }) => {
-  const { referralHistory, loading } = useReferrals();
+  const { referralHistory } = useReferrals();
 
   const displayHistory = maxItems
     ? referralHistory.slice(0, maxItems)
@@ -97,20 +97,6 @@ export const ReferralHistory: React.FC<ReferralHistoryProps> = ({
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        {showHeader && (
-          <View style={styles.header}>
-            <Ionicons name="list-outline" size={24} color={Colors.primary} />
-            <Text style={styles.title}>Referral history</Text>
-          </View>
-        )}
-        <Text style={styles.loadingText}>Loading history...</Text>
-      </View>
-    );
-  }
-
   if (displayHistory.length === 0) {
     return (
       <View style={styles.container}>
@@ -182,12 +168,6 @@ const styles = StyleSheet.create({
   showingText: {
     fontSize: Typography.fontSize.tiny,
     color: Colors.textSecondary,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: Colors.textMuted,
-    paddingVertical: Spacing.xl,
-    fontSize: Typography.fontSize.small,
   },
   emptyContainer: {
     alignItems: "center",
