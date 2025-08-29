@@ -157,7 +157,6 @@ export default function LibraryScreen() {
 
       <Decorations />
 
-
       <View style={styles.container}>
         {/* floating CTA -------------------------------------------------- */}
         <Animated.View

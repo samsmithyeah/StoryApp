@@ -3,13 +3,18 @@ const mockGet = jest.fn();
 const mockSet = jest.fn().mockResolvedValue({});
 const mockUpdate = jest.fn().mockResolvedValue({});
 const mockDelete = jest.fn().mockResolvedValue({});
+const mockCreate = jest.fn().mockResolvedValue({});
 
-const mockDoc = jest.fn(() => ({
+// Create a single doc instance that gets reused
+const mockDocInstance = {
   get: mockGet,
   set: mockSet,
   update: mockUpdate,
   delete: mockDelete,
-}));
+  create: mockCreate,
+};
+
+const mockDoc = jest.fn(() => mockDocInstance);
 
 const mockQuery = {
   where: jest.fn().mockReturnThis(),
@@ -27,7 +32,6 @@ const mockCollection = jest.fn(() => ({
 }));
 
 jest.mock("firebase-admin", () => {
-
   const mockTransaction = {
     get: jest.fn(),
     set: jest.fn(),
@@ -67,7 +71,7 @@ jest.mock("firebase-functions", () => ({
 }));
 
 jest.mock("firebase-functions/v2/https", () => ({
-  onCall: jest.fn((config, handler) => handler),
+  onCall: jest.fn((_config, handler) => handler),
 }));
 
 jest.mock("firebase-admin/firestore", () => ({
@@ -90,13 +94,23 @@ describe("Referral Functions", () => {
   beforeAll(() => {
     admin = require("firebase-admin");
     db = admin.firestore();
-    
+
     // Import the referral functions
     referralFunctions = require("../referrals");
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Completely reset all mock implementations
+    mockGet.mockReset().mockResolvedValue({ exists: false });
+    mockSet.mockReset().mockResolvedValue({});
+    mockUpdate.mockReset().mockResolvedValue({});
+    mockDelete.mockReset().mockResolvedValue({});
+    mockCreate.mockReset().mockResolvedValue({});
+
+    // Reset query mocks
+    mockQuery.get.mockReset().mockResolvedValue({ empty: true, docs: [] });
   });
 
   describe("getUserReferralCode", () => {
@@ -110,14 +124,14 @@ describe("Referral Functions", () => {
       const mockUserDoc = {
         data: () => ({ referralCode: "STORYABC" }),
       };
-      db.collection().doc().get.mockResolvedValueOnce(mockUserDoc);
-
       // Mock referral code doc exists and is active
       const mockCodeDoc = {
         exists: true,
         data: () => ({ isActive: true }),
       };
-      db.collection().doc().get.mockResolvedValueOnce(mockCodeDoc);
+      mockGet
+        .mockResolvedValueOnce(mockUserDoc)
+        .mockResolvedValueOnce(mockCodeDoc);
 
       const result = await referralFunctions.getUserReferralCode(mockRequest);
 
@@ -134,13 +148,13 @@ describe("Referral Functions", () => {
       const mockUserDoc = {
         data: () => null,
       };
-      db.collection().doc().get.mockResolvedValueOnce(mockUserDoc);
-
       // Mock referral code doesn't exist (first attempt succeeds)
       const mockCodeDoc = {
         exists: false,
       };
-      db.collection().doc().get.mockResolvedValueOnce(mockCodeDoc);
+      mockGet
+        .mockResolvedValueOnce(mockUserDoc)
+        .mockResolvedValueOnce(mockCodeDoc);
 
       const result = await referralFunctions.getUserReferralCode(mockRequest);
 
@@ -155,9 +169,9 @@ describe("Referral Functions", () => {
         data: {},
       };
 
-      await expect(referralFunctions.getUserReferralCode(mockRequest)).rejects.toThrow(
-        "Authentication required"
-      );
+      await expect(
+        referralFunctions.getUserReferralCode(mockRequest)
+      ).rejects.toThrow("Authentication required");
     });
   });
 
@@ -178,7 +192,7 @@ describe("Referral Functions", () => {
           timesUsed: 5,
         }),
       };
-      db.collection().doc().get.mockResolvedValue(mockCodeDoc);
+      mockGet.mockResolvedValue(mockCodeDoc);
 
       const result = await referralFunctions.validateReferralCode(mockRequest);
 
@@ -321,12 +335,15 @@ describe("Referral Functions", () => {
       db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
       // Mock transaction - no existing redemption
-      const mockTransaction = db.runTransaction.mock.calls[0]?.[0] || ((callback: any) => callback({
-        get: jest.fn().mockResolvedValue({ exists: false }),
-        set: jest.fn(),
-        update: jest.fn(),
-      }));
-      
+      const mockTransaction =
+        db.runTransaction.mock.calls[0]?.[0] ||
+        ((callback: any) =>
+          callback({
+            get: jest.fn().mockResolvedValue({ exists: false }),
+            set: jest.fn(),
+            update: jest.fn(),
+          }));
+
       db.runTransaction.mockImplementation(mockTransaction);
 
       const result = await referralFunctions.recordReferral(mockRequest);
@@ -361,7 +378,7 @@ describe("Referral Functions", () => {
       db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
       // Mock transaction with existing redemption
-      db.runTransaction.mockImplementation((callback: any) => 
+      db.runTransaction.mockImplementation((callback: any) =>
         callback({
           get: jest.fn().mockResolvedValue({ exists: true }),
           set: jest.fn(),
@@ -369,9 +386,9 @@ describe("Referral Functions", () => {
         })
       );
 
-      await expect(referralFunctions.recordReferral(mockRequest)).rejects.toThrow(
-        "Referral already recorded for this user"
-      );
+      await expect(
+        referralFunctions.recordReferral(mockRequest)
+      ).rejects.toThrow("Referral already recorded for this user");
     });
 
     it("should throw error for non-existent referral code", async () => {
@@ -386,9 +403,9 @@ describe("Referral Functions", () => {
       };
       db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
-      await expect(referralFunctions.recordReferral(mockRequest)).rejects.toThrow(
-        "Referral code not found"
-      );
+      await expect(
+        referralFunctions.recordReferral(mockRequest)
+      ).rejects.toThrow("Referral code not found");
     });
   });
 
@@ -607,9 +624,9 @@ describe("Referral Functions", () => {
         data: {},
       };
 
-      await expect(referralFunctions.getUserReferralCode(mockRequest)).rejects.toThrow(
-        "Authentication required"
-      );
+      await expect(
+        referralFunctions.getUserReferralCode(mockRequest)
+      ).rejects.toThrow("Authentication required");
     });
 
     it("should handle database errors gracefully", async () => {
@@ -619,9 +636,13 @@ describe("Referral Functions", () => {
       };
 
       // Mock database error
-      db.collection().doc().get.mockRejectedValue(new Error("Database connection failed"));
+      db.collection()
+        .doc()
+        .get.mockRejectedValue(new Error("Database connection failed"));
 
-      await expect(referralFunctions.getUserReferralCode(mockRequest)).rejects.toThrow();
+      await expect(
+        referralFunctions.getUserReferralCode(mockRequest)
+      ).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalledWith(
         "Error creating/getting referral code",
         expect.any(Error)

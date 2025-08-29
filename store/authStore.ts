@@ -116,11 +116,11 @@ export const useAuthStore = create<AuthStore>((set, get) => {
     setHasSeenReferralEntry: (seen: boolean) => {
       const currentUser = get().user;
       if (currentUser) {
-        set({ 
-          user: { 
-            ...currentUser, 
-            hasSeenReferralEntry: seen 
-          } 
+        set({
+          user: {
+            ...currentUser,
+            hasSeenReferralEntry: seen,
+          },
         });
         // Recompute auth status after marking referral entry as seen
         get().debouncedComputeAuthStatus();
@@ -289,21 +289,32 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         return;
       }
 
-      const isCurrentUserTestAccount = __DEV__ && user.email?.includes("@test.dreamweaver");
-      
-      if (!user.emailVerified && !isTestAccount(user.email) && !isCurrentUserTestAccount) {
+      const isCurrentUserTestAccount =
+        __DEV__ && user.email?.includes("@test.dreamweaver");
+
+      if (
+        !user.emailVerified &&
+        !isTestAccount(user.email) &&
+        !isCurrentUserTestAccount
+      ) {
         setAuthStatus(AuthStatus.UNVERIFIED);
         return;
       }
 
       // Check if user needs to see referral entry screen
       // For all verified signups (email, Google, Apple) and test accounts
-      const isVerifiedOrTestUser = user.emailVerified || isCurrentUserTestAccount;
-      
-      if (isVerifiedOrTestUser && !user.hasSeenReferralEntry && !hasCompletedOnboarding) {
+      const isVerifiedOrTestUser =
+        user.emailVerified || isCurrentUserTestAccount;
+
+      if (
+        isVerifiedOrTestUser &&
+        !user.hasSeenReferralEntry &&
+        !hasCompletedOnboarding
+      ) {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const isRecentSignup = user.createdAt && user.createdAt > fiveMinutesAgo;
-        
+        const isRecentSignup =
+          user.createdAt && user.createdAt > fiveMinutesAgo;
+
         // Show referral entry for all recent signups (email, Google, Apple) or test accounts
         if (isRecentSignup || isCurrentUserTestAccount) {
           setAuthStatus(AuthStatus.REFERRAL_ENTRY);

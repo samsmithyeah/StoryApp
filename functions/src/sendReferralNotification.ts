@@ -75,7 +75,9 @@ export async function sendReferralNotification(
         result,
       });
     } else {
-      logger.error("Failed to send referral completion notification", { result });
+      logger.error("Failed to send referral completion notification", {
+        result,
+      });
     }
   } catch (error) {
     logger.error("Failed to send referral completion notification", error);

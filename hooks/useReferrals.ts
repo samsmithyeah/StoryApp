@@ -104,13 +104,10 @@ Google Play: https://play.google.com/store/apps/details?id=com.dreamweaver.app`;
   );
 
   // Generate sharing URL (placeholder - no deep linking set up yet)
-  const generateShareURL = useCallback(
-    (_code?: string) => {
-      // Deep linking not implemented yet
-      return "";
-    },
-    []
-  );
+  const generateShareURL = useCallback((_code?: string) => {
+    // Deep linking not implemented yet
+    return "";
+  }, []);
 
   // Initialize data when user changes
   useEffect(() => {

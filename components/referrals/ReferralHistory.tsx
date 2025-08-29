@@ -3,7 +3,12 @@ import { View, Text, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useReferrals } from "../../hooks/useReferrals";
 import type { ReferralRedemption } from "../../types/referral.types";
-import { Colors, Spacing, Typography, BorderRadius } from "../../constants/Theme";
+import {
+  Colors,
+  Spacing,
+  Typography,
+  BorderRadius,
+} from "../../constants/Theme";
 
 interface ReferralHistoryProps {
   maxItems?: number;
@@ -31,9 +36,13 @@ export const ReferralHistory: React.FC<ReferralHistoryProps> = ({
   const getStatusIcon = (status: ReferralRedemption["status"]) => {
     switch (status) {
       case "completed":
-        return <Ionicons name="checkmark-circle" size={20} color={Colors.success} />;
+        return (
+          <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+        );
       case "pending":
-        return <Ionicons name="time-outline" size={20} color={Colors.warning} />;
+        return (
+          <Ionicons name="time-outline" size={20} color={Colors.warning} />
+        );
       case "cancelled":
         return <Ionicons name="close-circle" size={20} color={Colors.error} />;
     }

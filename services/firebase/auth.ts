@@ -69,6 +69,12 @@ const initializeFCMForAuthOperation = async (
 
     await FCMService.initializeFCM(forceReinitialization);
 
+    // For signin operations, also explicitly refresh the token to ensure it's for the current device
+    if (operationType === "signin") {
+      logger.debug("Explicitly refreshing FCM token after signin");
+      await FCMService.refreshFCMToken();
+    }
+
     logger.debug(
       `FCM initialization completed successfully for ${operationType}`
     );

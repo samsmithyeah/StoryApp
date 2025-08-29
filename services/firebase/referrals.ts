@@ -7,6 +7,45 @@ import type {
 } from "../../types/referral.types";
 import { functionsService } from "./config";
 
+/**
+ * Safely convert Firestore timestamp to Date object
+ */
+const safeTimestampToDate = (timestamp: any): Date | undefined => {
+  if (!timestamp) {
+    return undefined;
+  }
+
+  // Check if it's a Firestore Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === "function") {
+    try {
+      return timestamp.toDate();
+    } catch (error) {
+      logger.warn("Failed to convert Firestore timestamp", error);
+      return undefined;
+    }
+  }
+
+  // Check if it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // Check if it's a valid date string or number
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  // Log warning for unrecognized timestamp format
+  logger.warn("Unrecognized timestamp format", {
+    timestamp,
+    type: typeof timestamp,
+  });
+  return undefined;
+};
+
 export const referralService = {
   /**
    * Get user's referral code, creating one if it doesn't exist
@@ -29,7 +68,9 @@ export const referralService = {
   /**
    * Validate a referral code
    */
-  async validateReferralCode(code: string): Promise<ValidateReferralCodeResponse> {
+  async validateReferralCode(
+    code: string
+  ): Promise<ValidateReferralCodeResponse> {
     try {
       const validateReferralCodeFunction = httpsCallable(
         functionsService,
@@ -58,7 +99,7 @@ export const referralService = {
       );
 
       await recordReferralFunction({ referralCode });
-      
+
       logger.debug("Referral recorded successfully", {
         refereeId,
         referralCode,
@@ -80,7 +121,7 @@ export const referralService = {
       );
 
       const result = await completeReferralFunction({ userId: refereeId });
-      
+
       if ((result.data as { success: boolean }).success) {
         logger.debug("Referral completed successfully", { refereeId });
       } else {
@@ -117,7 +158,9 @@ export const referralService = {
   /**
    * Get referral history for a user
    */
-  async getReferralHistory(limitCount: number = 10): Promise<ReferralRedemption[]> {
+  async getReferralHistory(
+    limitCount: number = 10
+  ): Promise<ReferralRedemption[]> {
     try {
       const getReferralHistoryFunction = httpsCallable(
         functionsService,
@@ -127,11 +170,11 @@ export const referralService = {
       const result = await getReferralHistoryFunction({ limit: limitCount });
       const history = (result.data as { history: any[] }).history;
 
-      // Convert Firestore timestamps to Date objects
+      // Convert Firestore timestamps to Date objects safely
       return history.map((item: any) => ({
         ...item,
-        redeemedAt: item.redeemedAt?.toDate ? item.redeemedAt.toDate() : new Date(item.redeemedAt),
-        completedAt: item.completedAt?.toDate ? item.completedAt.toDate() : item.completedAt ? new Date(item.completedAt) : undefined,
+        redeemedAt: safeTimestampToDate(item.redeemedAt) || new Date(),
+        completedAt: safeTimestampToDate(item.completedAt),
       })) as ReferralRedemption[];
     } catch (error) {
       logger.error("Error getting referral history", error);
@@ -146,11 +189,13 @@ export const referralService = {
     // This data is stored in the user document, so we can read it directly
     // The security rules allow users to read their own data
     try {
-      const { getFirestore, doc, getDoc } = await import("@react-native-firebase/firestore");
+      const { getFirestore, doc, getDoc } = await import(
+        "@react-native-firebase/firestore"
+      );
       const db = getFirestore();
       const userDoc = await getDoc(doc(db, "users", userId));
       const userData = userDoc.data();
-      
+
       return userData?.referredBy || null;
     } catch (error) {
       logger.error("Error getting user referral info", error);

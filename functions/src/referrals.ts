@@ -1,19 +1,32 @@
 import * as admin from "firebase-admin";
 import { onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendReferralNotification } from "./sendReferralNotification";
 
 const db = admin.firestore();
 
-// Referral configuration
+// Referral system configuration
+// These values can be modified to adjust referral system behavior
 const REFERRAL_CONFIG = {
-  CODE_LENGTH: 8,
-  CODE_PREFIX: "STORY",
-  MAX_USAGE_PER_CODE: 1000,
-  REFERRER_CREDITS: 10,
-  REFEREE_CREDITS: 5,
-};
+  // Referral code format
+  CODE_LENGTH: 8, // Total length of referral code
+  CODE_PREFIX: "STORY", // Prefix for all codes (4 chars + 3 random = 8 total)
+
+  // Usage limits
+  MAX_USAGE_PER_CODE: 1000, // Maximum times a code can be used
+  RATE_LIMIT_WINDOW_MS: 60 * 1000, // Rate limit window (1 minute)
+  RATE_LIMIT_MAX_ATTEMPTS: 10, // Max validation attempts per window
+
+  // Credit rewards
+  REFERRER_CREDITS: 10, // Credits awarded to referrer
+  REFEREE_CREDITS: 5, // Credits awarded to referee
+
+  // Data cleanup settings
+  VALIDATION_RETENTION_DAYS: 7, // How long to keep validation logs
+  INACTIVE_CODE_RETENTION_YEARS: 1, // How long to keep unused inactive codes
+} as const;
 
 interface CreateReferralCodeRequest {
   // No parameters needed - uses authenticated user ID
@@ -33,11 +46,15 @@ interface RecordReferralRequest {
 function generateUniqueCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = REFERRAL_CONFIG.CODE_PREFIX;
-  
-  for (let i = 0; i < REFERRAL_CONFIG.CODE_LENGTH - REFERRAL_CONFIG.CODE_PREFIX.length; i++) {
+
+  for (
+    let i = 0;
+    i < REFERRAL_CONFIG.CODE_LENGTH - REFERRAL_CONFIG.CODE_PREFIX.length;
+    i++
+  ) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  
+
   return result;
 }
 
@@ -64,7 +81,10 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
 
       if (userData?.referralCode) {
         // Verify the code still exists and is valid
-        const codeDoc = await db.collection("referralCodes").doc(userData.referralCode).get();
+        const codeDoc = await db
+          .collection("referralCodes")
+          .doc(userData.referralCode)
+          .get();
         if (codeDoc.exists && codeDoc.data()?.isActive) {
           return { referralCode: userData.referralCode };
         }
@@ -73,16 +93,14 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
       // Create new referral code
       let attempts = 0;
       const maxAttempts = 10;
-      
+
       while (attempts < maxAttempts) {
         const code = generateUniqueCode();
-        
-        // Check if code already exists
-        const existingDoc = await db.collection("referralCodes").doc(code).get();
-        
-        if (!existingDoc.exists) {
-          // Create the referral code document
-          await db.collection("referralCodes").doc(code).set({
+        const referralCodeRef = db.collection("referralCodes").doc(code);
+
+        try {
+          // Use create() to atomically check existence and create
+          await referralCodeRef.create({
             id: code,
             ownerId: userId,
             createdAt: FieldValue.serverTimestamp(),
@@ -98,12 +116,20 @@ export const getUserReferralCode = onCall<CreateReferralCodeRequest>(
 
           logger.info("Referral code created", { code, userId });
           return { referralCode: code };
+        } catch (error: any) {
+          // If document already exists, create() will throw an error
+          if (error?.code === "already-exists") {
+            attempts++;
+            continue;
+          }
+          // Re-throw any other error
+          throw error;
         }
-        
-        attempts++;
       }
-      
-      throw new Error("Unable to generate unique referral code after multiple attempts");
+
+      throw new Error(
+        "Unable to generate unique referral code after multiple attempts"
+      );
     } catch (error) {
       logger.error("Error creating/getting referral code", error);
       throw error;
@@ -127,15 +153,63 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
         throw new Error("Authentication required");
       }
 
-      if (!code || code.length !== REFERRAL_CONFIG.CODE_LENGTH) {
+      // Input validation
+      if (!code || typeof code !== "string") {
         return {
           isValid: false,
           error: "Invalid code format",
         };
       }
 
-      const codeDoc = await db.collection("referralCodes").doc(code.toUpperCase()).get();
-      
+      const trimmedCode = code.trim();
+
+      // Check code length and format
+      if (trimmedCode.length !== REFERRAL_CONFIG.CODE_LENGTH) {
+        return {
+          isValid: false,
+          error: "Invalid code format",
+        };
+      }
+
+      // Check if code contains only allowed characters (alphanumeric)
+      if (!/^[A-Z0-9]+$/.test(trimmedCode.toUpperCase())) {
+        return {
+          isValid: false,
+          error: "Invalid code format",
+        };
+      }
+
+      // Rate limiting in production (skip in test environment)
+      if (process.env.NODE_ENV !== "test") {
+        const rateLimitWindow = new Date(
+          Date.now() - REFERRAL_CONFIG.RATE_LIMIT_WINDOW_MS
+        );
+        const recentValidations = await db
+          .collection("referralValidations")
+          .where("userId", "==", auth.uid)
+          .where("timestamp", ">", rateLimitWindow)
+          .get();
+
+        if (recentValidations.size >= REFERRAL_CONFIG.RATE_LIMIT_MAX_ATTEMPTS) {
+          return {
+            isValid: false,
+            error: "Too many validation attempts. Please try again later.",
+          };
+        }
+
+        // Record this validation attempt
+        await db.collection("referralValidations").add({
+          userId: auth.uid,
+          code: trimmedCode.toUpperCase(),
+          timestamp: FieldValue.serverTimestamp(),
+        });
+      }
+
+      const codeDoc = await db
+        .collection("referralCodes")
+        .doc(trimmedCode.toUpperCase())
+        .get();
+
       if (!codeDoc.exists) {
         return {
           isValid: false,
@@ -202,8 +276,11 @@ export const recordReferral = onCall<RecordReferralRequest>(
       const userId = auth.uid;
 
       // Validate referral code first
-      const codeDoc = await db.collection("referralCodes").doc(referralCode.toUpperCase()).get();
-      
+      const codeDoc = await db
+        .collection("referralCodes")
+        .doc(referralCode.toUpperCase())
+        .get();
+
       if (!codeDoc.exists) {
         throw new Error("Referral code not found");
       }
@@ -232,22 +309,25 @@ export const recordReferral = onCall<RecordReferralRequest>(
         const existingRedemption = await transaction.get(
           db.collection("referralRedemptions").doc(redemptionId)
         );
-        
+
         if (existingRedemption.exists) {
           throw new Error("Referral already recorded for this user");
         }
 
         // Create referral redemption record
-        transaction.set(db.collection("referralRedemptions").doc(redemptionId), {
-          referralCodeId: referralCode,
-          referralCode: referralCode,
-          referrerId: codeData.ownerId,
-          refereeId: userId,
-          redeemedAt: FieldValue.serverTimestamp(),
-          referrerCreditsAwarded: REFERRAL_CONFIG.REFERRER_CREDITS,
-          refereeCreditsAwarded: REFERRAL_CONFIG.REFEREE_CREDITS,
-          status: 'pending',
-        });
+        transaction.set(
+          db.collection("referralRedemptions").doc(redemptionId),
+          {
+            referralCodeId: referralCode,
+            referralCode: referralCode,
+            referrerId: codeData.ownerId,
+            refereeId: userId,
+            redeemedAt: FieldValue.serverTimestamp(),
+            referrerCreditsAwarded: REFERRAL_CONFIG.REFERRER_CREDITS,
+            refereeCreditsAwarded: REFERRAL_CONFIG.REFEREE_CREDITS,
+            status: "pending",
+          }
+        );
 
         // Update referral code usage count
         transaction.update(db.collection("referralCodes").doc(referralCode), {
@@ -292,15 +372,18 @@ export const completeReferral = onCall<{ userId?: string }>(
       }
 
       // Find pending referral for this user
-      const redemptionsQuery = db.collection("referralRedemptions")
+      const redemptionsQuery = db
+        .collection("referralRedemptions")
         .where("refereeId", "==", targetUserId)
         .where("status", "==", "pending")
         .limit(1);
 
       const querySnapshot = await redemptionsQuery.get();
-      
+
       if (querySnapshot.empty) {
-        logger.debug("No pending referral found for user", { userId: targetUserId });
+        logger.debug("No pending referral found for user", {
+          userId: targetUserId,
+        });
         return { success: false, message: "No pending referral found" };
       }
 
@@ -309,6 +392,8 @@ export const completeReferral = onCall<{ userId?: string }>(
 
       await db.runTransaction(async (transaction) => {
         // DO ALL READS FIRST (Firestore requirement)
+
+        // Read referrer data
         const referrerRef = db.collection("users").doc(redemption.referrerId);
         const referrerDoc = await transaction.get(referrerRef);
         const referrerData = referrerDoc.data() || {};
@@ -319,16 +404,20 @@ export const completeReferral = onCall<{ userId?: string }>(
         };
 
         // NOW DO ALL WRITES
-        
+
         // Award credits to referrer
-        const referrerCreditsRef = db.collection("userCredits").doc(redemption.referrerId);
+        const referrerCreditsRef = db
+          .collection("userCredits")
+          .doc(redemption.referrerId);
         transaction.update(referrerCreditsRef, {
           balance: FieldValue.increment(redemption.referrerCreditsAwarded),
           lastUpdated: FieldValue.serverTimestamp(),
         });
 
         // Record referrer transaction
-        const referrerTransactionRef = db.collection("creditTransactions").doc();
+        const referrerTransactionRef = db
+          .collection("creditTransactions")
+          .doc();
         transaction.set(referrerTransactionRef, {
           userId: redemption.referrerId,
           amount: redemption.referrerCreditsAwarded,
@@ -342,7 +431,9 @@ export const completeReferral = onCall<{ userId?: string }>(
         });
 
         // Award bonus credits to referee
-        const refereeCreditsRef = db.collection("userCredits").doc(redemption.refereeId);
+        const refereeCreditsRef = db
+          .collection("userCredits")
+          .doc(redemption.refereeId);
         transaction.update(refereeCreditsRef, {
           balance: FieldValue.increment(redemption.refereeCreditsAwarded),
           lastUpdated: FieldValue.serverTimestamp(),
@@ -363,16 +454,20 @@ export const completeReferral = onCall<{ userId?: string }>(
         });
 
         // Update redemption status
-        transaction.update(db.collection("referralRedemptions").doc(redemptionDoc.id), {
-          status: 'completed',
-          completedAt: FieldValue.serverTimestamp(),
-        });
+        transaction.update(
+          db.collection("referralRedemptions").doc(redemptionDoc.id),
+          {
+            status: "completed",
+            completedAt: FieldValue.serverTimestamp(),
+          }
+        );
 
         // Update referrer's stats
         transaction.update(referrerRef, {
           referralStats: {
             totalReferred: currentStats.totalReferred + 1,
-            creditsEarned: currentStats.creditsEarned + redemption.referrerCreditsAwarded,
+            creditsEarned:
+              currentStats.creditsEarned + redemption.referrerCreditsAwarded,
             pendingReferrals: Math.max(0, currentStats.pendingReferrals - 1),
             lastReferralAt: FieldValue.serverTimestamp(),
           },
@@ -386,12 +481,22 @@ export const completeReferral = onCall<{ userId?: string }>(
         refereeCredits: redemption.refereeCreditsAwarded,
       });
 
-      // Send push notification to referrer
-      await sendReferralNotification(redemption.referrerId, {
-        referralCode: redemption.referralCode,
-        refereeId: redemption.refereeId,
-        creditsEarned: redemption.referrerCreditsAwarded,
-      });
+      // Send push notification to referrer (optional, don't fail if it doesn't work)
+      try {
+        await sendReferralNotification(redemption.referrerId, {
+          referralCode: redemption.referralCode,
+          refereeId: redemption.refereeId,
+          creditsEarned: redemption.referrerCreditsAwarded,
+        });
+      } catch (notificationError) {
+        logger.warn(
+          "Failed to send referral notification, but referral completed successfully",
+          {
+            referrerId: redemption.referrerId,
+            error: notificationError,
+          }
+        );
+      }
 
       return { success: true };
     } catch (error) {
@@ -418,7 +523,7 @@ export const getReferralStats = onCall<{}>(
 
       const userDoc = await db.collection("users").doc(auth.uid).get();
       const userData = userDoc.data();
-      
+
       const stats = userData?.referralStats || {
         totalReferred: 0,
         creditsEarned: 0,
@@ -450,7 +555,8 @@ export const getReferralHistory = onCall<{ limit?: number }>(
 
       const limitCount = data?.limit || 10;
 
-      const querySnapshot = await db.collection("referralRedemptions")
+      const querySnapshot = await db
+        .collection("referralRedemptions")
         .where("referrerId", "==", auth.uid)
         .orderBy("redeemedAt", "desc")
         .limit(limitCount)
@@ -473,3 +579,80 @@ export const getReferralHistory = onCall<{ limit?: number }>(
  * Database trigger: Automatically complete referrals when user email is verified
  */
 // Note: onUserEmailVerified trigger removed - will call completeReferral manually when needed
+
+/**
+ * Cleanup expired referral validation attempts and old data
+ * Runs daily at midnight UTC
+ */
+export const cleanupReferralData = onSchedule(
+  {
+    schedule: "0 0 * * *", // Daily at midnight UTC
+    region: "us-central1",
+  },
+  async () => {
+    try {
+      logger.info("Starting referral data cleanup");
+
+      const now = new Date();
+      const validationCutoff = new Date(
+        now.getTime() -
+          REFERRAL_CONFIG.VALIDATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+      );
+
+      // Clean up old referral validation attempts
+      const oldValidations = await db
+        .collection("referralValidations")
+        .where("timestamp", "<", validationCutoff)
+        .limit(500) // Process in batches
+        .get();
+
+      if (!oldValidations.empty) {
+        const batch = db.batch();
+        oldValidations.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        logger.info("Cleaned up old referral validation attempts", {
+          count: oldValidations.size,
+          retentionDays: REFERRAL_CONFIG.VALIDATION_RETENTION_DAYS,
+        });
+      }
+
+      // Clean up inactive referral codes with no usage
+      const inactiveCodeCutoff = new Date(
+        now.getTime() -
+          REFERRAL_CONFIG.INACTIVE_CODE_RETENTION_YEARS *
+            365 *
+            24 *
+            60 *
+            60 *
+            1000
+      );
+      const inactiveCodes = await db
+        .collection("referralCodes")
+        .where("isActive", "==", false)
+        .where("createdAt", "<", inactiveCodeCutoff)
+        .where("timesUsed", "==", 0)
+        .limit(100) // Process in smaller batches for inactive codes
+        .get();
+
+      if (!inactiveCodes.empty) {
+        const batch = db.batch();
+        inactiveCodes.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        logger.info("Cleaned up old inactive referral codes", {
+          count: inactiveCodes.size,
+          retentionYears: REFERRAL_CONFIG.INACTIVE_CODE_RETENTION_YEARS,
+        });
+      }
+
+      logger.info("Referral data cleanup completed");
+    } catch (error) {
+      logger.error("Error during referral data cleanup", error);
+    }
+  }
+);

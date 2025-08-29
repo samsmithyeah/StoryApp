@@ -8,7 +8,7 @@ const mockReferralService = {
   completeReferral: jest.fn(),
   getReferralStats: jest.fn(),
   getReferralHistory: jest.fn(),
-};
+} as any;
 
 // Mock the auth store
 const mockAuthStore = {
@@ -66,7 +66,8 @@ describe("Referral System Integration Tests", () => {
         ownerId: "referrer-user-id",
       });
 
-      const validationResult = await mockReferralService.validateReferralCode("STORYABC");
+      const validationResult =
+        await mockReferralService.validateReferralCode("STORYABC");
       expect(validationResult).toEqual({
         isValid: true,
         ownerId: "referrer-user-id",
@@ -88,7 +89,8 @@ describe("Referral System Integration Tests", () => {
         refereeCreditsAwarded: 5,
       });
 
-      const completionResult = await mockReferralService.completeReferral("referee-user-id");
+      const completionResult =
+        await mockReferralService.completeReferral("referee-user-id");
       expect(completionResult).toEqual({
         success: true,
         referrerCreditsAwarded: 10,
@@ -112,7 +114,10 @@ describe("Referral System Integration Tests", () => {
     it("should handle referral for unverified user correctly", async () => {
       // Step 1: Unverified user records referral
       mockReferralService.recordReferral.mockResolvedValue(undefined);
-      await mockReferralService.recordReferral("unverified-user-id", "STORYABC");
+      await mockReferralService.recordReferral(
+        "unverified-user-id",
+        "STORYABC"
+      );
 
       // Step 2: User verifies email later
       mockReferralService.completeReferral.mockResolvedValue({
@@ -122,7 +127,8 @@ describe("Referral System Integration Tests", () => {
       });
 
       // Simulate email verification trigger
-      const completionResult = await mockReferralService.completeReferral("unverified-user-id");
+      const completionResult =
+        await mockReferralService.completeReferral("unverified-user-id");
       expect(completionResult.success).toBe(true);
     });
 
@@ -141,7 +147,9 @@ describe("Referral System Integration Tests", () => {
         refereeCreditsAwarded: 5,
       });
 
-      const completionResult = await mockReferralService.completeReferral(verifiedUser.uid);
+      const completionResult = await mockReferralService.completeReferral(
+        verifiedUser.uid
+      );
       expect(completionResult.success).toBe(true);
     });
   });
@@ -186,7 +194,9 @@ describe("Referral System Integration Tests", () => {
         message: "No pending referral found",
       });
 
-      const result = await mockReferralService.completeReferral("no-referral-user-id");
+      const result = await mockReferralService.completeReferral(
+        "no-referral-user-id"
+      );
       expect(result.success).toBe(false);
       expect(result.message).toBe("No pending referral found");
     });
@@ -269,7 +279,9 @@ describe("Referral System Integration Tests", () => {
         history: mockHistory,
       });
 
-      const history = await mockReferralService.getReferralHistory({ limit: 5 });
+      const history = await mockReferralService.getReferralHistory({
+        limit: 5,
+      });
       expect(history.history).toHaveLength(3);
       // Should be ordered by most recent first
       expect(history.history[0].redeemedAt).toEqual(new Date("2024-01-03"));
@@ -324,7 +336,8 @@ describe("Referral System Integration Tests", () => {
         });
 
       const shortCode = await mockReferralService.validateReferralCode("ABC");
-      const longCode = await mockReferralService.validateReferralCode("TOOLONGCODE");
+      const longCode =
+        await mockReferralService.validateReferralCode("TOOLONGCODE");
 
       expect(shortCode.isValid).toBe(false);
       expect(longCode.isValid).toBe(false);

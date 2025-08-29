@@ -1,12 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import {
-  Clipboard,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Clipboard, Share, StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { useReferrals } from "../../hooks/useReferrals";
@@ -104,9 +98,10 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
           <Ionicons
             name="alert-circle-outline"
             size={24}
-            color={Colors.warning}
+            color={Colors.error}
           />
-          <Text style={styles.errorText}>Loading your referral code...</Text>
+          <Text style={styles.errorText}>Unable to load referral code</Text>
+          <Text style={styles.errorSubtext}>Please try again later</Text>
         </View>
       </View>
     );
@@ -214,11 +209,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   errorText: {
-    color: Colors.warning,
+    color: Colors.error,
+    fontSize: Typography.fontSize.medium,
+    marginLeft: Spacing.sm,
+    textAlign: "center",
+    flex: 1,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  errorSubtext: {
+    color: Colors.textSecondary,
     fontSize: Typography.fontSize.small,
     marginLeft: Spacing.sm,
     textAlign: "center",
     flex: 1,
+    marginTop: Spacing.xs,
   },
   codeContainer: {
     marginBottom: Spacing.xl,

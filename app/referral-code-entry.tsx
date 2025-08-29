@@ -2,7 +2,10 @@ import React, { useState, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
-import { ReferralCodeInput, ReferralCodeInputRef } from "@/components/referrals/ReferralCodeInput";
+import {
+  ReferralCodeInput,
+  ReferralCodeInputRef,
+} from "@/components/referrals/ReferralCodeInput";
 import { Button } from "@/components/ui/Button";
 import { Colors, Spacing, Typography } from "@/constants/Theme";
 import { router } from "expo-router";
@@ -39,7 +42,7 @@ export default function ReferralCodeEntryScreen() {
       try {
         setIsSubmitting(true);
         const result = await referralInputRef.current.validate();
-        
+
         // Check if validation passed
         if (!result.isValid) {
           // Only show toast for backend validation errors, not client-side errors
@@ -53,37 +56,49 @@ export default function ReferralCodeEntryScreen() {
           setIsSubmitting(false);
           return;
         }
-        
+
         // Proceed with recording the referral
-        await referralService.recordReferral(user.uid, referralCode.trim().toUpperCase());
-        
+        await referralService.recordReferral(
+          user.uid,
+          referralCode.trim().toUpperCase()
+        );
+
         // For verified users (email verified or test accounts), immediately complete the referral
-        const isTestAccount = __DEV__ && user.email?.includes("@test.dreamweaver");
+        const isTestAccount =
+          __DEV__ && user.email?.includes("@test.dreamweaver");
         const shouldCompleteReferral = user.emailVerified || isTestAccount;
-        
+
         if (shouldCompleteReferral) {
           try {
-            logger.info("User is verified, completing referral immediately", { 
-              userId: user.uid, 
+            logger.info("User is verified, completing referral immediately", {
+              userId: user.uid,
               emailVerified: user.emailVerified,
-              isTestAccount 
+              isTestAccount,
             });
             const result = await referralService.completeReferral(user.uid);
-            logger.info("Referral completed successfully", { userId: user.uid, result });
+            logger.info("Referral completed successfully", {
+              userId: user.uid,
+              result,
+            });
           } catch (completeError) {
-            logger.debug("Error completing referral", { userId: user.uid, error: completeError });
+            logger.debug("Error completing referral", {
+              userId: user.uid,
+              error: completeError,
+            });
           }
         }
-        
+
         Toast.show({
           type: "success",
           text1: "Referral code applied!",
-          text2: shouldCompleteReferral ? "You got 5 bonus credits!" : "You'll get 5 bonus credits after email verification.",
+          text2: shouldCompleteReferral
+            ? "You got 5 bonus credits!"
+            : "You'll get 5 bonus credits after email verification.",
         });
-        
+
         // Mark that user has seen this screen
         setHasSeenReferralEntry(true);
-        
+
         // Small delay to ensure auth status updates before navigation
         setTimeout(() => {
           router.replace("/");
@@ -129,7 +144,7 @@ export default function ReferralCodeEntryScreen() {
               disabled={!referralCode.trim()}
               style={styles.submitButton}
             />
-            
+
             <Button
               title="Skip"
               onPress={handleSkip}

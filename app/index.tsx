@@ -85,7 +85,9 @@ export default function Index() {
       return <Redirect href="/(auth)/verify-email" />;
 
     case AuthStatus.REFERRAL_ENTRY:
-      logger.debug("Redirecting to referral-code-entry (referral entry needed)");
+      logger.debug(
+        "Redirecting to referral-code-entry (referral entry needed)"
+      );
       return <Redirect href="/referral-code-entry" />;
 
     case AuthStatus.ONBOARDING:

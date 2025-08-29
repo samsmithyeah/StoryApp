@@ -188,7 +188,6 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           />
         )}
 
-
         <View style={styles.submitButtonContainer}>
           <Button
             title={mode === "signin" ? "Sign in" : "Create account"}

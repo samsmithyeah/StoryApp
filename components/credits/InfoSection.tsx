@@ -7,7 +7,7 @@ import type { InfoSectionProps } from "./types";
 
 export function InfoSection(_props: InfoSectionProps) {
   const handleReferralPress = () => {
-    router.push('/invite-friends');
+    router.push("/invite-friends");
   };
 
   return (
@@ -17,8 +17,15 @@ export function InfoSection(_props: InfoSectionProps) {
         <Text style={styles.infoText}>
           Each credit enables you to generate 1 page of a story.
         </Text>
-        <TouchableOpacity style={styles.referralLink} onPress={handleReferralPress}>
-          <IconSymbol name="person.crop.circle.badge.plus" size={14} color={Colors.primary} />
+        <TouchableOpacity
+          style={styles.referralLink}
+          onPress={handleReferralPress}
+        >
+          <IconSymbol
+            name="person.crop.circle.badge.plus"
+            size={14}
+            color={Colors.primary}
+          />
           <Text style={styles.referralText}>
             Refer a friend and get free credits
           </Text>

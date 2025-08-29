@@ -30,7 +30,7 @@ export const Colors = {
   }),
   cardBorder: "#D4AF37", // Golden card border
   placeholderBackground: "rgba(26,27,58,0.5)", // Placeholder background
-  
+
   // Translucent card section colors
   cardSectionBackground: "rgba(255, 255, 255, 0.05)", // For internal card sections
   cardSectionBorder: "rgba(212, 175, 55, 0.2)", // Subtle golden border

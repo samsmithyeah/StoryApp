@@ -1,6 +1,6 @@
 /**
  * Simplified Referral Service Tests
- * 
+ *
  * These tests focus on the service layer interface and behavior
  * rather than mocking complex Firebase internals.
  */
@@ -183,7 +183,7 @@ describe("Referral Service Interface", () => {
     });
 
     it("should accept optional limit parameter", async () => {
-      const mockHistory = [];
+      const mockHistory: any[] = [];
       mockReferralService.getReferralHistory.mockResolvedValue(mockHistory);
 
       const result = await mockReferralService.getReferralHistory(5);
@@ -251,9 +251,8 @@ describe("Referral Service Interface", () => {
         error: "Invalid code format",
       });
 
-      const longResult = await mockReferralService.validateReferralCode(
-        "TOOLONGCODE"
-      );
+      const longResult =
+        await mockReferralService.validateReferralCode("TOOLONGCODE");
       expect(longResult.isValid).toBe(false);
     });
 
