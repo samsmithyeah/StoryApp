@@ -10,6 +10,10 @@ import { NotificationService } from "./firebase/notifications";
 export class FCMService {
   private static isInitialized = false;
   private static cleanupFunction: (() => void) | null = null;
+
+  static get initialized() {
+    return this.isInitialized;
+  }
   /**
    * Request notification permissions (required for iOS)
    */

@@ -46,6 +46,7 @@ interface AuthStoreActions {
   setAuthStatus: (status: AuthStatus) => void;
   setOnboardingStatus: (status: boolean) => void;
   setHasSeenReferralEntry: (seen: boolean) => void;
+  setJustAppliedReferral: (applied: boolean) => void;
   signOut: () => Promise<void>;
 
   // Advanced operations
@@ -125,6 +126,10 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         // Recompute auth status after marking referral entry as seen
         get().debouncedComputeAuthStatus();
       }
+    },
+
+    setJustAppliedReferral: (applied: boolean) => {
+      set({ justAppliedReferral: applied });
     },
 
     // Initialize auth system

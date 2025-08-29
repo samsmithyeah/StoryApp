@@ -294,8 +294,7 @@ const convertFirebaseUser = async (
 // Create user document in Firestore and return the complete user data
 const createUserDocument = async (
   user: FirebaseAuthTypes.User,
-  overrideDisplayName?: string,
-  referralCode?: string
+  overrideDisplayName?: string
 ): Promise<FirestoreUserData | null> => {
   try {
     logger.debug("Starting user document creation", {
@@ -392,25 +391,6 @@ const createUserDocument = async (
         }
       }
 
-      // Handle referral code if provided for new users
-      if (isNewUser && referralCode) {
-        try {
-          logger.debug("Recording referral for new user", {
-            userId: user.uid,
-            referralCode,
-          });
-          await referralService.recordReferral(user.uid, referralCode);
-          logger.debug("Referral recorded successfully");
-        } catch (referralError) {
-          logger.error("Failed to record referral", {
-            userId: user.uid,
-            referralCode,
-            error: referralError,
-          });
-          // Don't fail user creation due to referral issues
-        }
-      }
-
       logger.debug("User document creation process completed, returning data");
       return savedData;
     } else {
@@ -443,7 +423,6 @@ export const signUpWithEmail = async ({
   email,
   password,
   displayName,
-  referralCode,
 }: SignUpCredentials): Promise<User> => {
   const userCredential = await createUserWithEmailAndPassword(
     authService,
@@ -517,8 +496,7 @@ export const signUpWithEmail = async ({
 
   const firestoreData = await createUserDocument(
     userCredential.user,
-    finalDisplayName || undefined,
-    referralCode
+    finalDisplayName || undefined
   );
 
   // Create the complete user object with Firestore data
@@ -989,10 +967,10 @@ export const subscribeToAuthChanges = (
         } else {
           const user = await convertFirebaseUser(firebaseUser);
           callback(user);
-
-          // Initialize FCM for existing authenticated users
-          await initializeFCMForAuthOperation("observer", firebaseUser.uid);
         }
+
+        // Initialize FCM for all authenticated users (cached or fresh)
+        await initializeFCMForAuthOperation("observer", firebaseUser.uid);
       }
     }, AUTH_DEBOUNCE_DELAY);
   });

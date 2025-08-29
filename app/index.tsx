@@ -10,6 +10,9 @@ import { useAuthStore } from "@/store/authStore";
 export default function Index() {
   const { user, authStatus, completeOnboarding, isReady, needsOnboarding } =
     useAuth();
+  const justAppliedReferral = useAuthStore(
+    (state) => state.justAppliedReferral
+  );
 
   // Initialize auth when needed (including after signOut)
   useEffect(() => {
@@ -96,6 +99,7 @@ export default function Index() {
         <WelcomeOnboarding
           visible={true}
           onComplete={handleOnboardingComplete}
+          justAppliedReferral={justAppliedReferral}
         />
       );
 

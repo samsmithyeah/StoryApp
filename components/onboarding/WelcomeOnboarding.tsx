@@ -1,5 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "../ui/CustomToast";
 import {
   Dimensions,
   ImageBackground,
@@ -22,6 +24,7 @@ import {
   Typography,
 } from "../../constants/Theme";
 import { useChildren } from "../../hooks/useChildren";
+import { useAuthStore } from "../../store/authStore";
 import { Child } from "../../types/child.types";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { Button } from "../ui/Button";
@@ -56,15 +59,36 @@ const STEPS = [
 interface WelcomeOnboardingProps {
   visible: boolean;
   onComplete: () => void;
+  justAppliedReferral?: boolean;
 }
 
 export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   visible,
   onComplete,
+  justAppliedReferral,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const { addChild } = useChildren();
   const insets = useSafeAreaInsets();
+  const setJustAppliedReferral = useAuthStore(
+    (state) => state.setJustAppliedReferral
+  );
+
+  // Show toast if referral was just applied
+  useEffect(() => {
+    if (visible && justAppliedReferral) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        Toast.show({
+          type: "success",
+          text1: "Referral code applied!",
+          text2: "You got 5 bonus credits!",
+        });
+        // Clear the flag after showing the toast
+        setJustAppliedReferral(false);
+      }, 500);
+    }
+  }, [visible, justAppliedReferral, setJustAppliedReferral]);
 
   const footerStyle = React.useMemo(
     () => [
@@ -261,6 +285,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
           {currentStep === 1 ? <ChildFormStep /> : <ContentStep />}
         </WrapperComponent>
       </ImageBackground>
+      <Toast config={toastConfig} />
     </Modal>
   );
 };

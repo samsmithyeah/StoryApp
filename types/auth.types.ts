@@ -25,6 +25,7 @@ export interface AuthState {
   authStatus: AuthStatus;
   hasCompletedOnboarding: boolean | null;
   needsReferralEntry?: boolean;
+  justAppliedReferral?: boolean;
 }
 
 export type AuthProvider = "google" | "apple" | "email";
@@ -36,7 +37,6 @@ export interface LoginCredentials {
 
 export interface SignUpCredentials extends LoginCredentials {
   displayName?: string;
-  referralCode?: string;
 }
 
 // Firebase user metadata types

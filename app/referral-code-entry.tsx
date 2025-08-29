@@ -1,24 +1,25 @@
-import React, { useState, useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import {
   ReferralCodeInput,
   ReferralCodeInputRef,
 } from "@/components/referrals/ReferralCodeInput";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { Button } from "@/components/ui/Button";
-import { Colors, Spacing, Typography } from "@/constants/Theme";
-import { router } from "expo-router";
-import { referralService } from "@/services/firebase/referrals";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/store/authStore";
+import { referralService } from "@/services/firebase/referrals";
 import { logger } from "@/utils/logger";
+import { router } from "expo-router";
+import React, { useRef, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function ReferralCodeEntryScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const referralInputRef = useRef<ReferralCodeInputRef>(null);
-  const { user, setHasSeenReferralEntry } = useAuth();
+  const { user, setHasSeenReferralEntry, setJustAppliedReferral } = useAuth();
 
   const handleSkip = () => {
     // Mark that user has seen this screen
@@ -27,8 +28,6 @@ export default function ReferralCodeEntryScreen() {
   };
 
   const handleSubmit = async () => {
-    console.log("handleSubmit called", { referralCode, userId: user?.uid });
-
     if (!user?.uid) {
       logger.error("No user found when submitting referral code");
       return;
@@ -43,9 +42,7 @@ export default function ReferralCodeEntryScreen() {
     if (referralInputRef.current) {
       try {
         setIsSubmitting(true);
-        console.log("About to validate referral code", { code: referralCode });
         const result = await referralInputRef.current.validate();
-        console.log("Validation result", result);
 
         // Check if validation passed
         if (!result.isValid) {
@@ -67,46 +64,46 @@ export default function ReferralCodeEntryScreen() {
           referralCode.trim().toUpperCase()
         );
 
-        // For verified users (email verified or test accounts), immediately complete the referral
-        const isTestAccount =
-          __DEV__ && user.email?.includes("@test.dreamweaver");
-        const shouldCompleteReferral = user.emailVerified || isTestAccount;
-
-        if (shouldCompleteReferral) {
-          try {
-            logger.info("User is verified, completing referral immediately", {
-              userId: user.uid,
-              emailVerified: user.emailVerified,
-              isTestAccount,
-            });
-            const result = await referralService.completeReferral(user.uid);
-            logger.info("Referral completed successfully", {
-              userId: user.uid,
-              result,
-            });
-          } catch (completeError) {
-            logger.debug("Error completing referral", {
-              userId: user.uid,
-              error: completeError,
-            });
-          }
+        // Complete the referral immediately (user is already verified to reach this screen)
+        try {
+          logger.info("Completing referral for verified user", {
+            userId: user.uid,
+          });
+          await referralService.completeReferral(user.uid);
+          logger.info("Referral completed successfully", {
+            userId: user.uid,
+          });
+        } catch (completeError) {
+          logger.debug("Error completing referral", {
+            userId: user.uid,
+            error: completeError,
+          });
         }
 
-        Toast.show({
-          type: "success",
-          text1: "Referral code applied!",
-          text2: shouldCompleteReferral
-            ? "You got 5 bonus credits!"
-            : "You'll get 5 bonus credits after email verification.",
-        });
-
-        // Mark that user has seen this screen
+        // Mark that referral was just applied and user has seen this screen
+        setJustAppliedReferral(true);
         setHasSeenReferralEntry(true);
 
-        // Small delay to ensure auth status updates before navigation
-        setTimeout(() => {
-          router.replace("/");
-        }, 100);
+        // Wait for auth status to update properly
+        const waitForAuthUpdate = () => {
+          return new Promise<void>((resolve) => {
+            const unsubscribe = useAuthStore.subscribe((state) => {
+              if (state.user?.hasSeenReferralEntry === true) {
+                unsubscribe();
+                resolve();
+              }
+            });
+
+            // Fallback timeout after 500ms
+            setTimeout(() => {
+              unsubscribe();
+              resolve();
+            }, 500);
+          });
+        };
+
+        await waitForAuthUpdate();
+        router.replace("/");
       } catch (error) {
         logger.error("Error submitting referral code", error);
         Toast.show({
@@ -137,6 +134,7 @@ export default function ReferralCodeEntryScreen() {
               ref={referralInputRef}
               value={referralCode}
               onChangeText={setReferralCode}
+              disabled={isSubmitting}
             />
           </View>
 
@@ -145,7 +143,7 @@ export default function ReferralCodeEntryScreen() {
               title="Apply referral code"
               onPress={handleSubmit}
               loading={isSubmitting}
-              disabled={!referralCode.trim()}
+              disabled={!referralCode.trim() || isSubmitting}
               style={styles.submitButton}
             />
 
@@ -153,10 +151,22 @@ export default function ReferralCodeEntryScreen() {
               title="Skip"
               onPress={handleSkip}
               variant="outline"
+              disabled={isSubmitting}
               style={styles.skipButton}
             />
           </View>
         </View>
+
+        {isSubmitting && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>
+                Processing referral code...
+              </Text>
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </BackgroundContainer>
   );
@@ -204,4 +214,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   skipButton: {},
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: Colors.cardBackground,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.medium,
+    alignItems: "center",
+    minWidth: 200,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    fontWeight: Typography.fontWeight.medium,
+  },
 });

@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "firebase-functions";
 import { onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { logger } from "firebase-functions";
-import { FieldValue } from "firebase-admin/firestore";
 import { sendReferralNotification } from "./sendReferralNotification";
 import { checkRateLimit, recordRateLimitAttempt } from "./utils/rateLimiter";
 
@@ -176,7 +176,7 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       if (!code || typeof code !== "string") {
         return {
           isValid: false,
-          error: `Invalid code format - received: ${JSON.stringify(code)} type: ${typeof code}`,
+          error: "Invalid code format",
         };
       }
 

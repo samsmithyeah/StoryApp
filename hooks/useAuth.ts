@@ -240,5 +240,6 @@ export const useAuth = () => {
     needsOnboarding: authStatus === AuthStatus.ONBOARDING,
     isUnauthenticated: authStatus === AuthStatus.UNAUTHENTICATED,
     setHasSeenReferralEntry: useAuthStore.getState().setHasSeenReferralEntry,
+    setJustAppliedReferral: useAuthStore.getState().setJustAppliedReferral,
   };
 };

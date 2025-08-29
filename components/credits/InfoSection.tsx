@@ -21,15 +21,10 @@ export function InfoSection(_props: InfoSectionProps) {
           style={styles.referralLink}
           onPress={handleReferralPress}
         >
-          <IconSymbol
-            name="person.crop.circle.badge.plus"
-            size={14}
-            color={Colors.primary}
-          />
           <Text style={styles.referralText}>
             Refer a friend and get free credits
           </Text>
-          <IconSymbol name="chevron.right" size={12} color={Colors.primary} />
+          <IconSymbol name="arrow.right" size={12} color={Colors.primary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -44,7 +39,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.medium,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
   },
   textContainer: {
     flex: 1,
@@ -54,7 +49,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
     lineHeight: 18,
-    marginBottom: Spacing.xs,
   },
   referralLink: {
     flexDirection: "row",
@@ -65,7 +59,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.small,
     color: Colors.primary,
     fontWeight: Typography.fontWeight.medium,
-    marginLeft: Spacing.xs,
-    flex: 1,
+    textDecorationLine: "underline",
   },
 });

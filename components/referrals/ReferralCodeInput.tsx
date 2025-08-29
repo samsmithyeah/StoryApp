@@ -1,13 +1,13 @@
 import React, {
   forwardRef,
-  useImperativeHandle,
   useCallback,
+  useImperativeHandle,
   useState,
 } from "react";
 import { ViewStyle } from "react-native";
-import { Input } from "../ui/Input";
 import { useReferrals } from "../../hooks/useReferrals";
 import { REFERRAL_CONFIG } from "../../types/referral.types";
+import { Input } from "../ui/Input";
 
 interface ReferralCodeInputProps {
   value: string;
@@ -31,20 +31,14 @@ export const ReferralCodeInput = forwardRef<
     async (
       codeToValidate: string
     ): Promise<{ isValid: boolean; isBackendError: boolean }> => {
-      console.log("performValidation called", { codeToValidate });
       setValidationError(""); // Clear previous errors
 
       if (!codeToValidate.trim()) {
-        console.log("Empty code, returning valid");
         return { isValid: true, isBackendError: false }; // Empty is valid (optional field)
       }
 
       // Basic format check - this is a client-side error
       if (codeToValidate.length !== REFERRAL_CONFIG.CODE_LENGTH) {
-        console.log("Length validation failed", {
-          length: codeToValidate.length,
-          expected: REFERRAL_CONFIG.CODE_LENGTH,
-        });
         setValidationError(
           `Code must be ${REFERRAL_CONFIG.CODE_LENGTH} characters`
         );
@@ -52,26 +46,15 @@ export const ReferralCodeInput = forwardRef<
       }
 
       try {
-        const codeToSend = codeToValidate.trim().toUpperCase();
-        console.log("About to call validateReferralCode service", {
-          code: codeToSend,
-          length: codeToSend.length,
-          chars: codeToSend
-            .split("")
-            .map((c) => `${c}(${c.charCodeAt(0)})`)
-            .join(" "),
-        });
         const result = await validateReferralCode(
           codeToValidate.trim().toUpperCase()
         );
-        console.log("validateReferralCode service result", result);
         if (!result.isValid) {
           setValidationError("Invalid referral code");
           return { isValid: false, isBackendError: true }; // This is a backend validation error
         }
         return { isValid: true, isBackendError: false };
       } catch (error) {
-        console.log("validateReferralCode service error", error);
         setValidationError("Error validating code");
         return { isValid: false, isBackendError: true }; // This is also a backend error
       }

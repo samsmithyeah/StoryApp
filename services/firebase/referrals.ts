@@ -29,6 +29,23 @@ const safeTimestampToDate = (timestamp: any): Date | undefined => {
     }
   }
 
+  // Handle raw Firestore timestamp format with _seconds and _nanoseconds
+  if (
+    timestamp._seconds !== undefined &&
+    timestamp._nanoseconds !== undefined
+  ) {
+    try {
+      // Convert Firestore timestamp to JavaScript Date
+      const date = new Date(
+        timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000
+      );
+      return date;
+    } catch (error) {
+      logger.warn("Failed to convert raw Firestore timestamp", error);
+      return undefined;
+    }
+  }
+
   // Check if it's already a Date object
   if (timestamp instanceof Date) {
     return timestamp;
@@ -76,18 +93,14 @@ export const referralService = {
     code: string
   ): Promise<ValidateReferralCodeResponse> {
     try {
-      console.log("referralService.validateReferralCode called", { code });
       const validateReferralCodeFunction = httpsCallable(
         functionsService,
         "validateReferralCode"
       );
 
-      console.log("About to call cloud function");
       const result = await validateReferralCodeFunction({ code });
-      console.log("Cloud function returned", result);
       return result.data as ValidateReferralCodeResponse;
     } catch (error) {
-      console.log("Error in referralService.validateReferralCode", error);
       logger.error("Error validating referral code", error);
       return {
         isValid: false,
