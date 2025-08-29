@@ -28,7 +28,7 @@ export default function ReferralCodeEntryScreen() {
 
   const handleSubmit = async () => {
     console.log("handleSubmit called", { referralCode, userId: user?.uid });
-    
+
     if (!user?.uid) {
       logger.error("No user found when submitting referral code");
       return;

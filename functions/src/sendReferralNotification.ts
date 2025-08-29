@@ -56,7 +56,7 @@ export async function sendReferralNotification(
       const message = {
         to: expoPushToken,
         title: "🎉 Referral bonus earned!",
-        body: `Your friend joined via your referral code ${referralData.referralCode}! You've earned ${referralData.creditsEarned} credits.`,
+        body: `Somebody joined via your referral code! You've earned ${referralData.creditsEarned} credits.`,
         data: {
           type: "referral_complete",
           referralCode: referralData.referralCode,

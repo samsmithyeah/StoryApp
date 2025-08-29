@@ -162,7 +162,6 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       logger.info("FUNCTION CALLED - Destructured data:", data);
       const { code } = data;
 
-      
       logger.info("validateReferralCode called", {
         code: code,
         userId: auth?.uid,
@@ -242,7 +241,6 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
         .doc(trimmedCode.toUpperCase())
         .get();
 
-      
       logger.info("Database lookup result", {
         code: trimmedCode.toUpperCase(),
         exists: codeDoc.exists,

@@ -41,9 +41,9 @@ export const ReferralCodeInput = forwardRef<
 
       // Basic format check - this is a client-side error
       if (codeToValidate.length !== REFERRAL_CONFIG.CODE_LENGTH) {
-        console.log("Length validation failed", { 
-          length: codeToValidate.length, 
-          expected: REFERRAL_CONFIG.CODE_LENGTH 
+        console.log("Length validation failed", {
+          length: codeToValidate.length,
+          expected: REFERRAL_CONFIG.CODE_LENGTH,
         });
         setValidationError(
           `Code must be ${REFERRAL_CONFIG.CODE_LENGTH} characters`
@@ -53,10 +53,13 @@ export const ReferralCodeInput = forwardRef<
 
       try {
         const codeToSend = codeToValidate.trim().toUpperCase();
-        console.log("About to call validateReferralCode service", { 
+        console.log("About to call validateReferralCode service", {
           code: codeToSend,
           length: codeToSend.length,
-          chars: codeToSend.split('').map(c => `${c}(${c.charCodeAt(0)})`).join(' ')
+          chars: codeToSend
+            .split("")
+            .map((c) => `${c}(${c.charCodeAt(0)})`)
+            .join(" "),
         });
         const result = await validateReferralCode(
           codeToValidate.trim().toUpperCase()

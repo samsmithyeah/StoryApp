@@ -5,7 +5,10 @@ import type {
   ValidateReferralCodeResponse,
 } from "../../types/referral.types";
 import { logger } from "../../utils/logger";
-import { CacheKeys, referralCache } from "../../functions/src/cache/referralCache";
+import {
+  CacheKeys,
+  referralCache,
+} from "../../functions/src/cache/referralCache";
 import { functionsService } from "./config";
 
 /**
