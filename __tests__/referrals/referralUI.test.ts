@@ -112,9 +112,13 @@ describe("Referral UI Component Logic", () => {
         mockReferralService.applyReferral.mockResolvedValue(undefined);
 
         // Simulate submission logic - single atomic operation
-        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
+        await mockReferralService.applyReferral(
+          referralCode.trim().toUpperCase()
+        );
 
-        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+          "STORYABC"
+        );
       });
 
       it("should show success toast for verified users", async () => {
@@ -145,9 +149,13 @@ describe("Referral UI Component Logic", () => {
         mockReferralService.applyReferral.mockResolvedValue(undefined);
 
         // Simulate submission logic
-        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
+        await mockReferralService.applyReferral(
+          referralCode.trim().toUpperCase()
+        );
 
-        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+          "STORYABC"
+        );
       });
 
       it("should show appropriate toast for unverified users", async () => {
@@ -189,9 +197,13 @@ describe("Referral UI Component Logic", () => {
         mockReferralService.applyReferral.mockResolvedValue(undefined);
 
         // Simulate submission logic - single operation
-        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
+        await mockReferralService.applyReferral(
+          referralCode.trim().toUpperCase()
+        );
 
-        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+          "STORYABC"
+        );
         expect(shouldCompleteReferral).toBe(true);
       });
     });

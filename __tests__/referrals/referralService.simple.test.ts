@@ -252,7 +252,9 @@ describe("Referral Service Interface", () => {
         mockReferralService.applyReferral("STORYABC")
       ).resolves.toBeUndefined();
 
-      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+        "STORYABC"
+      );
     });
   });
 });

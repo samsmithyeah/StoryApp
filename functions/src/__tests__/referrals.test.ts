@@ -337,9 +337,11 @@ describe("Referral Functions", () => {
       // Mock transaction - no existing redemption, with referrer data
       db.runTransaction.mockImplementation((callback: any) =>
         callback({
-          get: jest.fn()
+          get: jest
+            .fn()
             .mockResolvedValueOnce({ exists: false }) // No existing redemption
-            .mockResolvedValueOnce({ // Referrer data
+            .mockResolvedValueOnce({
+              // Referrer data
               data: () => ({
                 referralStats: {
                   totalReferred: 0,

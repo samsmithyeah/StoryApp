@@ -16,7 +16,6 @@ const mockAuthStore = {
   subscribe: jest.fn(),
 };
 
-
 // Mock logger
 const mockLogger = {
   debug: jest.fn(),
@@ -68,7 +67,9 @@ describe("Referral System Integration Tests", () => {
       mockReferralService.applyReferral.mockResolvedValue(undefined);
 
       await mockReferralService.applyReferral("STORYABC");
-      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+        "STORYABC"
+      );
 
       // Referral is automatically completed with credits awarded
 
@@ -89,11 +90,13 @@ describe("Referral System Integration Tests", () => {
     it("should handle referral application for any user (verification no longer affects processing)", async () => {
       // With the new system, all users use the same applyReferral flow
       mockReferralService.applyReferral.mockResolvedValue(undefined);
-      
+
       await mockReferralService.applyReferral("STORYABC");
-      
-      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
-      
+
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+        "STORYABC"
+      );
+
       // Referral is automatically processed and completed atomically
     });
 
@@ -101,7 +104,9 @@ describe("Referral System Integration Tests", () => {
       // Apply referral directly for verified user (single operation)
       mockReferralService.applyReferral.mockResolvedValue(undefined);
       await mockReferralService.applyReferral("STORYABC");
-      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+        "STORYABC"
+      );
     });
   });
 
@@ -265,9 +270,11 @@ describe("Referral System Integration Tests", () => {
 
       // Apply a referral code successfully
       await mockReferralService.applyReferral("STORYABC");
-      
-      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
-      
+
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith(
+        "STORYABC"
+      );
+
       // Verify that the referral service was called correctly
       // In a real application, this would award 10 credits to referrer, 5 to referee
     });
