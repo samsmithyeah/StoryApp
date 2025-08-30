@@ -69,13 +69,11 @@ export const useReferrals = () => {
       const codeToUse = code || referralCode;
       if (!codeToUse) return "";
 
-      return `🌟 I've been creating magical bedtime stories with the DreamWeaver app and my kids absolutely love them! This AI-powered app creates personalised stories featuring your child as the hero. Each story is unique, beautifully illustrated, and perfectly tailored to your little one's interests and age.
+      return `✨ I've been creating amazing stories with DreamWeaver AI! 
 
-Transform bedtime into an adventure! Use my referral code ${codeToUse} when you sign up to get free extra bonus credits for your first stories. Your kids will be asking for "just one more story" every night! ✨📚🌙
+Use my code "${codeToUse}" when you sign up and get 5 bonus credits 🎁
 
-📱 Download DreamWeaver:
-App Store: https://apps.apple.com/app/dreamweaver-bedtime-stories
-Google Play: https://play.google.com/store/apps/details?id=com.dreamweaver.app`;
+Download here: https://www.dreamweaver-app.com/`;
     },
     [referralCode]
   );
