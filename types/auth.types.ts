@@ -17,6 +17,12 @@ export interface User {
   emailVerified?: boolean;
   hasSeenReferralEntry?: boolean;
   referralCode?: string;
+  referralStats?: {
+    totalReferred: number;
+    creditsEarned: number;
+    pendingReferrals: number;
+    lastReferralAt?: Date;
+  };
 }
 
 export interface AuthState {

@@ -19,7 +19,12 @@ export const ReferralHistory: React.FC<ReferralHistoryProps> = ({
   maxItems,
   showHeader = true,
 }) => {
-  const { referralHistory } = useReferrals();
+  const { referralHistory, loadReferralHistory } = useReferrals();
+
+  // Load history when component mounts
+  React.useEffect(() => {
+    loadReferralHistory();
+  }, [loadReferralHistory]);
 
   const displayHistory = maxItems
     ? referralHistory.slice(0, maxItems)

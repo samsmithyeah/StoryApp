@@ -79,7 +79,23 @@ export const referralService = {
       );
 
       const result = await getUserReferralCodeFunction({});
-      return (result.data as { referralCode: string }).referralCode;
+      const referralCode = (result.data as { referralCode: string })
+        .referralCode;
+
+      // Refresh auth store to ensure UI picks up the new referral code
+      const { useAuthStore } = await import("../../store/authStore");
+
+      try {
+        await useAuthStore.getState().refreshUserData();
+        logger.debug("Auth store refreshed after referral code generation");
+      } catch (refreshError) {
+        logger.warn(
+          "Failed to refresh auth store after referral code generation",
+          refreshError
+        );
+      }
+
+      return referralCode;
     } catch (error) {
       logger.error("Error getting user referral code", error);
       throw error;

@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-} from "@react-native-firebase/firestore";
-import { db } from "../services/firebase/config";
 import { referralService } from "../services/firebase/referrals";
 import type {
   ReferralRedemption,
-  ReferralStats,
   ValidateReferralCodeResponse,
 } from "../types/referral.types";
 import { logger } from "../utils/logger";
@@ -17,97 +9,40 @@ import { useAuth } from "./useAuth";
 
 export const useReferrals = () => {
   const { user } = useAuth();
-  const [referralStats, setReferralStats] = useState<ReferralStats | null>(
-    null
-  );
   const [referralHistory, setReferralHistory] = useState<ReferralRedemption[]>(
     []
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Get referral code directly from user document
+  // Get referral code and stats directly from user document
   const referralCode = user?.referralCode || null;
+  const referralStats = user?.referralStats || null;
 
-  // Set up real-time listener for referral stats and history
+  // Debug user changes
+  useEffect(() => {
+    logger.debug("useReferrals - user changed", {
+      hasUser: !!user,
+      uid: user?.uid,
+      hasReferralCode: !!user?.referralCode,
+      referralCode: user?.referralCode,
+      hasReferralStats: !!user?.referralStats,
+      referralStats: user?.referralStats,
+    });
+  }, [user]);
+
+  // Set up real-time listener for referral history (only if needed for detailed view)
   useEffect(() => {
     if (!user?.uid) return;
 
-    logger.debug("Setting up real-time referral listeners", {
-      userId: user.uid,
-    });
-
-    // Listen to referral redemptions for this user (as referrer)
-    const redemptionsQuery = query(
-      collection(db, "referralRedemptions"),
-      where("referrerId", "==", user.uid)
-    );
-
-    const unsubscribe = onSnapshot(
-      redemptionsQuery,
-      (snapshot) => {
-        const redemptions: ReferralRedemption[] = [];
-        let totalCredits = 0;
-        let pendingCount = 0;
-
-        snapshot.forEach((doc: any) => {
-          const data = doc.data();
-          const redemption: ReferralRedemption = {
-            id: doc.id,
-            referralCodeId: data.referralCodeId,
-            referralCode: data.referralCode,
-            referrerId: data.referrerId,
-            refereeId: data.refereeId,
-            redeemedAt: data.redeemedAt?.toDate() || new Date(),
-            referrerCreditsAwarded: data.referrerCreditsAwarded || 0,
-            refereeCreditsAwarded: data.refereeCreditsAwarded || 0,
-            status: data.status,
-            completedAt: data.completedAt?.toDate(),
-          };
-
-          redemptions.push(redemption);
-
-          if (redemption.status === "completed") {
-            totalCredits += redemption.referrerCreditsAwarded;
-          } else if (redemption.status === "pending") {
-            pendingCount++;
-          }
-        });
-
-        // Update stats based on real-time data
-        const stats: ReferralStats = {
-          totalReferred: redemptions.length,
-          creditsEarned: totalCredits,
-          pendingReferrals: pendingCount,
-          lastReferralAt:
-            redemptions.length > 0
-              ? redemptions.sort(
-                  (a, b) => b.redeemedAt.getTime() - a.redeemedAt.getTime()
-                )[0].redeemedAt
-              : undefined,
-        };
-
-        setReferralStats(stats);
-        setReferralHistory(redemptions);
-
-        logger.debug("Referral data updated via real-time listener", {
-          totalReferred: stats.totalReferred,
-          creditsEarned: stats.creditsEarned,
-          pendingReferrals: stats.pendingReferrals,
-        });
-      },
-      (error) => {
-        logger.error("Error in referral stats listener", error);
-        setError("Failed to load referral stats");
-      }
-    );
-
-    return unsubscribe;
+    // For now, we'll load history on demand rather than real-time
+    // This saves resources and aligns with the cached stats approach
+    setReferralHistory([]);
+    setError(null);
   }, [user?.uid]);
 
   // Clear data when user logs out or email not verified
   useEffect(() => {
     if (!user?.uid || !user?.emailVerified) {
-      setReferralStats(null);
       setReferralHistory([]);
     }
   }, [user?.uid, user?.emailVerified]);
@@ -151,11 +86,25 @@ Google Play: https://play.google.com/store/apps/details?id=com.dreamweaver.app`;
     return "";
   }, []);
 
-  // Refresh function for manual refresh (though real-time listeners make this less needed)
+  // Load referral history on demand
+  const loadReferralHistory = useCallback(async () => {
+    if (!user?.uid) return;
+
+    try {
+      const history = await referralService.getReferralHistory(10, user.uid);
+      setReferralHistory(history);
+    } catch (err) {
+      logger.error("Error loading referral history", err);
+      setError("Failed to load referral history");
+    }
+  }, [user?.uid]);
+
+  // Refresh function for manual refresh
   const loadReferralData = useCallback(async () => {
-    // Stats and history are automatically updated via real-time listeners
-    // Referral code comes from user document, no need to reload
-  }, []);
+    // Stats come from user document (cached)
+    // History loaded on demand
+    await loadReferralHistory();
+  }, [loadReferralHistory]);
 
   return {
     // Data
@@ -166,6 +115,7 @@ Google Play: https://play.google.com/store/apps/details?id=com.dreamweaver.app`;
 
     // Actions
     loadReferralData,
+    loadReferralHistory,
     validateReferralCode,
     generateShareText,
     generateShareURL,
