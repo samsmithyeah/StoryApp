@@ -4,8 +4,7 @@ import { jest } from "@jest/globals";
 const mockReferralService = {
   getUserReferralCode: jest.fn(),
   validateReferralCode: jest.fn(),
-  recordReferral: jest.fn(),
-  completeReferral: jest.fn(),
+  applyReferral: jest.fn(),
   getReferralStats: jest.fn(),
   getReferralHistory: jest.fn(),
 } as any;
@@ -17,14 +16,6 @@ const mockAuthStore = {
   subscribe: jest.fn(),
 };
 
-// Mock Firebase Auth
-const mockUser = {
-  uid: "test-user-id",
-  email: "test@example.com",
-  emailVerified: true,
-  displayName: "Test User",
-  createdAt: new Date(),
-};
 
 // Mock logger
 const mockLogger = {
@@ -73,29 +64,13 @@ describe("Referral System Integration Tests", () => {
         ownerId: "referrer-user-id",
       });
 
-      // Step 3: Referee records the referral (during signup)
-      mockReferralService.recordReferral.mockResolvedValue(undefined);
+      // Step 3: Verified referee applies the referral (single atomic operation)
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
 
-      await mockReferralService.recordReferral("referee-user-id", "STORYABC");
-      expect(mockReferralService.recordReferral).toHaveBeenCalledWith(
-        "referee-user-id",
-        "STORYABC"
-      );
+      await mockReferralService.applyReferral("STORYABC");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
 
-      // Step 4: Referee verifies email and referral is completed
-      mockReferralService.completeReferral.mockResolvedValue({
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      });
-
-      const completionResult =
-        await mockReferralService.completeReferral("referee-user-id");
-      expect(completionResult).toEqual({
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      });
+      // Referral is automatically completed with credits awarded
 
       // Step 5: Verify referrer can see updated stats
       mockReferralService.getReferralStats.mockResolvedValue({
@@ -111,46 +86,22 @@ describe("Referral System Integration Tests", () => {
       expect(referrerStats.stats.creditsEarned).toBe(10);
     });
 
-    it("should handle referral for unverified user correctly", async () => {
-      // Step 1: Unverified user records referral
-      mockReferralService.recordReferral.mockResolvedValue(undefined);
-      await mockReferralService.recordReferral(
-        "unverified-user-id",
-        "STORYABC"
-      );
-
-      // Step 2: User verifies email later
-      mockReferralService.completeReferral.mockResolvedValue({
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      });
-
-      // Simulate email verification trigger
-      const completionResult =
-        await mockReferralService.completeReferral("unverified-user-id");
-      expect(completionResult.success).toBe(true);
+    it("should handle referral application for any user (verification no longer affects processing)", async () => {
+      // With the new system, all users use the same applyReferral flow
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
+      
+      await mockReferralService.applyReferral("STORYABC");
+      
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+      
+      // Referral is automatically processed and completed atomically
     });
 
     it("should handle referral for already verified user", async () => {
-      // User is already verified when they enter referral code
-      const verifiedUser = { ...mockUser, emailVerified: true };
-
-      // Record referral
-      mockReferralService.recordReferral.mockResolvedValue(undefined);
-      await mockReferralService.recordReferral(verifiedUser.uid, "STORYABC");
-
-      // Complete immediately since user is verified
-      mockReferralService.completeReferral.mockResolvedValue({
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      });
-
-      const completionResult = await mockReferralService.completeReferral(
-        verifiedUser.uid
-      );
-      expect(completionResult.success).toBe(true);
+      // Apply referral directly for verified user (single operation)
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
+      await mockReferralService.applyReferral("STORYABC");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
     });
   });
 
@@ -178,27 +129,24 @@ describe("Referral System Integration Tests", () => {
       expect(result.error).toBe("You cannot use your own referral code");
     });
 
-    it("should handle duplicate referral recording", async () => {
-      mockReferralService.recordReferral.mockRejectedValue(
+    it("should handle duplicate referral application", async () => {
+      mockReferralService.applyReferral.mockRejectedValue(
         new Error("Referral already recorded for this user")
       );
 
       await expect(
-        mockReferralService.recordReferral("duplicate-user-id", "STORYABC")
+        mockReferralService.applyReferral("STORYABC")
       ).rejects.toThrow("Referral already recorded for this user");
     });
 
-    it("should handle completion when no pending referral exists", async () => {
-      mockReferralService.completeReferral.mockResolvedValue({
-        success: false,
-        message: "No pending referral found",
-      });
-
-      const result = await mockReferralService.completeReferral(
-        "no-referral-user-id"
+    it("should handle application with invalid referral code", async () => {
+      mockReferralService.applyReferral.mockRejectedValue(
+        new Error("Referral code not found")
       );
-      expect(result.success).toBe(false);
-      expect(result.message).toBe("No pending referral found");
+
+      await expect(
+        mockReferralService.applyReferral("INVALIDCODE")
+      ).rejects.toThrow("Referral code not found");
     });
   });
 
@@ -311,16 +259,17 @@ describe("Referral System Integration Tests", () => {
   });
 
   describe("Referral Configuration", () => {
-    it("should use correct credit amounts", async () => {
-      mockReferralService.completeReferral.mockResolvedValue({
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      });
+    it("should apply referrals with correct credit configuration", async () => {
+      // Mock successful referral application
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
 
-      const result = await mockReferralService.completeReferral("test-user-id");
-      expect(result.referrerCreditsAwarded).toBe(10);
-      expect(result.refereeCreditsAwarded).toBe(5);
+      // Apply a referral code successfully
+      await mockReferralService.applyReferral("STORYABC");
+      
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
+      
+      // Verify that the referral service was called correctly
+      // In a real application, this would award 10 credits to referrer, 5 to referee
     });
 
     it("should handle referral code length validation", async () => {

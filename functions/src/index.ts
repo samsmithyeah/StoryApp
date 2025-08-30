@@ -31,8 +31,7 @@ export {
 export {
   getUserReferralCode,
   validateReferralCode,
-  recordReferral,
-  completeReferral,
+  applyReferral,
   getReferralStats,
   getReferralHistory,
   cleanupReferralData,

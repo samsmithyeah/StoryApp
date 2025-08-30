@@ -9,8 +9,7 @@ describe("Referral UI Component Logic", () => {
   // Mock the referral service
   const mockReferralService = {
     validateReferralCode: jest.fn(),
-    recordReferral: jest.fn(),
-    completeReferral: jest.fn(),
+    applyReferral: jest.fn(),
   };
 
   // Mock the auth hook
@@ -106,35 +105,16 @@ describe("Referral UI Component Logic", () => {
     });
 
     describe("Code submission for verified users", () => {
-      it("should record and immediately complete referral for verified users", async () => {
-        const user = { ...mockAuth.user, emailVerified: true };
+      it("should apply referral atomically for verified users", async () => {
         const referralCode = "STORYABC";
 
-        // Mock successful recording
-        mockReferralService.recordReferral.mockResolvedValue(undefined);
+        // Mock successful application
+        mockReferralService.applyReferral.mockResolvedValue(undefined);
 
-        // Mock successful completion
-        mockReferralService.completeReferral.mockResolvedValue({
-          success: true,
-          referrerCreditsAwarded: 10,
-          refereeCreditsAwarded: 5,
-        });
+        // Simulate submission logic - single atomic operation
+        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
 
-        // Simulate submission logic
-        await mockReferralService.recordReferral(user.uid, referralCode);
-
-        if (user.emailVerified) {
-          const result = await mockReferralService.completeReferral(user.uid);
-          expect(result.success).toBe(true);
-        }
-
-        expect(mockReferralService.recordReferral).toHaveBeenCalledWith(
-          user.uid,
-          referralCode
-        );
-        expect(mockReferralService.completeReferral).toHaveBeenCalledWith(
-          user.uid
-        );
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
       });
 
       it("should show success toast for verified users", async () => {
@@ -158,26 +138,16 @@ describe("Referral UI Component Logic", () => {
     });
 
     describe("Code submission for unverified users", () => {
-      it("should record but not complete referral for unverified users", async () => {
-        const user = { ...mockAuth.user, emailVerified: false };
+      it("should apply referral for unverified users (they now get processed immediately)", async () => {
         const referralCode = "STORYABC";
 
-        // Mock successful recording
-        mockReferralService.recordReferral.mockResolvedValue(undefined);
+        // Even unverified users now use the single applyReferral operation
+        mockReferralService.applyReferral.mockResolvedValue(undefined);
 
         // Simulate submission logic
-        await mockReferralService.recordReferral(user.uid, referralCode);
+        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
 
-        const shouldCompleteReferral = user.emailVerified;
-        if (shouldCompleteReferral) {
-          await mockReferralService.completeReferral(user.uid);
-        }
-
-        expect(mockReferralService.recordReferral).toHaveBeenCalledWith(
-          user.uid,
-          referralCode
-        );
-        expect(mockReferralService.completeReferral).not.toHaveBeenCalled();
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
       });
 
       it("should show appropriate toast for unverified users", async () => {
@@ -216,39 +186,24 @@ describe("Referral UI Component Logic", () => {
         const shouldCompleteReferral = testUser.emailVerified || isTestAccount;
 
         // Mock successful operations
-        mockReferralService.recordReferral.mockResolvedValue(undefined);
-        mockReferralService.completeReferral.mockResolvedValue({
-          success: true,
-          referrerCreditsAwarded: 10,
-          refereeCreditsAwarded: 5,
-        });
+        mockReferralService.applyReferral.mockResolvedValue(undefined);
 
-        // Simulate submission logic
-        await mockReferralService.recordReferral(testUser.uid, referralCode);
+        // Simulate submission logic - single operation
+        await mockReferralService.applyReferral(referralCode.trim().toUpperCase());
 
-        if (shouldCompleteReferral) {
-          await mockReferralService.completeReferral(testUser.uid);
-        }
-
-        expect(mockReferralService.recordReferral).toHaveBeenCalledWith(
-          testUser.uid,
-          referralCode
-        );
-        expect(mockReferralService.completeReferral).toHaveBeenCalledWith(
-          testUser.uid
-        );
+        expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
         expect(shouldCompleteReferral).toBe(true);
       });
     });
 
     describe("Error handling", () => {
-      it("should handle recording errors gracefully", async () => {
-        mockReferralService.recordReferral.mockRejectedValue(
+      it("should handle application errors gracefully", async () => {
+        mockReferralService.applyReferral.mockRejectedValue(
           new Error("Referral already recorded for this user")
         );
 
         try {
-          await mockReferralService.recordReferral("user-id", "STORYABC");
+          await mockReferralService.applyReferral("STORYABC");
         } catch (error) {
           mockToast.show({
             type: "error",
@@ -264,23 +219,26 @@ describe("Referral UI Component Logic", () => {
         });
       });
 
-      it("should handle completion errors gracefully", async () => {
-        mockReferralService.recordReferral.mockResolvedValue(undefined);
-        mockReferralService.completeReferral.mockRejectedValue(
-          new Error("Database error")
+      it("should handle invalid referral code errors", async () => {
+        mockReferralService.applyReferral.mockRejectedValue(
+          new Error("Referral code not found")
         );
 
-        // Should not prevent successful recording
-        await mockReferralService.recordReferral("user-id", "STORYABC");
-
         try {
-          await mockReferralService.completeReferral("user-id");
+          await mockReferralService.applyReferral("INVALID");
         } catch (error) {
-          // Error is logged but doesn't prevent success message
-          expect(error).toBeInstanceOf(Error);
+          mockToast.show({
+            type: "error",
+            text1: "Invalid referral code",
+            text2: "Please check the code and try again.",
+          });
         }
 
-        expect(mockReferralService.recordReferral).toHaveBeenCalled();
+        expect(mockToast.show).toHaveBeenCalledWith({
+          type: "error",
+          text1: "Invalid referral code",
+          text2: "Please check the code and try again.",
+        });
       });
     });
 

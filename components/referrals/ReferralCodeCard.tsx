@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import Clipboard from "@react-native-clipboard/clipboard";
 import React, { useState } from "react";
-import { Clipboard, Share, StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { useReferrals } from "../../hooks/useReferrals";
@@ -32,7 +33,7 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
 
     try {
       setCopying(true);
-      await Clipboard.setString(referralCode);
+      Clipboard.setString(referralCode);
 
       Toast.show({
         type: "success",

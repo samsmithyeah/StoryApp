@@ -28,7 +28,7 @@ interface ValidateReferralCodeRequest {
   code: string;
 }
 
-interface RecordReferralRequest {
+interface ApplyReferralRequest {
   referralCode: string;
 }
 
@@ -210,31 +210,22 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
         };
       }
 
-      // Rate limiting in production (skip in test environment and emulator)
-      if (process.env.NODE_ENV !== "test" && !process.env.FUNCTIONS_EMULATOR) {
-        const rateLimitWindow = new Date(
-          Date.now() - SERVER_CONFIG.RATE_LIMIT_WINDOW_MS
-        );
-        const recentValidations = await db
-          .collection("referralValidations")
-          .where("userId", "==", auth.uid)
-          .where("timestamp", ">", rateLimitWindow)
-          .get();
+      // Rate limiting check
+      const rateLimitExceeded = await checkRateLimit(auth.uid, {
+        windowMs: SERVER_CONFIG.RATE_LIMIT_WINDOW_MS,
+        maxAttempts: SERVER_CONFIG.RATE_LIMIT_MAX_ATTEMPTS,
+        action: "validateReferralCode",
+      });
 
-        if (recentValidations.size >= SERVER_CONFIG.RATE_LIMIT_MAX_ATTEMPTS) {
-          return {
-            isValid: false,
-            error: "Too many validation attempts. Please try again later.",
-          };
-        }
-
-        // Record this validation attempt
-        await db.collection("referralValidations").add({
-          userId: auth.uid,
-          code: trimmedCode.toUpperCase(),
-          timestamp: FieldValue.serverTimestamp(),
-        });
+      if (rateLimitExceeded) {
+        return {
+          isValid: false,
+          error: "Too many validation attempts. Please try again later.",
+        };
       }
+
+      // Record the attempt
+      await recordRateLimitAttempt(auth.uid, "validateReferralCode");
 
       const codeDoc = await db
         .collection("referralCodes")
@@ -295,9 +286,10 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
 );
 
 /**
- * Record a referral relationship during signup
+ * Apply a referral code for a verified user
+ * Records the referral and awards credits atomically in a single operation
  */
-export const recordReferral = onCall<RecordReferralRequest>(
+export const applyReferral = onCall<ApplyReferralRequest>(
   {
     region: "us-central1",
   },
@@ -315,8 +307,8 @@ export const recordReferral = onCall<RecordReferralRequest>(
       // Rate limiting check
       const rateLimitExceeded = await checkRateLimit(userId, {
         windowMs: SERVER_CONFIG.RATE_LIMIT_WINDOW_MS,
-        maxAttempts: 3, // Allow 3 referral records per minute
-        action: "recordReferral",
+        maxAttempts: 3, // Allow 3 referral applications per minute
+        action: "applyReferral",
       });
 
       if (rateLimitExceeded) {
@@ -324,7 +316,7 @@ export const recordReferral = onCall<RecordReferralRequest>(
       }
 
       // Record the attempt
-      await recordRateLimitAttempt(userId, "recordReferral");
+      await recordRateLimitAttempt(userId, "applyReferral");
 
       // Validate referral code first
       const codeDoc = await db
@@ -365,7 +357,17 @@ export const recordReferral = onCall<RecordReferralRequest>(
           throw new Error("Referral already recorded for this user");
         }
 
-        // Create referral redemption record
+        // Read referrer data for stats update
+        const referrerRef = db.collection("users").doc(codeData.ownerId);
+        const referrerDoc = await transaction.get(referrerRef);
+        const referrerData = referrerDoc.data() || {};
+        const currentStats = referrerData.referralStats || {
+          totalReferred: 0,
+          creditsEarned: 0,
+          pendingReferrals: 0,
+        };
+
+        // Create referral redemption record as completed
         transaction.set(
           db.collection("referralRedemptions").doc(redemptionId),
           {
@@ -374,9 +376,10 @@ export const recordReferral = onCall<RecordReferralRequest>(
             referrerId: codeData.ownerId,
             refereeId: userId,
             redeemedAt: FieldValue.serverTimestamp(),
+            completedAt: FieldValue.serverTimestamp(),
             referrerCreditsAwarded: SERVER_CONFIG.REFERRER_CREDITS,
             refereeCreditsAwarded: SERVER_CONFIG.REFEREE_CREDITS,
-            status: "pending",
+            status: "completed",
           }
         );
 
@@ -389,79 +392,13 @@ export const recordReferral = onCall<RecordReferralRequest>(
         transaction.update(db.collection("users").doc(userId), {
           referredBy: referralCode,
         });
-      });
-
-      logger.info("Referral recorded successfully", {
-        refereeId: userId,
-        referralCode,
-        referrerId: codeData.ownerId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      logger.error("Error recording referral", error);
-      throw error;
-    }
-  }
-);
-
-/**
- * Complete a referral and award credits when referee verifies email
- * This is called automatically when a user's email verification status changes
- */
-export const completeReferral = onCall<{ userId?: string }>(
-  {
-    region: "us-central1",
-  },
-  async (request) => {
-    try {
-      const { data, auth } = request;
-      const targetUserId = data?.userId || auth?.uid;
-
-      if (!targetUserId) {
-        throw new Error("User ID required");
-      }
-
-      // Find pending referral for this user
-      const redemptionsQuery = db
-        .collection("referralRedemptions")
-        .where("refereeId", "==", targetUserId)
-        .where("status", "==", "pending")
-        .limit(1);
-
-      const querySnapshot = await redemptionsQuery.get();
-
-      if (querySnapshot.empty) {
-        logger.debug("No pending referral found for user", {
-          userId: targetUserId,
-        });
-        return { success: false, message: "No pending referral found" };
-      }
-
-      const redemptionDoc = querySnapshot.docs[0];
-      const redemption = redemptionDoc.data();
-
-      await db.runTransaction(async (transaction) => {
-        // DO ALL READS FIRST (Firestore requirement)
-
-        // Read referrer data
-        const referrerRef = db.collection("users").doc(redemption.referrerId);
-        const referrerDoc = await transaction.get(referrerRef);
-        const referrerData = referrerDoc.data() || {};
-        const currentStats = referrerData.referralStats || {
-          totalReferred: 0,
-          creditsEarned: 0,
-          pendingReferrals: 0,
-        };
-
-        // NOW DO ALL WRITES
 
         // Award credits to referrer
         const referrerCreditsRef = db
           .collection("userCredits")
-          .doc(redemption.referrerId);
+          .doc(codeData.ownerId);
         transaction.update(referrerCreditsRef, {
-          balance: FieldValue.increment(redemption.referrerCreditsAwarded),
+          balance: FieldValue.increment(SERVER_CONFIG.REFERRER_CREDITS),
           lastUpdated: FieldValue.serverTimestamp(),
         });
 
@@ -470,80 +407,70 @@ export const completeReferral = onCall<{ userId?: string }>(
           .collection("creditTransactions")
           .doc();
         transaction.set(referrerTransactionRef, {
-          userId: redemption.referrerId,
-          amount: redemption.referrerCreditsAwarded,
+          userId: codeData.ownerId,
+          amount: SERVER_CONFIG.REFERRER_CREDITS,
           type: "bonus",
-          description: `Referral bonus: friend joined via your code ${redemption.referralCode}`,
+          description: `Referral bonus: friend joined via your code ${referralCode}`,
           createdAt: FieldValue.serverTimestamp(),
           metadata: {
-            referralCode: redemption.referralCode,
-            refereeId: redemption.refereeId,
+            referralCode: referralCode,
+            refereeId: userId,
           },
         });
 
         // Award bonus credits to referee
-        const refereeCreditsRef = db
-          .collection("userCredits")
-          .doc(redemption.refereeId);
+        const refereeCreditsRef = db.collection("userCredits").doc(userId);
         transaction.update(refereeCreditsRef, {
-          balance: FieldValue.increment(redemption.refereeCreditsAwarded),
+          balance: FieldValue.increment(SERVER_CONFIG.REFEREE_CREDITS),
           lastUpdated: FieldValue.serverTimestamp(),
         });
 
         // Record referee transaction
         const refereeTransactionRef = db.collection("creditTransactions").doc();
         transaction.set(refereeTransactionRef, {
-          userId: redemption.refereeId,
-          amount: redemption.refereeCreditsAwarded,
+          userId: userId,
+          amount: SERVER_CONFIG.REFEREE_CREDITS,
           type: "bonus",
-          description: `Welcome bonus: joined via referral code ${redemption.referralCode}`,
+          description: `Welcome bonus: joined via referral code ${referralCode}`,
           createdAt: FieldValue.serverTimestamp(),
           metadata: {
-            referralCode: redemption.referralCode,
-            referrerId: redemption.referrerId,
+            referralCode: referralCode,
+            referrerId: codeData.ownerId,
           },
         });
-
-        // Update redemption status
-        transaction.update(
-          db.collection("referralRedemptions").doc(redemptionDoc.id),
-          {
-            status: "completed",
-            completedAt: FieldValue.serverTimestamp(),
-          }
-        );
 
         // Update referrer's stats
         transaction.update(referrerRef, {
           referralStats: {
             totalReferred: currentStats.totalReferred + 1,
             creditsEarned:
-              currentStats.creditsEarned + redemption.referrerCreditsAwarded,
-            pendingReferrals: Math.max(0, currentStats.pendingReferrals - 1),
+              currentStats.creditsEarned + SERVER_CONFIG.REFERRER_CREDITS,
+            pendingReferrals: currentStats.pendingReferrals, // No change since we're completing immediately
             lastReferralAt: FieldValue.serverTimestamp(),
           },
         });
       });
 
-      logger.info("Referral completed successfully", {
-        refereeId: redemption.refereeId,
-        referrerId: redemption.referrerId,
-        referrerCredits: redemption.referrerCreditsAwarded,
-        refereeCredits: redemption.refereeCreditsAwarded,
+      logger.info("Referral applied successfully", {
+        refereeId: userId,
+        referralCode,
+        referrerId: codeData.ownerId,
+        referrerCredits: SERVER_CONFIG.REFERRER_CREDITS,
+        refereeCredits: SERVER_CONFIG.REFEREE_CREDITS,
       });
 
       // Send push notification to referrer (optional, don't fail if it doesn't work)
       try {
-        await sendReferralNotification(redemption.referrerId, {
-          referralCode: redemption.referralCode,
-          refereeId: redemption.refereeId,
-          creditsEarned: redemption.referrerCreditsAwarded,
+        await sendReferralNotification(codeData.ownerId, {
+          referralCode: referralCode,
+          refereeId: userId,
+          creditsEarned: SERVER_CONFIG.REFERRER_CREDITS,
         });
       } catch (notificationError) {
         logger.warn(
-          "Failed to send referral notification, but referral completed successfully",
+          "Failed to send referral notification, but referral applied successfully",
           {
-            referrerId: redemption.referrerId,
+            referrerId: codeData.ownerId,
             error: notificationError,
           }
         );
@@ -551,7 +478,7 @@ export const completeReferral = onCall<{ userId?: string }>(
 
       return { success: true };
     } catch (error) {
-      logger.error("Error completing referral", error);
+      logger.error("Error applying referral", error);
       throw error;
     }
   }

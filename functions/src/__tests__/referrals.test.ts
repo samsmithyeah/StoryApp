@@ -315,8 +315,8 @@ describe("Referral Functions", () => {
     });
   });
 
-  describe("recordReferral", () => {
-    it("should successfully record a valid referral", async () => {
+  describe("applyReferral", () => {
+    it("should successfully apply a valid referral", async () => {
       const mockRequest = {
         auth: { uid: "referee-user-id" },
         data: { referralCode: "ABC123" },
@@ -334,23 +334,30 @@ describe("Referral Functions", () => {
       };
       db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
-      // Mock transaction - no existing redemption
-      const mockTransaction =
-        db.runTransaction.mock.calls[0]?.[0] ||
-        ((callback: any) =>
-          callback({
-            get: jest.fn().mockResolvedValue({ exists: false }),
-            set: jest.fn(),
-            update: jest.fn(),
-          }));
+      // Mock transaction - no existing redemption, with referrer data
+      db.runTransaction.mockImplementation((callback: any) =>
+        callback({
+          get: jest.fn()
+            .mockResolvedValueOnce({ exists: false }) // No existing redemption
+            .mockResolvedValueOnce({ // Referrer data
+              data: () => ({
+                referralStats: {
+                  totalReferred: 0,
+                  creditsEarned: 0,
+                  pendingReferrals: 0,
+                },
+              }),
+            }),
+          set: jest.fn(),
+          update: jest.fn(),
+        })
+      );
 
-      db.runTransaction.mockImplementation(mockTransaction);
-
-      const result = await referralFunctions.recordReferral(mockRequest);
+      const result = await referralFunctions.applyReferral(mockRequest);
 
       expect(result).toEqual({ success: true });
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "Referral recorded successfully",
+        "Referral applied successfully",
         expect.objectContaining({
           refereeId: "referee-user-id",
           referralCode: "ABC123",
@@ -387,7 +394,7 @@ describe("Referral Functions", () => {
       );
 
       await expect(
-        referralFunctions.recordReferral(mockRequest)
+        referralFunctions.applyReferral(mockRequest)
       ).rejects.toThrow("Referral already recorded for this user");
     });
 
@@ -404,90 +411,54 @@ describe("Referral Functions", () => {
       db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
       await expect(
-        referralFunctions.recordReferral(mockRequest)
+        referralFunctions.applyReferral(mockRequest)
       ).rejects.toThrow("Referral code not found");
     });
-  });
 
-  describe("completeReferral", () => {
-    it("should successfully complete a pending referral", async () => {
+    it("should throw error for inactive referral code", async () => {
       const mockRequest = {
-        auth: { uid: "admin-user-id" },
-        data: { userId: "referee-user-id" },
+        auth: { uid: "referee-user-id" },
+        data: { referralCode: "INACTIVE" },
       };
 
-      // Mock pending referral query result
-      const mockQueryResult = {
-        empty: false,
-        docs: [
-          {
-            id: "redemption-id",
-            data: () => ({
-              referrerId: "referrer-user-id",
-              refereeId: "referee-user-id",
-              referralCode: "ABC123",
-              referrerCreditsAwarded: 10,
-              refereeCreditsAwarded: 5,
-            }),
-          },
-        ],
+      // Mock inactive referral code
+      const mockCodeDoc = {
+        exists: true,
+        data: () => ({
+          ownerId: "referrer-user-id",
+          isActive: false,
+          usageLimit: 1000,
+          timesUsed: 5,
+        }),
       };
-      mockQuery.get.mockResolvedValue(mockQueryResult);
+      db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
-      // Mock transaction with referrer data
-      db.runTransaction.mockImplementation((callback: any) =>
-        callback({
-          get: jest.fn().mockResolvedValue({
-            data: () => ({
-              referralStats: {
-                totalReferred: 0,
-                creditsEarned: 0,
-                pendingReferrals: 1,
-              },
-            }),
-          }),
-          update: jest.fn(),
-          set: jest.fn(),
-        })
-      );
-
-      const result = await referralFunctions.completeReferral(mockRequest);
-
-      expect(result).toEqual({ success: true });
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        "Referral completed successfully",
-        expect.objectContaining({
-          refereeId: "referee-user-id",
-          referrerId: "referrer-user-id",
-          referrerCredits: 10,
-          refereeCredits: 5,
-        })
-      );
+      await expect(
+        referralFunctions.applyReferral(mockRequest)
+      ).rejects.toThrow("Referral code is no longer active");
     });
 
-    it("should return failure if no pending referral found", async () => {
+    it("should throw error when user tries to use their own referral code", async () => {
       const mockRequest = {
-        auth: { uid: "admin-user-id" },
-        data: { userId: "referee-user-id" },
+        auth: { uid: "self-referrer-id" },
+        data: { referralCode: "SELF123" },
       };
 
-      // Mock empty query result
-      const mockQueryResult = {
-        empty: true,
-        docs: [],
+      // Mock referral code owned by the same user
+      const mockCodeDoc = {
+        exists: true,
+        data: () => ({
+          ownerId: "self-referrer-id",
+          isActive: true,
+          usageLimit: 1000,
+          timesUsed: 5,
+        }),
       };
-      mockQuery.get.mockResolvedValue(mockQueryResult);
+      db.collection().doc().get.mockResolvedValue(mockCodeDoc);
 
-      const result = await referralFunctions.completeReferral(mockRequest);
-
-      expect(result).toEqual({
-        success: false,
-        message: "No pending referral found",
-      });
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        "No pending referral found for user",
-        { userId: "referee-user-id" }
-      );
+      await expect(
+        referralFunctions.applyReferral(mockRequest)
+      ).rejects.toThrow("You cannot use your own referral code");
     });
   });
 

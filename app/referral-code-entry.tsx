@@ -65,27 +65,13 @@ export default function ReferralCodeEntryScreen() {
           return;
         }
 
-        // Proceed with recording the referral
-        await referralService.recordReferral(
-          user.uid,
-          referralCode.trim().toUpperCase()
-        );
+        // Apply the referral (combines record + complete in single atomic operation)
+        await referralService.applyReferral(referralCode.trim().toUpperCase());
 
-        // Complete the referral immediately (user is already verified to reach this screen)
-        try {
-          logger.info("Completing referral for verified user", {
-            userId: user.uid,
-          });
-          await referralService.completeReferral(user.uid);
-          logger.info("Referral completed successfully", {
-            userId: user.uid,
-          });
-        } catch (completeError) {
-          logger.debug("Error completing referral", {
-            userId: user.uid,
-            error: completeError,
-          });
-        }
+        logger.info("Referral applied successfully", {
+          userId: user.uid,
+          referralCode: referralCode.trim().toUpperCase(),
+        });
 
         // Mark that referral was just applied and user has seen this screen
         // The reactive system will handle navigation.

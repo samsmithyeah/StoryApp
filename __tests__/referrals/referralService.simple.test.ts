@@ -10,8 +10,7 @@ describe("Referral Service Interface", () => {
   const mockReferralService = {
     getUserReferralCode: jest.fn(),
     validateReferralCode: jest.fn(),
-    recordReferral: jest.fn(),
-    completeReferral: jest.fn(),
+    applyReferral: jest.fn(),
     getReferralStats: jest.fn(),
     getReferralHistory: jest.fn(),
   };
@@ -83,52 +82,43 @@ describe("Referral Service Interface", () => {
     });
   });
 
-  describe("recordReferral", () => {
-    it("should complete successfully for valid data", async () => {
-      mockReferralService.recordReferral.mockResolvedValue(undefined);
+  describe("applyReferral", () => {
+    it("should complete successfully for valid referral code", async () => {
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
 
       await expect(
-        mockReferralService.recordReferral("user-123", "STORYABC")
+        mockReferralService.applyReferral("STORYABC")
       ).resolves.toBeUndefined();
     });
 
     it("should throw error for duplicate referrals", async () => {
-      mockReferralService.recordReferral.mockRejectedValue(
+      mockReferralService.applyReferral.mockRejectedValue(
         new Error("Referral already recorded for this user")
       );
 
       await expect(
-        mockReferralService.recordReferral("user-123", "STORYABC")
+        mockReferralService.applyReferral("STORYABC")
       ).rejects.toThrow("Referral already recorded for this user");
     });
-  });
 
-  describe("completeReferral", () => {
-    it("should return success result", async () => {
-      const mockResponse = {
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      };
-      mockReferralService.completeReferral.mockResolvedValue(mockResponse);
+    it("should throw error for invalid referral code", async () => {
+      mockReferralService.applyReferral.mockRejectedValue(
+        new Error("Referral code not found")
+      );
 
-      const result = await mockReferralService.completeReferral("user-123");
-
-      expect(result).toEqual(mockResponse);
-      expect(result.success).toBe(true);
+      await expect(
+        mockReferralService.applyReferral("INVALID")
+      ).rejects.toThrow("Referral code not found");
     });
 
-    it("should return failure when no referral found", async () => {
-      const mockResponse = {
-        success: false,
-        message: "No pending referral found",
-      };
-      mockReferralService.completeReferral.mockResolvedValue(mockResponse);
+    it("should throw error for inactive referral code", async () => {
+      mockReferralService.applyReferral.mockRejectedValue(
+        new Error("Referral code is no longer active")
+      );
 
-      const result = await mockReferralService.completeReferral("user-123");
-
-      expect(result).toEqual(mockResponse);
-      expect(result.success).toBe(false);
+      await expect(
+        mockReferralService.applyReferral("INACTIVE")
+      ).rejects.toThrow("Referral code is no longer active");
     });
   });
 
@@ -206,8 +196,7 @@ describe("Referral Service Interface", () => {
     it("should have all required methods", () => {
       expect(mockReferralService).toHaveProperty("getUserReferralCode");
       expect(mockReferralService).toHaveProperty("validateReferralCode");
-      expect(mockReferralService).toHaveProperty("recordReferral");
-      expect(mockReferralService).toHaveProperty("completeReferral");
+      expect(mockReferralService).toHaveProperty("applyReferral");
       expect(mockReferralService).toHaveProperty("getReferralStats");
       expect(mockReferralService).toHaveProperty("getReferralHistory");
     });
@@ -215,8 +204,7 @@ describe("Referral Service Interface", () => {
     it("should have methods that are functions", () => {
       expect(typeof mockReferralService.getUserReferralCode).toBe("function");
       expect(typeof mockReferralService.validateReferralCode).toBe("function");
-      expect(typeof mockReferralService.recordReferral).toBe("function");
-      expect(typeof mockReferralService.completeReferral).toBe("function");
+      expect(typeof mockReferralService.applyReferral).toBe("function");
       expect(typeof mockReferralService.getReferralStats).toBe("function");
       expect(typeof mockReferralService.getReferralHistory).toBe("function");
     });
@@ -256,20 +244,15 @@ describe("Referral Service Interface", () => {
       expect(longResult.isValid).toBe(false);
     });
 
-    it("should validate credit amounts in completion result", async () => {
-      const result = {
-        success: true,
-        referrerCreditsAwarded: 10,
-        refereeCreditsAwarded: 5,
-      };
-      mockReferralService.completeReferral.mockResolvedValue(result);
+    it("should handle referral application successfully", async () => {
+      // Apply referral should complete without errors for valid codes
+      mockReferralService.applyReferral.mockResolvedValue(undefined);
 
-      const completion = await mockReferralService.completeReferral("user-123");
+      await expect(
+        mockReferralService.applyReferral("STORYABC")
+      ).resolves.toBeUndefined();
 
-      expect(completion.referrerCreditsAwarded).toBe(10);
-      expect(completion.refereeCreditsAwarded).toBe(5);
-      expect(typeof completion.referrerCreditsAwarded).toBe("number");
-      expect(typeof completion.refereeCreditsAwarded).toBe("number");
+      expect(mockReferralService.applyReferral).toHaveBeenCalledWith("STORYABC");
     });
   });
 });

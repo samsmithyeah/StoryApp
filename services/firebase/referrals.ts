@@ -126,54 +126,38 @@ export const referralService = {
   },
 
   /**
-   * Record a referral relationship during signup
+   * Apply a referral code for a verified user
+   * Records the referral and awards credits in a single atomic operation
    */
-  async recordReferral(refereeId: string, referralCode: string): Promise<void> {
+  async applyReferral(referralCode: string): Promise<void> {
     try {
-      const recordReferralFunction = httpsCallable(
+      const applyReferralFunction = httpsCallable(
         functionsService,
-        "recordReferral"
+        "applyReferral"
       );
 
-      await recordReferralFunction({ referralCode });
+      await applyReferralFunction({ referralCode });
 
       // Invalidate caches that might be affected
       referralCache.delete(CacheKeys.referralStats("current_user"));
       referralCache.delete(CacheKeys.referralHistory("current_user", 10));
 
-      logger.debug("Referral recorded successfully", {
-        refereeId,
-        referralCode,
-      });
-    } catch (error) {
-      logger.error("Error recording referral", error);
-      throw error;
-    }
-  },
+      // Refresh auth store to ensure UI picks up any changes
+      const { useAuthStore } = await import("../../store/authStore");
 
-  /**
-   * Complete a referral and award credits when referee verifies email
-   */
-  async completeReferral(refereeId: string): Promise<void> {
-    try {
-      const completeReferralFunction = httpsCallable(
-        functionsService,
-        "completeReferral"
-      );
-
-      const result = await completeReferralFunction({ userId: refereeId });
-
-      if ((result.data as { success: boolean }).success) {
-        // Invalidate caches for both referrer and referee
-        referralCache.delete(CacheKeys.referralStats("current_user"));
-        referralCache.delete(CacheKeys.referralHistory("current_user", 10));
-
-        logger.debug("Referral completed successfully", { refereeId });
-      } else {
-        logger.debug("No pending referral found", { refereeId });
+      try {
+        await useAuthStore.getState().refreshUserData();
+        logger.debug("Auth store refreshed after referral application");
+      } catch (refreshError) {
+        logger.warn(
+          "Failed to refresh auth store after referral application",
+          refreshError
+        );
       }
+
+      logger.debug("Referral applied successfully", { referralCode });
     } catch (error) {
-      logger.error("Error completing referral", error);
+      logger.error("Error applying referral", error);
       throw error;
     }
   },
