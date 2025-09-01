@@ -28,7 +28,7 @@ export interface StoryConfiguration {
   pageImageModel?: "flux" | "gemini" | "gpt-image-1";
   textModel?: "gpt-4o" | "gemini-2.5-pro";
   coverImageModel?:
-    | "gemini-2.0-flash-preview-image-generation"
+    | "gemini-2.5-flash-image-preview"
     | "dall-e-3"
     | "gpt-image-1";
   targetAge?: number;
@@ -57,6 +57,7 @@ export interface Story {
   generationPhase?: "text_complete" | "cover_complete" | "all_complete";
   imagesGenerated?: number;
   totalImages?: number;
+  imagesFailed?: number;
   imageGenerationError?: string;
 }
 

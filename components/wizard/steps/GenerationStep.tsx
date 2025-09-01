@@ -38,17 +38,25 @@ interface ChecklistItemProps {
   isCompleted: boolean;
   isLoading: boolean;
   showSpinner?: boolean;
+  hasFailures?: boolean;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
   label,
   isCompleted,
   showSpinner = false,
+  hasFailures = false,
 }) => {
   return (
     <View style={styles.checklistItem}>
       <View style={styles.checklistIcon}>
-        {isCompleted ? (
+        {isCompleted && hasFailures ? (
+          <IconSymbol
+            name="exclamationmark.triangle.fill"
+            size={20}
+            color={Colors.warning}
+          />
+        ) : isCompleted ? (
           <IconSymbol
             name="checkmark.circle.fill"
             size={20}
@@ -60,7 +68,14 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
           <View style={styles.emptyCircle} />
         )}
       </View>
-      <Text style={styles.checklistLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.checklistLabel,
+          hasFailures && isCompleted && styles.checklistLabelWarning,
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 };
@@ -119,7 +134,16 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     if (!storyData) return false;
 
     const status = storyData?.imageGenerationStatus;
-    return status === "completed";
+
+    // Consider images ready if status is completed OR if all images are accounted for (success + failure)
+    if (status === "completed") return true;
+
+    const imagesGenerated = storyData.imagesGenerated || 0;
+    const imagesFailed = storyData.imagesFailed || 0;
+    const totalImages =
+      storyData.totalImages || storyData.storyConfiguration?.pageCount || 0;
+
+    return totalImages > 0 && imagesGenerated + imagesFailed >= totalImages;
   }, [_debugForceStates?.imagesReady, storyData]);
 
   const isStoryFullyComplete = useMemo(() => {
@@ -128,19 +152,27 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
   const pageImageProgress = useMemo(() => {
     const imagesGenerated = storyData?.imagesGenerated || 0;
+    const imagesFailed = storyData?.imagesFailed || 0;
     const totalImages =
       storyData?.totalImages || storyData?.storyConfiguration?.pageCount || 0;
 
     if (totalImages === 0) return "";
 
     // Show progress once we have cover image ready (meaning page image generation should start)
-    if (isCoverImageReady || imagesGenerated > 0 || arePageImagesReady) {
-      return ` (${imagesGenerated}/${totalImages})`;
+    if (
+      isCoverImageReady ||
+      imagesGenerated > 0 ||
+      imagesFailed > 0 ||
+      arePageImagesReady
+    ) {
+      const completed = imagesGenerated + imagesFailed;
+      return ` (${completed}/${totalImages}${imagesFailed > 0 ? `, ${imagesFailed} failed` : ""})`;
     }
 
     return "";
   }, [
     storyData?.imagesGenerated,
+    storyData?.imagesFailed,
     storyData?.totalImages,
     storyData?.storyConfiguration?.pageCount,
     isCoverImageReady,
@@ -164,6 +196,18 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       clearInterval(messageInterval);
     };
   }, [isGenerating]);
+
+  // Auto-redirect when story is complete (including with some failures)
+  useEffect(() => {
+    if (isStoryFullyComplete && onNavigateToStory) {
+      // Add a small delay to show completion state briefly
+      const timer = setTimeout(() => {
+        onNavigateToStory();
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isStoryFullyComplete, onNavigateToStory]);
 
   // Check if this is an insufficient credits error
   const isInsufficientCreditsError =
@@ -273,6 +317,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
               showSpinner={
                 isGenerating && isCoverImageReady && !arePageImagesReady
               }
+              hasFailures={(storyData?.imagesFailed || 0) > 0}
             />
           </View>
 
@@ -447,6 +492,10 @@ const styles = StyleSheet.create({
   },
   checklistLabelCompleted: {
     color: Colors.success,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  checklistLabelWarning: {
+    color: Colors.warning,
     fontWeight: Typography.fontWeight.medium,
   },
 });
