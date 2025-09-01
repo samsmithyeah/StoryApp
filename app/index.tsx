@@ -1,29 +1,12 @@
 import { WelcomeOnboarding } from "@/components/onboarding/WelcomeOnboarding";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
-import { Colors } from "@/constants/Theme";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { AuthStatus } from "@/types/auth.types";
 import { logger } from "@/utils/logger";
-import { LinearGradient } from "expo-linear-gradient";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
-import { ImageBackground, StyleSheet } from "react-native";
-
-// Background container component to prevent white flashes
-const BackgroundContainer = ({ children }: { children: React.ReactNode }) => (
-  <ImageBackground
-    source={require("../assets/images/background-landscape.png")}
-    resizeMode="cover"
-    style={styles.container}
-  >
-    <LinearGradient
-      colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-      style={StyleSheet.absoluteFill}
-    />
-    {children}
-  </ImageBackground>
-);
 
 export default function Index() {
   const { user, authStatus, completeOnboarding, isReady, needsOnboarding } =
@@ -93,7 +76,7 @@ export default function Index() {
   if (isAuthStatusTransitioning) {
     logger.debug("Auth status transitioning - showing loading");
     return (
-      <BackgroundContainer>
+      <BackgroundContainer showDecorations={false}>
         <LoadingScreen message="Signing in..." transparent />
       </BackgroundContainer>
     );
@@ -104,7 +87,7 @@ export default function Index() {
     case AuthStatus.INITIALIZING:
       logger.debug("Showing loading screen - initializing");
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <LoadingScreen message="Setting up DreamWeaver..." transparent />
         </BackgroundContainer>
       );
@@ -112,7 +95,7 @@ export default function Index() {
     case AuthStatus.UNAUTHENTICATED:
       logger.debug("Redirecting to login (unauthenticated)");
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <Redirect href="/(auth)/login" />
         </BackgroundContainer>
       );
@@ -120,7 +103,7 @@ export default function Index() {
     case AuthStatus.UNVERIFIED:
       logger.debug("Redirecting to verify-email (unverified)");
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <Redirect href="/(auth)/verify-email" />
         </BackgroundContainer>
       );
@@ -130,7 +113,7 @@ export default function Index() {
         "Redirecting to referral-code-entry (referral entry needed)"
       );
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <Redirect href="/referral-code-entry" />
         </BackgroundContainer>
       );
@@ -139,13 +122,13 @@ export default function Index() {
       logger.debug("Showing WelcomeOnboarding (onboarding required)");
       if (isCompletingOnboarding) {
         return (
-          <BackgroundContainer>
+          <BackgroundContainer showDecorations={false}>
             <LoadingScreen message="Completing setup..." transparent />
           </BackgroundContainer>
         );
       }
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <WelcomeOnboarding
             visible={true}
             onComplete={handleOnboardingComplete}
@@ -157,7 +140,7 @@ export default function Index() {
     case AuthStatus.AUTHENTICATED:
       logger.debug("Redirecting to tabs (authenticated)");
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <Redirect href="/(tabs)" />
         </BackgroundContainer>
       );
@@ -168,16 +151,9 @@ export default function Index() {
         authStatus,
       });
       return (
-        <BackgroundContainer>
+        <BackgroundContainer showDecorations={false}>
           <LoadingScreen message="Loading..." transparent />
         </BackgroundContainer>
       );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-});
