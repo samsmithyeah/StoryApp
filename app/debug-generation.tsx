@@ -23,6 +23,9 @@ const createMockStory = (
     | "partial-images"
     | "most-images"
     | "complete"
+    | "some-failed"
+    | "many-failed"
+    | "complete-with-failures"
 ): Story | null => {
   if (state === "empty") return null;
 
@@ -39,7 +42,10 @@ const createMockStory = (
       state === "with-cover" ||
       state === "partial-images" ||
       state === "most-images" ||
-      state === "complete"
+      state === "complete" ||
+      state === "some-failed" ||
+      state === "many-failed" ||
+      state === "complete-with-failures"
         ? "https://example.com/cover.jpg"
         : "",
     storyConfiguration: {
@@ -48,19 +54,42 @@ const createMockStory = (
       pageCount: 5,
       illustrationStyle: "watercolor",
     },
-    imageGenerationStatus: state === "complete" ? "completed" : "generating",
-    imagesGenerated:
-      state === "complete"
-        ? 5
-        : state === "most-images"
-          ? 4
-          : state === "partial-images"
-            ? 2
-            : state === "with-cover"
-              ? 0
-              : state === "text-only"
-                ? 0
-                : 0,
+    imageGenerationStatus:
+      state === "complete" || state === "complete-with-failures"
+        ? "completed"
+        : "generating",
+    imagesGenerated: (() => {
+      switch (state) {
+        case "complete":
+          return 5;
+        case "complete-with-failures":
+          return 3;
+        case "most-images":
+          return 4;
+        case "many-failed":
+          return 2;
+        case "partial-images":
+          return 2;
+        case "some-failed":
+          return 3;
+        case "with-cover":
+        case "text-only":
+        default:
+          return 0;
+      }
+    })(),
+    imagesFailed: (() => {
+      switch (state) {
+        case "complete-with-failures":
+          return 2;
+        case "many-failed":
+          return 2;
+        case "some-failed":
+          return 1;
+        default:
+          return 0;
+      }
+    })(),
     totalImages: 5,
   };
 
@@ -77,6 +106,9 @@ export default function DebugGenerationScreen() {
     | "partial-images"
     | "most-images"
     | "complete"
+    | "some-failed"
+    | "many-failed"
+    | "complete-with-failures"
   >("empty");
   const [isGenerating, setIsGenerating] = useState(true);
   const [showError, setShowError] = useState(false);
@@ -226,6 +258,69 @@ export default function DebugGenerationScreen() {
         </View>
         <View style={styles.buttonRow}>
           <TouchableOpacity
+            onPress={() => {
+              setTestState("some-failed");
+              setIsGenerating(true);
+              setShowError(false);
+            }}
+            style={[
+              styles.button,
+              testState === "some-failed" && styles.activeButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                testState === "some-failed" && styles.activeButtonText,
+              ]}
+            >
+              1 Failed
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setTestState("many-failed");
+              setIsGenerating(true);
+              setShowError(false);
+            }}
+            style={[
+              styles.button,
+              testState === "many-failed" && styles.activeButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                testState === "many-failed" && styles.activeButtonText,
+              ]}
+            >
+              2 Failed
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setTestState("complete-with-failures");
+              setIsGenerating(false);
+              setShowError(false);
+            }}
+            style={[
+              styles.button,
+              testState === "complete-with-failures" && styles.activeButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                testState === "complete-with-failures" &&
+                  styles.activeButtonText,
+              ]}
+            >
+              Done + Fails
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
             onPress={() => setIsGenerating(!isGenerating)}
             style={styles.button}
           >
@@ -266,13 +361,20 @@ export default function DebugGenerationScreen() {
             testState === "with-cover" ||
             testState === "partial-images" ||
             testState === "most-images" ||
-            testState === "complete",
+            testState === "complete" ||
+            testState === "some-failed" ||
+            testState === "many-failed" ||
+            testState === "complete-with-failures",
           coverReady:
             testState === "with-cover" ||
             testState === "partial-images" ||
             testState === "most-images" ||
-            testState === "complete",
-          imagesReady: testState === "complete",
+            testState === "complete" ||
+            testState === "some-failed" ||
+            testState === "many-failed" ||
+            testState === "complete-with-failures",
+          imagesReady:
+            testState === "complete" || testState === "complete-with-failures",
         }}
       />
     </SafeAreaView>
