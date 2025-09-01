@@ -30,7 +30,11 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
   // Memoized function to calculate thumb position from value
   const calculateThumbPosition = React.useCallback(
     (currentValue: number, width: number) => {
-      const progress = (currentValue - minValue) / (maxValue - minValue);
+      const range = maxValue - minValue;
+      if (range === 0) {
+        return -THUMB_SIZE / 2;
+      }
+      const progress = (currentValue - minValue) / range;
       return progress * width - THUMB_SIZE / 2;
     },
     [minValue, maxValue]
@@ -42,13 +46,21 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
       "worklet";
       if (sliderWidth.value > 0) {
         const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
-        const newValue = Math.round(
-          minValue + progress * (maxValue - minValue)
-        );
-        runOnJS(onValueChange)(newValue);
+        const range = maxValue - minValue;
+
+        let newValue;
+        if (range === 0) {
+          newValue = minValue;
+        } else {
+          newValue = Math.round(minValue + progress * range);
+        }
+
+        // Clamp to ensure value is within bounds
+        const clampedValue = Math.max(minValue, Math.min(newValue, maxValue));
+        runOnJS(onValueChange)(clampedValue);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth is a SharedValue
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth is a SharedValue
     [minValue, maxValue, onValueChange]
   );
 
@@ -134,8 +146,8 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
       if (width > 0) {
         translateX.value = calculateThumbPosition(value, width);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
     [value, calculateThumbPosition]
   );
 

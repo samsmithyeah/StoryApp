@@ -1,12 +1,12 @@
 import { CustomSlider } from "@/components/ui/CustomSlider";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { InsufficientCreditsModal } from "@/components/ui/InsufficientCreditsModal";
-import { Colors } from "@/constants/Theme";
 import {
   DEFAULT_PAGE_COUNT,
-  MIN_PAGE_COUNT,
   MAX_PAGE_COUNT,
+  MIN_PAGE_COUNT,
 } from "@/constants/Story";
+import { Colors } from "@/constants/Theme";
 import { useCredits } from "@/hooks/useCredits";
 import React, { useState } from "react";
 import {
