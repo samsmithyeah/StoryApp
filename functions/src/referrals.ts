@@ -277,10 +277,7 @@ export const validateReferralCode = onCall<ValidateReferralCodeRequest>(
       };
     } catch (error) {
       logger.error("Error validating referral code", error);
-      return {
-        isValid: false,
-        error: "Error validating referral code - EXCEPTION CAUGHT",
-      };
+      throw error;
     }
   }
 );
