@@ -262,7 +262,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       presentationStyle="fullScreen"
       statusBarTranslucent={Platform.OS === "android"}
     >

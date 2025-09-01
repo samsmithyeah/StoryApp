@@ -1,10 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -153,126 +151,104 @@ export default function LoginScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode={isTablet ? "cover" : "none"}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            <View style={styles.header}>
-              <Text style={styles.appName}>DreamWeaver</Text>
-              <Text style={styles.tagline}>Your bedtime adventures</Text>
-            </View>
+          <View style={styles.header}>
+            <Text style={styles.appName}>DreamWeaver</Text>
+            <Text style={styles.tagline}>Your bedtime adventures</Text>
+          </View>
 
-            <View style={styles.authContainer}>
-              {showForgotPassword ? (
-                <ForgotPasswordForm onBackToLogin={handleBackToLogin} />
-              ) : !showEmailForm ? (
-                <>
-                  <View style={styles.socialButtons}>
-                    <GoogleSignInButton
-                      onPress={handleGoogleSignIn}
-                      loading={authLoading}
-                    />
+          <View style={styles.authContainer}>
+            {showForgotPassword ? (
+              <ForgotPasswordForm onBackToLogin={handleBackToLogin} />
+            ) : !showEmailForm ? (
+              <>
+                <View style={styles.socialButtons}>
+                  <GoogleSignInButton
+                    onPress={handleGoogleSignIn}
+                    loading={authLoading}
+                  />
 
-                    <AppleSignInButton
-                      onPress={handleAppleSignIn}
-                      loading={authLoading}
-                    />
-                  </View>
+                  <AppleSignInButton
+                    onPress={handleAppleSignIn}
+                    loading={authLoading}
+                  />
+                </View>
 
-                  <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or</Text>
-                    <View style={styles.dividerLine} />
-                  </View>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
 
-                  <View style={styles.emailButton}>
-                    <Text
-                      style={styles.emailButtonText}
-                      onPress={handleEmailToggle}
-                    >
-                      Continue with email
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <EmailAuthForm
-                  mode={emailAuthMode}
-                  onToggleMode={handleEmailModeToggle}
-                  onForgotPassword={handleForgotPassword}
-                />
-              )}
-
-              {showEmailForm && !showForgotPassword && (
-                <View style={styles.backButton}>
+                <View style={styles.emailButton}>
                   <Text
-                    style={styles.backButtonText}
+                    style={styles.emailButtonText}
                     onPress={handleEmailToggle}
                   >
-                    ← Back to other options
+                    Continue with email
                   </Text>
                 </View>
-              )}
-            </View>
+              </>
+            ) : (
+              <EmailAuthForm
+                mode={emailAuthMode}
+                onToggleMode={handleEmailModeToggle}
+                onForgotPassword={handleForgotPassword}
+              />
+            )}
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                By continuing, you agree to our{" "}
+            {showEmailForm && !showForgotPassword && (
+              <View style={styles.backButton}>
+                <Text style={styles.backButtonText} onPress={handleEmailToggle}>
+                  ← Back to other options
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              By continuing, you agree to our{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/terms-of-service")}>
+              <Text style={[styles.footerText, styles.footerLink]}>
+                Terms of Service
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/terms-of-service")}
-              >
-                <Text style={[styles.footerText, styles.footerLink]}>
-                  Terms of Service
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.footerText}> and </Text>
-              <TouchableOpacity onPress={() => router.push("/privacy-policy")}>
-                <Text style={[styles.footerText, styles.footerLink]}>
-                  Privacy Policy
-                </Text>
-              </TouchableOpacity>
+            </TouchableOpacity>
+            <Text style={styles.footerText}> and </Text>
+            <TouchableOpacity onPress={() => router.push("/privacy-policy")}>
+              <Text style={[styles.footerText, styles.footerLink]}>
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
 
-              {/* Debug tap area - only visible in dev mode */}
-              {__DEV__ && (
-                <TouchableOpacity
-                  style={styles.debugTapArea}
-                  onPress={handleDebugTap}
-                >
-                  <Text style={styles.debugText}>
-                    [DEV] Tap 5x for test user
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </ImageBackground>
+            {/* Debug tap area - only visible in dev mode */}
+            {__DEV__ && (
+              <TouchableOpacity
+                style={styles.debugTapArea}
+                onPress={handleDebugTap}
+              >
+                <Text style={styles.debugText}>[DEV] Tap 5x for test user</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
   },

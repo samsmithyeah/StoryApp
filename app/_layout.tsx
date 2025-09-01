@@ -16,6 +16,7 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AuthErrorBoundary } from "@/components/auth/AuthErrorBoundary";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { logger } from "@/utils/logger";
+import { Colors } from "@/constants/Theme";
 import * as Sentry from "@sentry/react-native";
 
 // Initialize Sentry with validation and error handling
@@ -69,7 +70,8 @@ function RootLayout() {
             screenOptions={{
               headerShown: false,
               animation: "fade",
-              animationDuration: 300,
+              animationDuration: 200,
+              contentStyle: { backgroundColor: Colors.background },
             }}
             initialRouteName="index"
           >
