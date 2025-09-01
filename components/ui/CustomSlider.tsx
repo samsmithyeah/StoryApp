@@ -27,15 +27,29 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
   const startX = useSharedValue(0);
   const sliderWidth = useSharedValue(0);
 
+  // Shared function to calculate thumb position from value
+  const calculateThumbPosition = (currentValue: number, width: number) => {
+    const progress = (currentValue - minValue) / (maxValue - minValue);
+    return progress * width - THUMB_SIZE / 2;
+  };
+
+  // Shared worklet to handle position changes
+  const onPositionChange = (newTranslateX: number) => {
+    "worklet";
+    if (sliderWidth.value > 0) {
+      const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
+      const newValue = Math.round(minValue + progress * (maxValue - minValue));
+      runOnJS(onValueChange)(newValue);
+    }
+  };
+
   // Update translateX when value changes
   React.useEffect(() => {
     if (sliderWidth.value > 0) {
-      const progress = (value - minValue) / (maxValue - minValue);
-      // Position thumb so its center aligns with the progress
-      translateX.value = progress * sliderWidth.value - THUMB_SIZE / 2;
+      translateX.value = calculateThumbPosition(value, sliderWidth.value);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- translateX is a SharedValue, not a regular dependency
-  }, [value, minValue, maxValue, sliderWidth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth is a SharedValue, not a regular dependency
+  }, [value, minValue, maxValue]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -51,13 +65,7 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
           )
         );
         translateX.value = newTranslateX;
-
-        // Convert thumb position back to progress (0-1)
-        const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
-        const newValue = Math.round(
-          minValue + progress * (maxValue - minValue)
-        );
-        runOnJS(onValueChange)(newValue);
+        onPositionChange(newTranslateX);
       }
     });
 
@@ -69,11 +77,7 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
         Math.min(sliderWidth.value - THUMB_SIZE / 2, event.x - THUMB_SIZE / 2)
       );
       translateX.value = newTranslateX;
-
-      // Convert clamped thumb position to progress (0-1) - fixes out-of-bounds bug
-      const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
-      const newValue = Math.round(minValue + progress * (maxValue - minValue));
-      runOnJS(onValueChange)(newValue);
+      onPositionChange(newTranslateX);
     }
   });
 
@@ -102,8 +106,7 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
     sliderWidth.value = width;
     // Re-calculate thumb position when layout changes
     if (width > 0) {
-      const progress = (value - minValue) / (maxValue - minValue);
-      translateX.value = progress * width - THUMB_SIZE / 2;
+      translateX.value = calculateThumbPosition(value, width);
     }
   };
 
