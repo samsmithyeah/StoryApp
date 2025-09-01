@@ -1,14 +1,20 @@
 import { Stack } from "expo-router";
+import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 
 export default function AuthLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="verify-email" />
-    </Stack>
+    <BackgroundContainer showDecorations={false}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "transparent" },
+          animation: "fade",
+          animationDuration: 150,
+        }}
+      >
+        <Stack.Screen name="login" />
+        <Stack.Screen name="verify-email" />
+      </Stack>
+    </BackgroundContainer>
   );
 }

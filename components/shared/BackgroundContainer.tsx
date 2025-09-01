@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { ImageBackground, StyleSheet } from "react-native";
+import { ImageBackground, StyleSheet, useWindowDimensions } from "react-native";
 import { Colors } from "../../constants/Theme";
 
 interface BackgroundContainerProps {
@@ -13,9 +13,17 @@ export const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
   children,
   showDecorations = true,
 }) => {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isPortrait = winHeight > winWidth;
+
+  // Choose background image based on orientation
+  const backgroundSource = isPortrait
+    ? require("../../assets/images/background-portrait.png")
+    : require("../../assets/images/background-landscape.png");
+
   return (
     <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
+      source={backgroundSource}
       resizeMode="cover"
       style={styles.container}
     >

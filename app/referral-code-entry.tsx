@@ -4,14 +4,15 @@ import {
 } from "@/components/referrals/ReferralCodeInput";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { Button } from "@/components/ui/Button";
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { Colors, Spacing, Typography } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
 import { referralService } from "@/services/firebase/referrals";
 import { AuthStatus } from "@/types/auth.types";
 import { logger } from "@/utils/logger";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -90,6 +91,14 @@ export default function ReferralCodeEntryScreen() {
     }
   };
 
+  if (isSubmitting) {
+    return (
+      <BackgroundContainer showDecorations={false}>
+        <LoadingScreen message="Processing referral code..." transparent />
+      </BackgroundContainer>
+    );
+  }
+
   return (
     <BackgroundContainer showDecorations={false}>
       <SafeAreaView style={styles.container}>
@@ -129,17 +138,6 @@ export default function ReferralCodeEntryScreen() {
             />
           </View>
         </View>
-
-        {isSubmitting && (
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>
-                Processing referral code...
-              </Text>
-            </View>
-          </View>
-        )}
       </SafeAreaView>
     </BackgroundContainer>
   );
@@ -187,28 +185,4 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   skipButton: {},
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
-  },
-  loadingContainer: {
-    backgroundColor: Colors.cardBackground,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.medium,
-    alignItems: "center",
-    minWidth: 200,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: Typography.fontSize.medium,
-    color: Colors.text,
-    fontWeight: Typography.fontWeight.medium,
-  },
 });

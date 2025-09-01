@@ -11,11 +11,22 @@ import { Colors, Typography, Spacing } from "../../constants/Theme";
 
 interface LoadingScreenProps {
   message?: string;
+  transparent?: boolean;
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = "Loading...",
+  transparent = false,
 }) => {
+  if (transparent) {
+    return (
+      <View style={styles.content}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.message}>{message}</Text>
+      </View>
+    );
+  }
+
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}

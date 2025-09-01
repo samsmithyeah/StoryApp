@@ -1,9 +1,7 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
-  ImageBackground,
   Platform,
   StatusBar as RNStatusBar,
   SafeAreaView,
@@ -11,6 +9,7 @@ import {
   StyleSheet,
   Text,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { EmailVerificationBanner } from "../../components/auth/EmailVerificationBanner";
 import { Button } from "../../components/ui/Button";
@@ -28,6 +27,7 @@ const isTablet = width >= 768;
 
 export default function VerifyEmailScreen() {
   const { signOut, authStatus } = useAuth();
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Watch for auth status changes after verification
   useEffect(() => {
@@ -38,6 +38,8 @@ export default function VerifyEmailScreen() {
   }, [authStatus]);
 
   const handleVerified = () => {
+    // Show loading state during transition
+    setIsTransitioning(true);
     // Don't redirect immediately - let the auth status change trigger the redirect
     // This allows the async deletion marker check to complete first
   };
@@ -51,60 +53,49 @@ export default function VerifyEmailScreen() {
   const WrapperComponent = Platform.OS === "ios" ? SafeAreaView : View;
 
   return (
-    <>
-      <ImageBackground
-        source={require("../../assets/images/background-landscape.png")}
-        resizeMode={isTablet ? "cover" : "none"}
-        style={styles.container}
+    <WrapperComponent style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS === "android" && {
+            paddingTop: (RNStatusBar.currentHeight || 0) + Spacing.xl,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <LinearGradient
-          colors={[
-            Colors.backgroundGradientStart,
-            Colors.backgroundGradientEnd,
-          ]}
-          style={StyleSheet.absoluteFill}
+        <View style={styles.header}>
+          <Text style={styles.appName}>DreamWeaver</Text>
+        </View>
+
+        <View style={styles.authContainer}>
+          {isTransitioning ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>
+                Email verified! Redirecting...
+              </Text>
+            </View>
+          ) : (
+            <EmailVerificationBanner onVerified={handleVerified} />
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={styles.bottomActions}>
+        <Button
+          title="Sign out"
+          onPress={handleSignOut}
+          variant="danger"
+          style={styles.signOutButton}
         />
-
-        <WrapperComponent style={styles.safeArea}>
-          <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              Platform.OS === "android" && {
-                paddingTop: (RNStatusBar.currentHeight || 0) + Spacing.xl,
-              },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            <View style={styles.header}>
-              <Text style={styles.appName}>DreamWeaver</Text>
-            </View>
-
-            <View style={styles.authContainer}>
-              <EmailVerificationBanner onVerified={handleVerified} />
-            </View>
-          </ScrollView>
-
-          <View style={styles.bottomActions}>
-            <Button
-              title="Sign out"
-              onPress={handleSignOut}
-              variant="danger"
-              style={styles.signOutButton}
-            />
-          </View>
-        </WrapperComponent>
-      </ImageBackground>
-    </>
+      </View>
+    </WrapperComponent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
   },
@@ -184,5 +175,16 @@ const styles = StyleSheet.create({
     width: "100%",
     borderColor: Colors.error,
     backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: Spacing.xl,
+  },
+  loadingText: {
+    fontSize: Typography.fontSize.medium,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    textAlign: "center",
+    fontFamily: Typography.fontFamily.primary,
   },
 });

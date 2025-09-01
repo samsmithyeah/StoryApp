@@ -1,10 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "../ui/CustomToast";
 import {
   Dimensions,
-  ImageBackground,
   Modal,
   Platform,
   StatusBar as RNStatusBar,
@@ -26,6 +24,7 @@ import {
 import { useChildren } from "../../hooks/useChildren";
 import { useAuthStore } from "../../store/authStore";
 import { Child } from "../../types/child.types";
+import { BackgroundContainer } from "../shared/BackgroundContainer";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { Button } from "../ui/Button";
 import { IconSymbol } from "../ui/IconSymbol";
@@ -78,7 +77,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   useEffect(() => {
     if (visible && justAppliedReferral) {
       // Small delay to ensure modal is fully rendered
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         Toast.show({
           type: "success",
           text1: "Referral code applied!",
@@ -87,6 +86,11 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
         // Clear the flag after showing the toast
         setJustAppliedReferral(false);
       }, 500);
+
+      // Cleanup timeout on unmount or dependency change
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
   }, [visible, justAppliedReferral, setJustAppliedReferral]);
 
@@ -262,39 +266,22 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       presentationStyle="fullScreen"
       statusBarTranslucent={Platform.OS === "android"}
     >
-      <ImageBackground
-        source={require("../../assets/images/background-landscape.png")}
-        resizeMode={isTablet ? "cover" : "none"}
-        style={styles.container}
-      >
-        <LinearGradient
-          colors={[
-            Colors.backgroundGradientStart,
-            Colors.backgroundGradientEnd,
-          ]}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-
+      <BackgroundContainer showDecorations={true}>
         <WrapperComponent style={styles.safeArea}>
           <ProgressHeader />
           {currentStep === 1 ? <ChildFormStep /> : <ContentStep />}
         </WrapperComponent>
-      </ImageBackground>
+      </BackgroundContainer>
       <Toast config={toastConfig} />
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
   },

@@ -128,8 +128,9 @@ export const useAuthStore = create<AuthStore>((set, get) => {
             hasSeenReferralEntry: seen,
           },
         });
-        // Recompute auth status after marking referral entry as seen
-        get().debouncedComputeAuthStatus();
+        // Immediately recompute auth status after marking referral entry as seen
+        // This is a user-initiated action, so no need for debouncing
+        get().computeAuthStatus();
       }
     },
 

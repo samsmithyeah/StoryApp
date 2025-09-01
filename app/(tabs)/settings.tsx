@@ -1,10 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { logger } from "@/utils/logger";
 import {
   Alert,
-  ImageBackground,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -13,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { BackgroundContainer } from "../../components/shared/BackgroundContainer";
 import { StarsDecorations } from "../../components/credits/StarsDecorations";
 import { WelcomeOnboarding } from "../../components/onboarding/WelcomeOnboarding";
 import { AccountSection } from "../../components/settings/AccountSection";
@@ -172,16 +171,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <BackgroundContainer showDecorations={false}>
       <StarsDecorations />
 
       <SafeAreaView style={styles.safeArea}>
@@ -250,7 +240,7 @@ export default function SettingsScreen() {
         visible={showWelcomeWizard}
         onComplete={handleWelcomeWizardComplete}
       />
-    </ImageBackground>
+    </BackgroundContainer>
   );
 }
 
