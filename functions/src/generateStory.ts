@@ -5,13 +5,13 @@ import {
   HttpsError,
   onCall,
 } from "firebase-functions/v2/https";
+import { TIMEOUTS } from "./constants";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
-import { TIMEOUTS } from "./constants";
 
 const pubsub = new PubSub();
 
@@ -209,7 +209,7 @@ export const generateStory = onCall(
         characterNamesString,
       });
 
-      const userPrompt = `Create a personalized bedtime story with the following details:
+      const userPrompt = `Create a personalized story with the following details:
 ${
   characterNamesString
     ? `- Main character(s): ${characterNamesString}`

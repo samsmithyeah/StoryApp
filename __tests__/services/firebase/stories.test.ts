@@ -1,12 +1,12 @@
-import {
-  generateStory,
-  getStories,
-  getStory,
-  generateThemeSuggestions,
-} from "@/services/firebase/stories";
-import { httpsCallable } from "@react-native-firebase/functions";
 import { authService, functionsService } from "@/services/firebase/config";
 import { creditsService } from "@/services/firebase/credits";
+import {
+  generateStory,
+  generateThemeSuggestions,
+  getStories,
+  getStory,
+} from "@/services/firebase/stories";
+import { httpsCallable } from "@react-native-firebase/functions";
 
 // Mock dependencies
 jest.mock("@react-native-firebase/functions");
