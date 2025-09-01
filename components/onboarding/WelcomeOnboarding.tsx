@@ -78,7 +78,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   useEffect(() => {
     if (visible && justAppliedReferral) {
       // Small delay to ensure modal is fully rendered
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         Toast.show({
           type: "success",
           text1: "Referral code applied!",
@@ -87,6 +87,11 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
         // Clear the flag after showing the toast
         setJustAppliedReferral(false);
       }, 500);
+
+      // Cleanup timeout on unmount or dependency change
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
   }, [visible, justAppliedReferral, setJustAppliedReferral]);
 

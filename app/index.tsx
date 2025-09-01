@@ -10,6 +10,21 @@ import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ImageBackground, StyleSheet } from "react-native";
 
+// Background container component to prevent white flashes
+const BackgroundContainer = ({ children }: { children: React.ReactNode }) => (
+  <ImageBackground
+    source={require("../assets/images/background-landscape.png")}
+    resizeMode="cover"
+    style={styles.container}
+  >
+    <LinearGradient
+      colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+      style={StyleSheet.absoluteFill}
+    />
+    {children}
+  </ImageBackground>
+);
+
 export default function Index() {
   const { user, authStatus, completeOnboarding, isReady, needsOnboarding } =
     useAuth();
@@ -66,28 +81,11 @@ export default function Index() {
       setIsCompletingOnboarding(true);
       await completeOnboarding();
       logger.debug("Onboarding completion successful");
-      // Keep loading state briefly to ensure smooth transition
-      setTimeout(() => setIsCompletingOnboarding(false), 500);
     } catch (error) {
       logger.error("Failed to complete onboarding", error);
       setIsCompletingOnboarding(false);
     }
   };
-
-  // Background container component to prevent white flashes
-  const BackgroundContainer = ({ children }: { children: React.ReactNode }) => (
-    <ImageBackground
-      source={require("../assets/images/background-landscape.png")}
-      resizeMode="cover"
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
-      {children}
-    </ImageBackground>
-  );
 
   // Prevent redirects when user exists but auth status is transitioning
   const isAuthStatusTransitioning =
