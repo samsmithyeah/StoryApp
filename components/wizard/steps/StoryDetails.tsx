@@ -45,9 +45,12 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
 
-  const handlePageCountChange = (value: number) => {
-    onUpdate({ pageCount: Math.round(value) });
-  };
+  const handlePageCountChange = React.useCallback(
+    (value: number) => {
+      onUpdate({ pageCount: Math.round(value) });
+    },
+    [onUpdate]
+  );
 
   const handleRhymeToggle = (value: boolean) => {
     onUpdate({ shouldRhyme: value });

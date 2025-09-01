@@ -17,155 +17,164 @@ interface CustomSliderProps {
   maxValue: number;
 }
 
-export const CustomSlider: React.FC<CustomSliderProps> = ({
-  value,
-  onValueChange,
-  minValue,
-  maxValue,
-}) => {
-  const translateX = useSharedValue(0);
-  const startX = useSharedValue(0);
-  const sliderWidth = useSharedValue(0);
+export const CustomSlider: React.FC<CustomSliderProps> = React.memo(
+  ({ value, onValueChange, minValue, maxValue }) => {
+    const translateX = useSharedValue(0);
+    const startX = useSharedValue(0);
+    const sliderWidth = useSharedValue(0);
+    const isActive = useSharedValue(false);
 
-  // Memoized function to calculate thumb position from value
-  const calculateThumbPosition = React.useCallback(
-    (currentValue: number, width: number) => {
-      const range = maxValue - minValue;
-      if (range === 0) {
-        return -THUMB_SIZE / 2;
-      }
-      const progress = (currentValue - minValue) / range;
-      return progress * width - THUMB_SIZE / 2;
-    },
-    [minValue, maxValue]
-  );
-
-  // Memoized worklet to handle position changes
-  const onPositionChange = React.useCallback(
-    (newTranslateX: number) => {
-      "worklet";
-      if (sliderWidth.value > 0) {
-        const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
+    // Memoized function to calculate thumb position from value
+    const calculateThumbPosition = React.useCallback(
+      (currentValue: number, width: number) => {
         const range = maxValue - minValue;
-
-        let newValue;
         if (range === 0) {
-          newValue = minValue;
-        } else {
-          newValue = Math.round(minValue + progress * range);
+          return -THUMB_SIZE / 2;
         }
+        const progress = (currentValue - minValue) / range;
+        return progress * width - THUMB_SIZE / 2;
+      },
+      [minValue, maxValue]
+    );
 
-        // Clamp to ensure value is within bounds
-        const clampedValue = Math.max(minValue, Math.min(newValue, maxValue));
-        runOnJS(onValueChange)(clampedValue);
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth is a SharedValue
-    [minValue, maxValue, onValueChange]
-  );
-
-  // Update translateX when value changes
-  React.useEffect(() => {
-    if (sliderWidth.value > 0) {
-      translateX.value = calculateThumbPosition(value, sliderWidth.value);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth and translateX are SharedValues
-  }, [value, calculateThumbPosition]);
-
-  const panGesture = React.useMemo(
-    () =>
-      Gesture.Pan()
-        .onStart(() => {
-          startX.value = translateX.value;
-        })
-        .onUpdate((event) => {
-          if (sliderWidth.value > 0) {
-            const newTranslateX = Math.max(
-              -(THUMB_SIZE / 2),
-              Math.min(
-                sliderWidth.value - THUMB_SIZE / 2,
-                startX.value + event.translationX
-              )
-            );
-            translateX.value = newTranslateX;
-            onPositionChange(newTranslateX);
-          }
-        }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
-    [onPositionChange]
-  );
-
-  const tapGesture = React.useMemo(
-    () =>
-      Gesture.Tap().onEnd((event) => {
+    // Memoized worklet to handle position changes
+    const onPositionChange = React.useCallback(
+      (newTranslateX: number) => {
+        "worklet";
         if (sliderWidth.value > 0) {
-          // Position thumb so its center is at the tap location
-          const newTranslateX = Math.max(
-            -(THUMB_SIZE / 2),
-            Math.min(
-              sliderWidth.value - THUMB_SIZE / 2,
-              event.x - THUMB_SIZE / 2
-            )
-          );
-          translateX.value = newTranslateX;
-          onPositionChange(newTranslateX);
+          const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
+          const range = maxValue - minValue;
+
+          let newValue;
+          if (range === 0) {
+            newValue = minValue;
+          } else {
+            newValue = Math.round(minValue + progress * range);
+          }
+
+          // Clamp to ensure value is within bounds
+          const clampedValue = Math.max(minValue, Math.min(newValue, maxValue));
+          runOnJS(onValueChange)(clampedValue);
         }
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
-    [onPositionChange]
-  );
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth is a SharedValue
+      [minValue, maxValue, onValueChange]
+    );
 
-  const composedGesture = React.useMemo(
-    () => Gesture.Race(panGesture, tapGesture),
-    [panGesture, tapGesture]
-  );
-
-  const thumbStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const progressStyle = useAnimatedStyle(() => {
-    if (sliderWidth.value > 0) {
-      // Progress should go to the center of the thumb
-      const thumbCenterX = translateX.value + THUMB_SIZE / 2;
-      const percentage = (thumbCenterX / sliderWidth.value) * 100;
-      return {
-        width: `${Math.max(0, Math.min(percentage, 100))}%`,
-      };
-    }
-    return { width: "0%" };
-  });
-
-  const onLayout = React.useCallback(
-    (event: LayoutChangeEvent) => {
-      const { width } = event.nativeEvent.layout;
-      sliderWidth.value = width;
-      // Re-calculate thumb position when layout changes
-      if (width > 0) {
-        translateX.value = calculateThumbPosition(value, width);
+    // Update translateX when value changes (only when not actively dragging)
+    React.useEffect(() => {
+      if (sliderWidth.value > 0 && !isActive.value) {
+        translateX.value = calculateThumbPosition(value, sliderWidth.value);
       }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
-    [value, calculateThumbPosition]
-  );
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- sliderWidth, translateX, and isActive are SharedValues
+    }, [value, calculateThumbPosition]);
 
-  return (
-    <View style={styles.customSliderContainer}>
-      <GestureDetector gesture={composedGesture}>
-        <View style={styles.sliderInteractiveArea} onLayout={onLayout}>
-          <View style={styles.sliderTrack}>
-            <Animated.View style={[styles.sliderProgress, progressStyle]} />
+    const panGesture = React.useMemo(
+      () =>
+        Gesture.Pan()
+          .onStart(() => {
+            isActive.value = true;
+            startX.value = translateX.value;
+          })
+          .onUpdate((event) => {
+            if (sliderWidth.value > 0) {
+              const newTranslateX = Math.max(
+                -(THUMB_SIZE / 2),
+                Math.min(
+                  sliderWidth.value - THUMB_SIZE / 2,
+                  startX.value + event.translationX
+                )
+              );
+              translateX.value = newTranslateX;
+              onPositionChange(newTranslateX);
+            }
+          })
+          .onFinalize(() => {
+            isActive.value = false;
+          }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
+      [onPositionChange]
+    );
+
+    const tapGesture = React.useMemo(
+      () =>
+        Gesture.Tap()
+          .onStart(() => {
+            isActive.value = true;
+          })
+          .onEnd((event) => {
+            if (sliderWidth.value > 0) {
+              // Position thumb so its center is at the tap location
+              const newTranslateX = Math.max(
+                -(THUMB_SIZE / 2),
+                Math.min(
+                  sliderWidth.value - THUMB_SIZE / 2,
+                  event.x - THUMB_SIZE / 2
+                )
+              );
+              translateX.value = newTranslateX;
+              onPositionChange(newTranslateX);
+            }
+            isActive.value = false;
+          }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
+      [onPositionChange]
+    );
+
+    const composedGesture = React.useMemo(
+      () => Gesture.Race(panGesture, tapGesture),
+      [panGesture, tapGesture]
+    );
+
+    const thumbStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: translateX.value }],
+      };
+    });
+
+    const progressStyle = useAnimatedStyle(() => {
+      if (sliderWidth.value > 0) {
+        // Progress should go to the center of the thumb
+        const thumbCenterX = translateX.value + THUMB_SIZE / 2;
+        const percentage = (thumbCenterX / sliderWidth.value) * 100;
+        return {
+          width: `${Math.max(0, Math.min(percentage, 100))}%`,
+        };
+      }
+      return { width: "0%" };
+    });
+
+    const onLayout = React.useCallback(
+      (event: LayoutChangeEvent) => {
+        const { width } = event.nativeEvent.layout;
+        sliderWidth.value = width;
+        // Re-calculate thumb position when layout changes
+        if (width > 0) {
+          translateX.value = calculateThumbPosition(value, width);
+        }
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- SharedValues are stable references
+      [value, calculateThumbPosition]
+    );
+
+    return (
+      <View style={styles.customSliderContainer}>
+        <GestureDetector gesture={composedGesture}>
+          <View style={styles.sliderInteractiveArea} onLayout={onLayout}>
+            <View style={styles.sliderTrack}>
+              <Animated.View style={[styles.sliderProgress, progressStyle]} />
+            </View>
+            <Animated.View style={[styles.sliderThumbContainer, thumbStyle]}>
+              <View style={styles.sliderThumb} />
+            </Animated.View>
           </View>
-          <Animated.View style={[styles.sliderThumbContainer, thumbStyle]}>
-            <View style={styles.sliderThumb} />
-          </Animated.View>
-        </View>
-      </GestureDetector>
-    </View>
-  );
-};
+        </GestureDetector>
+      </View>
+    );
+  }
+);
+
+CustomSlider.displayName = "CustomSlider";
 
 const styles = StyleSheet.create({
   customSliderContainer: {
