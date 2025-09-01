@@ -70,90 +70,66 @@ export default function Index() {
     }
   };
 
-  // Prevent redirects when user exists but auth status is transitioning
-  const isAuthStatusTransitioning =
-    user && authStatus === AuthStatus.UNAUTHENTICATED;
-  if (isAuthStatusTransitioning) {
-    logger.debug("Auth status transitioning - showing loading");
-    return (
-      <BackgroundContainer showDecorations={false}>
-        <LoadingScreen message="Signing in..." transparent />
-      </BackgroundContainer>
-    );
-  }
+  const renderContent = () => {
+    // Prevent redirects when user exists but auth status is transitioning
+    const isAuthStatusTransitioning =
+      user && authStatus === AuthStatus.UNAUTHENTICATED;
+    if (isAuthStatusTransitioning) {
+      logger.debug("Auth status transitioning - showing loading");
+      return <LoadingScreen message="Signing in..." transparent />;
+    }
 
-  // Simple switch based on centralized auth status - no more race conditions!
-  switch (authStatus) {
-    case AuthStatus.INITIALIZING:
-      logger.debug("Showing loading screen - initializing");
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <LoadingScreen message="Setting up DreamWeaver..." transparent />
-        </BackgroundContainer>
-      );
-
-    case AuthStatus.UNAUTHENTICATED:
-      logger.debug("Redirecting to login (unauthenticated)");
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <Redirect href="/(auth)/login" />
-        </BackgroundContainer>
-      );
-
-    case AuthStatus.UNVERIFIED:
-      logger.debug("Redirecting to verify-email (unverified)");
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <Redirect href="/(auth)/verify-email" />
-        </BackgroundContainer>
-      );
-
-    case AuthStatus.REFERRAL_ENTRY:
-      logger.debug(
-        "Redirecting to referral-code-entry (referral entry needed)"
-      );
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <Redirect href="/referral-code-entry" />
-        </BackgroundContainer>
-      );
-
-    case AuthStatus.ONBOARDING:
-      logger.debug("Showing WelcomeOnboarding (onboarding required)");
-      if (isCompletingOnboarding) {
+    // Simple switch based on centralized auth status - no more race conditions!
+    switch (authStatus) {
+      case AuthStatus.INITIALIZING:
+        logger.debug("Showing loading screen - initializing");
         return (
-          <BackgroundContainer showDecorations={false}>
-            <LoadingScreen message="Completing setup..." transparent />
-          </BackgroundContainer>
+          <LoadingScreen message="Setting up DreamWeaver..." transparent />
         );
-      }
-      return (
-        <BackgroundContainer showDecorations={false}>
+
+      case AuthStatus.UNAUTHENTICATED:
+        logger.debug("Redirecting to login (unauthenticated)");
+        return <Redirect href="/(auth)/login" />;
+
+      case AuthStatus.UNVERIFIED:
+        logger.debug("Redirecting to verify-email (unverified)");
+        return <Redirect href="/(auth)/verify-email" />;
+
+      case AuthStatus.REFERRAL_ENTRY:
+        logger.debug(
+          "Redirecting to referral-code-entry (referral entry needed)"
+        );
+        return <Redirect href="/referral-code-entry" />;
+
+      case AuthStatus.ONBOARDING:
+        logger.debug("Showing WelcomeOnboarding (onboarding required)");
+        if (isCompletingOnboarding) {
+          return <LoadingScreen message="Completing setup..." transparent />;
+        }
+        return (
           <WelcomeOnboarding
             visible={true}
             onComplete={handleOnboardingComplete}
             justAppliedReferral={justAppliedReferral}
           />
-        </BackgroundContainer>
-      );
+        );
 
-    case AuthStatus.AUTHENTICATED:
-      logger.debug("Redirecting to tabs (authenticated)");
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <Redirect href="/(tabs)" />
-        </BackgroundContainer>
-      );
+      case AuthStatus.AUTHENTICATED:
+        logger.debug("Redirecting to tabs (authenticated)");
+        return <Redirect href="/(tabs)" />;
 
-    default:
-      // Fallback for any edge cases - should never happen
-      logger.warn("Unknown auth status, falling back to loading", {
-        authStatus,
-      });
-      return (
-        <BackgroundContainer showDecorations={false}>
-          <LoadingScreen message="Loading..." transparent />
-        </BackgroundContainer>
-      );
-  }
+      default:
+        // Fallback for any edge cases - should never happen
+        logger.warn("Unknown auth status, falling back to loading", {
+          authStatus,
+        });
+        return <LoadingScreen message="Loading..." transparent />;
+    }
+  };
+
+  return (
+    <BackgroundContainer showDecorations={false}>
+      {renderContent()}
+    </BackgroundContainer>
+  );
 }

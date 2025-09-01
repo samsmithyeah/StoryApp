@@ -8,18 +8,16 @@ import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
 import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
-  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,9 +30,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
-const { width } = Dimensions.get("window");
-const isTablet = width >= 768;
 
 interface CreditsScreenProps {
   isModal?: boolean;
@@ -570,16 +565,7 @@ export default function CreditsScreen({
   ]);
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode={isTablet ? "cover" : "contain"}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <BackgroundContainer showDecorations={false}>
       <StarsDecorations />
 
       <SafeAreaView style={styles.safeArea}>
@@ -762,7 +748,7 @@ export default function CreditsScreen({
           <Text style={styles.purchasingText}>Processing purchase...</Text>
         </View>
       )}
-    </ImageBackground>
+    </BackgroundContainer>
   );
 }
 

@@ -14,11 +14,17 @@ export const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
   showDecorations = true,
 }) => {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
-  const isTablet = Math.min(winWidth, winHeight) >= 768;
+  const isPortrait = winHeight > winWidth;
+
+  // Choose background image based on orientation
+  const backgroundSource = isPortrait
+    ? require("../../assets/images/background-portrait.png")
+    : require("../../assets/images/background-landscape.png");
+
   return (
     <ImageBackground
-      source={require("../../assets/images/background-landscape.png")}
-      resizeMode={isTablet ? "cover" : "none"}
+      source={backgroundSource}
+      resizeMode="cover"
       style={styles.container}
     >
       <LinearGradient
