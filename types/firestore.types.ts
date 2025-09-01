@@ -22,6 +22,16 @@ export interface FirestoreUserData {
   appState?: string;
   savedCharacters?: any[];
 
+  // Referral system fields
+  referralCode?: string; // User's personal referral code
+  referredBy?: string; // Referral code used during signup
+  referralStats?: {
+    totalReferred: number;
+    creditsEarned: number;
+    pendingReferrals: number;
+    lastReferralAt?: { toDate(): Date };
+  };
+
   // Allow any additional fields that might be added over time
   [key: string]: any;
 }

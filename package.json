@@ -16,11 +16,15 @@
     "fix-all": "npm run type-check && npm run lint:fix && npm run format",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy:all": "firebase deploy"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-firebase/app": "^22.2.1",
     "@react-native-firebase/app-check": "^22.4.0",

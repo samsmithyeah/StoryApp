@@ -85,6 +85,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     width: "90%",
     maxWidth: 400,
+    zIndex: 9999999,
+    elevation: 9999999,
   },
 
   successToast: {

@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "@/components/ui/CustomToast";
 import { SavedCharacterForm } from "../components/settings/SavedCharacterForm";
 import { Colors, Spacing, Typography } from "../constants/Theme";
 import { useSavedCharacters } from "../hooks/useSavedCharacters";
@@ -189,6 +191,7 @@ export default function SavedCharacterProfileScreen() {
           defaultSaveToggle={!params.tempCharIndex}
         />
       </SafeAreaView>
+      <Toast config={toastConfig} />
     </ImageBackground>
   );
 }

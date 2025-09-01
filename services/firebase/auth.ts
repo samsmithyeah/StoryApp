@@ -1,5 +1,6 @@
 import type { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import auth, {
+import {
+  AppleAuthProvider,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -39,6 +40,7 @@ import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
+import { referralService } from "./referrals";
 
 // Type definitions
 interface AppleAuthError {
@@ -67,6 +69,12 @@ const initializeFCMForAuthOperation = async (
     });
 
     await FCMService.initializeFCM(forceReinitialization);
+
+    // For signin operations, also explicitly refresh the token to ensure it's for the current device
+    if (operationType === "signin") {
+      logger.debug("Explicitly refreshing FCM token after signin");
+      await FCMService.refreshFCMToken();
+    }
 
     logger.debug(
       `FCM initialization completed successfully for ${operationType}`
@@ -169,7 +177,7 @@ const waitForProfileUpdate = async (
 };
 
 // Helper function to check if user has a deletion marker
-const checkDeletionMarker = async (email: string): Promise<boolean> => {
+export const checkDeletionMarker = async (email: string): Promise<boolean> => {
   try {
     const checkDeletionMarkerFunction = httpsCallable(
       functionsService,
@@ -443,14 +451,7 @@ export const signUpWithEmail = async ({
       );
 
       if (profileUpdateSuccess) {
-        // Clear user cache for this specific user to force fresh data fetch
-        AuthCacheService.invalidateUser(userCredential.user.uid);
-        logger.debug(
-          "Firebase profile updated successfully and user cache cleared for user",
-          {
-            uid: userCredential.user.uid,
-          }
-        );
+        logger.debug("Firebase profile updated successfully");
       } else {
         logger.warn("Profile update verification failed, proceeding anyway");
       }
@@ -506,16 +507,30 @@ export const signUpWithEmail = async ({
     emailVerified: userCredential.user.emailVerified,
   };
 
-  // Manually update the store with the complete user object
-  const { useAuthStore } = await import("../../store/authStore");
-  useAuthStore.getState().setUser(appUser);
-  logger.debug("Auth store updated with complete user data (signUpWithEmail)", {
-    displayName: appUser.displayName,
-    uid: appUser.uid,
-  });
+  // Auth state will be updated automatically by Firebase listener in authStore
+  logger.debug(
+    "User created, auth state will be updated by Firebase listener",
+    {
+      displayName: appUser.displayName,
+      uid: appUser.uid,
+    }
+  );
 
   // Initialize FCM for push notifications
   await initializeFCMForAuthOperation("signup", userCredential.user.uid);
+
+  // Force refresh auth store with correct user data after signup completion
+  // This is needed because the auth listener fires before createUserDocument completes
+  if (firestoreData?.displayName) {
+    try {
+      const { useAuthStore } = await import("../../store/authStore");
+      // Always update the auth store with the complete user data after signup
+      useAuthStore.getState().setUser(appUser);
+      logger.debug("Updated auth store with complete user data after signup");
+    } catch (error) {
+      logger.warn("Failed to update auth store after signup", error);
+    }
+  }
 
   return appUser;
 };
@@ -578,11 +593,9 @@ export const signInWithGoogle = async (): Promise<User> => {
       emailVerified: userCredential.user.emailVerified,
     };
 
-    // Manually update the store with the complete user object
-    const { useAuthStore } = await import("../../store/authStore");
-    useAuthStore.getState().setUser(appUser);
+    // Auth state will be updated automatically by Firebase listener in authStore
     logger.debug(
-      "Auth store updated with complete user data (signInWithGoogle)",
+      "User signed in with Google, auth state will be updated by Firebase listener",
       {
         displayName: appUser.displayName,
         uid: appUser.uid,
@@ -600,6 +613,19 @@ export const signInWithGoogle = async (): Promise<User> => {
 
     const operationType = isNewUser ? "signup" : "signin";
     await initializeFCMForAuthOperation(operationType, userCredential.user.uid);
+
+    // Generate referral code for new Google users (since they skip email verification)
+    if (isNewUser && firestoreData) {
+      try {
+        await referralService.getUserReferralCode();
+        logger.debug("Generated referral code for new Google user");
+      } catch (error) {
+        logger.warn(
+          "Failed to generate referral code after Google signup",
+          error
+        );
+      }
+    }
 
     return appUser;
   } catch (error) {
@@ -639,7 +665,7 @@ export const signInWithApple = async (): Promise<User> => {
       credential as AppleAuthentication.AppleAuthenticationCredential & {
         nonce?: string;
       };
-    const firebaseCredential = auth.AppleAuthProvider.credential(
+    const firebaseCredential = AppleAuthProvider.credential(
       credential.identityToken,
       appleCredential.nonce || undefined
     );
@@ -650,42 +676,59 @@ export const signInWithApple = async (): Promise<User> => {
       firebaseCredential
     );
 
-    // Update profile with Apple data if available
+    // Extract displayName from Apple data if available
+    let appleDisplayName: string | null = null;
+
     if (
       credential.fullName &&
       (credential.fullName.givenName || credential.fullName.familyName)
     ) {
-      const displayName = [
+      appleDisplayName = [
         credential.fullName.givenName,
         credential.fullName.familyName,
       ]
         .filter(Boolean)
         .join(" ");
 
-      if (displayName && !userCredential.user.displayName) {
-        await updateProfile(userCredential.user, { displayName });
+      // Update Firebase profile with Apple data if available and not already set
+      if (appleDisplayName && !userCredential.user.displayName) {
+        try {
+          await updateProfile(userCredential.user, {
+            displayName: appleDisplayName,
+          });
+          logger.debug("Updated Firebase profile with Apple displayName");
+        } catch (error) {
+          logger.warn(
+            "Failed to update Firebase profile with Apple data",
+            error
+          );
+        }
       }
     }
 
-    const firestoreData = await createUserDocument(userCredential.user);
+    // Pass the Apple displayName to createUserDocument to ensure it's saved
+    const firestoreData = await createUserDocument(
+      userCredential.user,
+      appleDisplayName || undefined
+    );
 
     // Create the complete user object with Firestore data
     const appUser: User = {
       uid: userCredential.user.uid,
       email: userCredential.user.email,
       displayName:
-        firestoreData?.displayName || userCredential.user.displayName,
+        firestoreData?.displayName ||
+        userCredential.user.displayName ||
+        appleDisplayName,
       photoURL: userCredential.user.photoURL,
       createdAt: firestoreData?.createdAt?.toDate() || new Date(),
       isAdmin: firestoreData?.isAdmin || false,
       emailVerified: userCredential.user.emailVerified,
     };
 
-    // Manually update the store with the complete user object
-    const { useAuthStore } = await import("../../store/authStore");
-    useAuthStore.getState().setUser(appUser);
+    // Auth state will be updated automatically by Firebase listener in authStore
     logger.debug(
-      "Auth store updated with complete user data (signInWithApple)",
+      "User signed in with Apple, auth state will be updated by Firebase listener",
       {
         displayName: appUser.displayName,
         uid: appUser.uid,
@@ -703,6 +746,19 @@ export const signInWithApple = async (): Promise<User> => {
 
     const operationType = isNewUser ? "signup" : "signin";
     await initializeFCMForAuthOperation(operationType, userCredential.user.uid);
+
+    // Generate referral code for new Apple users (since they skip email verification)
+    if (isNewUser && firestoreData) {
+      try {
+        await referralService.getUserReferralCode();
+        logger.debug("Generated referral code for new Apple user");
+      } catch (error) {
+        logger.warn(
+          "Failed to generate referral code after Apple signup",
+          error
+        );
+      }
+    }
 
     return appUser;
   } catch (error: unknown) {
@@ -749,9 +805,34 @@ export const checkEmailVerified = async (): Promise<boolean> => {
   if (currentUser) {
     // Reload user to get latest email verification status
     await reload(currentUser);
+
+    // If email is now verified, handle post-verification actions
+    if (currentUser.emailVerified) {
+      await handleEmailVerificationComplete(currentUser.uid);
+    }
+
     return currentUser.emailVerified;
   }
   return false;
+};
+
+// Handle actions that should occur when email verification is completed
+const handleEmailVerificationComplete = async (
+  userId: string
+): Promise<void> => {
+  try {
+    // Generate referral code for the newly verified user
+    // The referral service will handle refreshing the auth store automatically
+    await referralService.getUserReferralCode();
+
+    // Note: Referral completion happens automatically during code entry since
+    // users can only access the referral code screen after email verification.
+
+    logger.debug("Post-verification actions completed", { userId });
+  } catch (error) {
+    logger.error("Error handling post-verification actions", { userId, error });
+    // Don't throw error - email verification was successful, these are just bonus features
+  }
 };
 
 // Password Reset
@@ -936,10 +1017,10 @@ export const subscribeToAuthChanges = (
         } else {
           const user = await convertFirebaseUser(firebaseUser);
           callback(user);
-
-          // Initialize FCM for existing authenticated users
-          await initializeFCMForAuthOperation("observer", firebaseUser.uid);
         }
+
+        // Initialize FCM for all authenticated users (cached or fresh)
+        await initializeFCMForAuthOperation("observer", firebaseUser.uid);
       }
     }, AUTH_DEBOUNCE_DELAY);
   });

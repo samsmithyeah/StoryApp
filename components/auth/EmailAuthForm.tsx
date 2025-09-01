@@ -95,6 +95,8 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
         setConfirmPasswordError("Passwords do not match");
         isValid = false;
       }
+
+      // Note: Referral code validation now happens server-side during signup
     }
 
     return isValid;
@@ -106,7 +108,11 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
     if (mode === "signin") {
       await emailSignIn({ email, password });
     } else {
-      await emailSignUp({ email, password, displayName });
+      await emailSignUp({
+        email,
+        password,
+        displayName,
+      });
       // Success message will be handled by the redirect to verify-email screen
     }
   };

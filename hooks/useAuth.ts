@@ -11,7 +11,6 @@ import {
 import { logger } from "../utils/logger";
 import { useAuthStore } from "../store/authStore";
 import { OnboardingService } from "../services/auth/onboardingService";
-import { authService } from "../services/firebase/config";
 import {
   AuthStatus,
   LoginCredentials,
@@ -24,51 +23,7 @@ import { isTestAccount as centralIsTestAccount } from "../constants/AuthConstant
  * Helper function to manually update auth state after successful auth operations
  * This eliminates the need for arbitrary delays by immediately updating the store
  */
-const updateAuthStateFromFirebase = async () => {
-  try {
-    const currentFirebaseUser = authService.currentUser;
-
-    if (currentFirebaseUser) {
-      logger.debug("Updating auth state from Firebase user", {
-        userEmail: currentFirebaseUser.email,
-        userVerified: currentFirebaseUser.emailVerified,
-      });
-
-      // Convert Firebase user to our User type
-      const user = {
-        uid: currentFirebaseUser.uid,
-        email: currentFirebaseUser.email,
-        displayName: currentFirebaseUser.displayName,
-        emailVerified: currentFirebaseUser.emailVerified,
-        photoURL: currentFirebaseUser.photoURL,
-        createdAt: new Date(),
-      };
-
-      // Update store and trigger auth status computation
-      const {
-        setUser,
-        setLoading,
-        initializeAuthStatus,
-        debouncedComputeAuthStatus,
-      } = useAuthStore.getState();
-
-      // Set both user and loading state
-      setUser(user);
-      setLoading(false);
-
-      // Wait for initialization to complete, then compute status
-      await initializeAuthStatus();
-      debouncedComputeAuthStatus();
-
-      return user;
-    }
-
-    return null;
-  } catch (error) {
-    logger.error("Error updating auth state from Firebase", error);
-    throw error;
-  }
-};
+// Removed updateAuthStateFromFirebase function - auth state is now handled by authStore Firebase listener
 
 // Helper function to check if this is a test account
 export const isTestAccount = (email: string | null | undefined): boolean => {
@@ -102,8 +57,9 @@ export const useAuth = () => {
       await signInWithEmail(credentials);
 
       // Immediately update auth state from Firebase (no delays)
-      logger.debug("Email sign-in completed, updating auth state");
-      await updateAuthStateFromFirebase();
+      logger.debug(
+        "Email sign-in completed, auth state will be updated by Firebase listener"
+      );
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
@@ -118,8 +74,9 @@ export const useAuth = () => {
       await signUpWithEmail(credentials);
 
       // Immediately update auth state from Firebase (no delays)
-      logger.debug("Email sign-up completed, updating auth state");
-      await updateAuthStateFromFirebase();
+      logger.debug(
+        "Email sign-up completed, auth state will be updated by Firebase listener"
+      );
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
@@ -134,9 +91,10 @@ export const useAuth = () => {
       setError(null);
       await signInWithGoogle();
 
-      // Immediately update auth state from Firebase (no delays)
-      logger.debug("Google sign-in completed, updating auth state");
-      await updateAuthStateFromFirebase();
+      // Auth state will be updated automatically by the Firebase auth listener in authStore
+      logger.debug(
+        "Google sign-in completed, auth state will be updated by Firebase listener"
+      );
     } catch (error) {
       logger.error("Google sign in error", error);
       setError(getAuthErrorMessage(error));
@@ -152,9 +110,10 @@ export const useAuth = () => {
       setError(null);
       await signInWithApple();
 
-      // Immediately update auth state from Firebase (no delays)
-      logger.debug("Apple sign-in completed, updating auth state");
-      await updateAuthStateFromFirebase();
+      // Auth state will be updated automatically by the Firebase auth listener in authStore
+      logger.debug(
+        "Apple sign-in completed, auth state will be updated by Firebase listener"
+      );
     } catch (error) {
       setError(getAuthErrorMessage(error));
     } finally {
@@ -236,7 +195,10 @@ export const useAuth = () => {
     isReady: authStatus !== AuthStatus.INITIALIZING,
     isAuthenticated: authStatus === AuthStatus.AUTHENTICATED,
     needsVerification: authStatus === AuthStatus.UNVERIFIED,
+    needsReferralEntry: authStatus === AuthStatus.REFERRAL_ENTRY,
     needsOnboarding: authStatus === AuthStatus.ONBOARDING,
     isUnauthenticated: authStatus === AuthStatus.UNAUTHENTICATED,
+    setHasSeenReferralEntry: useAuthStore.getState().setHasSeenReferralEntry,
+    setJustAppliedReferral: useAuthStore.getState().setJustAppliedReferral,
   };
 };

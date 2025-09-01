@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { subscribeToAuthChanges, signOutUser } from "../services/firebase/auth";
+import {
+  subscribeToAuthChanges,
+  signOutUser,
+  checkDeletionMarker,
+} from "../services/firebase/auth";
 import { clearStorageUrlCaches } from "../hooks/useStorageUrl";
 import { logger } from "../utils/logger";
 import {
@@ -45,12 +49,15 @@ interface AuthStoreActions {
   setAuthLoading: (loading: boolean) => void;
   setAuthStatus: (status: AuthStatus) => void;
   setOnboardingStatus: (status: boolean) => void;
+  setHasSeenReferralEntry: (seen: boolean) => void;
+  setJustAppliedReferral: (applied: boolean) => void;
   signOut: () => Promise<void>;
 
   // Advanced operations
   initializeAuthStatus: () => Promise<void>;
   computeAuthStatus: () => void;
   debouncedComputeAuthStatus: () => void;
+  refreshUserData: () => Promise<void>;
 
   // Utility
   cleanup: () => void;
@@ -112,6 +119,24 @@ export const useAuthStore = create<AuthStore>((set, get) => {
       set({ hasCompletedOnboarding });
     },
 
+    setHasSeenReferralEntry: (seen: boolean) => {
+      const currentUser = get().user;
+      if (currentUser) {
+        set({
+          user: {
+            ...currentUser,
+            hasSeenReferralEntry: seen,
+          },
+        });
+        // Recompute auth status after marking referral entry as seen
+        get().debouncedComputeAuthStatus();
+      }
+    },
+
+    setJustAppliedReferral: (applied: boolean) => {
+      set({ justAppliedReferral: applied });
+    },
+
     // Initialize auth system
     initialize: () => {
       const currentState = get();
@@ -125,65 +150,105 @@ export const useAuthStore = create<AuthStore>((set, get) => {
 
       try {
         // Set up Firebase auth listener
-        const unsubscribe = subscribeToAuthChanges((firebaseUser) => {
-          executeAuthOperation(
-            "firebase_auth_change",
-            async () => {
-              if (firebaseUser) {
-                // Fetch Firestore user data to get admin status and other fields
-                let firestoreUserData = null;
-                try {
-                  firestoreUserData = await AuthCacheService.getUserData(
-                    firebaseUser.uid
-                  );
-                } catch (error) {
-                  logger.warn(
-                    "Failed to fetch Firestore user data during auth change",
-                    error
-                  );
-                }
+        const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+          // Handle user data outside of executeAuthOperation to prevent loss due to superseding
+          if (firebaseUser) {
+            // Invalidate cache to ensure we get fresh data (especially after login)
+            AuthCacheService.invalidateUser(firebaseUser.uid);
 
-                // Safely handle Firebase user metadata
-                const metadata = hasFirebaseMetadata(firebaseUser)
-                  ? firebaseUser.metadata
-                  : undefined;
-                const creationTime = metadata?.creationTime;
-
-                const user: User = {
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email,
-                  displayName: firebaseUser.displayName,
-                  photoURL: firebaseUser.photoURL,
-                  emailVerified: firebaseUser.emailVerified,
-                  createdAt: creationTime ? new Date(creationTime) : new Date(),
-                  isAdmin: firestoreUserData?.isAdmin || false,
-                };
-
-                logger.debug("Firebase user authenticated", {
-                  uid: user.uid,
-                  email: user.email,
-                  verified: user.emailVerified,
-                  isAdmin: user.isAdmin,
-                });
-
-                set({ user, loading: false });
-                get().initializeAuthStatus();
-              } else {
-                logger.debug("Firebase user signed out");
-                set({
-                  user: null,
-                  loading: false,
-                  hasCompletedOnboarding: null,
-                  authStatus: AuthStatus.UNAUTHENTICATED,
-                });
-              }
-            },
-            undefined,
-            (error) => {
-              logger.error("Firebase auth state change error", error);
-              set({ error: getAuthErrorMessage(error), loading: false });
+            // Fetch Firestore user data to get admin status and other fields
+            let firestoreUserData = null;
+            try {
+              firestoreUserData = await AuthCacheService.getUserData(
+                firebaseUser.uid
+              );
+              logger.debug("Firestore user data fetched", {
+                uid: firebaseUser.uid,
+                hasReferralCode: !!firestoreUserData?.referralCode,
+                referralCode: firestoreUserData?.referralCode,
+                hasReferralStats: !!firestoreUserData?.referralStats,
+                referralStats: firestoreUserData?.referralStats,
+              });
+            } catch (error) {
+              logger.warn(
+                "Failed to fetch Firestore user data during auth change",
+                error
+              );
             }
-          );
+
+            // Safely handle Firebase user metadata
+            const metadata = hasFirebaseMetadata(firebaseUser)
+              ? firebaseUser.metadata
+              : undefined;
+            const creationTime = metadata?.creationTime;
+
+            const user: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName:
+                firebaseUser.displayName ||
+                firestoreUserData?.displayName ||
+                null,
+              photoURL: firebaseUser.photoURL,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: creationTime ? new Date(creationTime) : new Date(),
+              isAdmin: firestoreUserData?.isAdmin || false,
+              referralCode: firestoreUserData?.referralCode,
+              referralStats: firestoreUserData?.referralStats
+                ? {
+                    totalReferred:
+                      firestoreUserData.referralStats.totalReferred || 0,
+                    creditsEarned:
+                      firestoreUserData.referralStats.creditsEarned || 0,
+                    pendingReferrals:
+                      firestoreUserData.referralStats.pendingReferrals || 0,
+                    lastReferralAt:
+                      firestoreUserData.referralStats.lastReferralAt?.toDate(),
+                  }
+                : undefined,
+            };
+
+            logger.debug("Firebase user authenticated", {
+              uid: user.uid,
+              email: user.email,
+              verified: user.emailVerified,
+              isAdmin: user.isAdmin,
+            });
+
+            // Always update user data - this ensures fresh Firestore data is never lost
+            set({ user, loading: false });
+
+            logger.debug("User data updated in auth store", {
+              uid: user.uid,
+              hasReferralCode: !!user.referralCode,
+              referralCode: user.referralCode,
+              hasReferralStats: !!user.referralStats,
+              referralStats: user.referralStats,
+            });
+
+            // Initialize auth status in a separate operation (can be superseded)
+            executeAuthOperation(
+              "initialize_auth_status_after_auth",
+              async () => {
+                get().initializeAuthStatus();
+              },
+              undefined,
+              (error) => {
+                logger.error(
+                  "Error initializing auth status after auth change",
+                  error
+                );
+              }
+            );
+          } else {
+            logger.debug("Firebase user signed out");
+            set({
+              user: null,
+              loading: false,
+              hasCompletedOnboarding: null,
+              authStatus: AuthStatus.UNAUTHENTICATED,
+            });
+          }
         });
 
         // Register cleanup for auth listener
@@ -259,6 +324,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         loading,
         emailVerified: user?.emailVerified,
         hasCompletedOnboarding,
+        hasSeenReferralEntry: user?.hasSeenReferralEntry,
         userEmail: user?.email,
       });
 
@@ -272,9 +338,83 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         return;
       }
 
-      if (!user.emailVerified && !isTestAccount(user.email)) {
+      const isCurrentUserTestAccount =
+        __DEV__ && user.email?.includes("@test.dreamweaver");
+
+      if (
+        !user.emailVerified &&
+        !isTestAccount(user.email) &&
+        !isCurrentUserTestAccount
+      ) {
         setAuthStatus(AuthStatus.UNVERIFIED);
         return;
+      }
+
+      // Check if user needs to see referral entry screen
+      // For all verified signups (email, Google, Apple) and test accounts
+      const isVerifiedOrTestUser =
+        user.emailVerified || isCurrentUserTestAccount;
+
+      if (
+        isVerifiedOrTestUser &&
+        !user.hasSeenReferralEntry &&
+        !hasCompletedOnboarding
+      ) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const isRecentSignup =
+          user.createdAt && user.createdAt > fiveMinutesAgo;
+
+        // Show referral entry for all recent signups (email, Google, Apple) or test accounts
+        if (isRecentSignup || isCurrentUserTestAccount) {
+          // Check if user has a deletion marker (returning user)
+          if (user.email) {
+            checkDeletionMarker(user.email)
+              .then((hasMarker) => {
+                if (hasMarker) {
+                  logger.debug(
+                    "User has deletion marker - skipping referral entry",
+                    {
+                      userId: user.uid,
+                    }
+                  );
+                  // Mark as seen and skip to onboarding
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    set({
+                      user: {
+                        ...currentState.user,
+                        hasSeenReferralEntry: true,
+                      },
+                    });
+                    // Recompute auth status after updating the user
+                    currentState.computeAuthStatus();
+                  }
+                } else {
+                  // No deletion marker - show referral entry
+                  const currentState = get();
+                  if (currentState.user?.uid === user.uid) {
+                    setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                  }
+                }
+              })
+              .catch((error) => {
+                logger.error(
+                  "Error checking deletion marker during auth status computation",
+                  error
+                );
+                // On error, show referral entry as fallback
+                const currentState = get();
+                if (currentState.user?.uid === user.uid) {
+                  setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+                }
+              });
+            return;
+          } else {
+            // No email available - show referral entry as fallback
+            setAuthStatus(AuthStatus.REFERRAL_ENTRY);
+            return;
+          }
+        }
       }
 
       if (!hasCompletedOnboarding) {
@@ -323,6 +463,63 @@ export const useAuthStore = create<AuthStore>((set, get) => {
 
       if (!success) {
         throw new Error("Sign out failed");
+      }
+    },
+
+    // Manually refresh user data from Firestore
+    refreshUserData: async () => {
+      const currentState = get();
+      const currentUser = currentState.user;
+
+      if (!currentUser?.uid) {
+        logger.debug("No current user to refresh data for");
+        return;
+      }
+
+      try {
+        logger.debug("Manually refreshing user data", { uid: currentUser.uid });
+
+        // Invalidate cache to force fresh fetch
+        AuthCacheService.invalidateUser(currentUser.uid);
+
+        // Fetch fresh Firestore user data
+        const firestoreUserData = await AuthCacheService.getUserData(
+          currentUser.uid
+        );
+
+        if (firestoreUserData) {
+          // Update the user object with fresh data
+          const updatedUser: User = {
+            ...currentUser,
+            referralCode: firestoreUserData.referralCode,
+            referralStats: firestoreUserData.referralStats
+              ? {
+                  totalReferred:
+                    firestoreUserData.referralStats.totalReferred || 0,
+                  creditsEarned:
+                    firestoreUserData.referralStats.creditsEarned || 0,
+                  pendingReferrals:
+                    firestoreUserData.referralStats.pendingReferrals || 0,
+                  lastReferralAt:
+                    firestoreUserData.referralStats.lastReferralAt?.toDate(),
+                }
+              : undefined,
+          };
+
+          set({ user: updatedUser });
+
+          logger.debug("User data refreshed successfully", {
+            uid: currentUser.uid,
+            hasReferralCode: !!updatedUser.referralCode,
+            referralCode: updatedUser.referralCode,
+            hasReferralStats: !!updatedUser.referralStats,
+          });
+        }
+      } catch (error) {
+        logger.error("Failed to refresh user data", {
+          uid: currentUser.uid,
+          error,
+        });
       }
     },
 

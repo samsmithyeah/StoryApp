@@ -31,6 +31,14 @@ export const Colors = {
   cardBorder: "#D4AF37", // Golden card border
   placeholderBackground: "rgba(26,27,58,0.5)", // Placeholder background
 
+  // Translucent card section colors
+  cardSectionBackground: "rgba(255, 255, 255, 0.05)", // For internal card sections
+  cardSectionBorder: "rgba(212, 175, 55, 0.2)", // Subtle golden border
+  cardActionBackground: "rgba(255, 255, 255, 0.1)", // For action buttons
+  cardActionBorder: "rgba(212, 175, 55, 0.3)", // For action button borders
+  cardActionBackgroundError: "rgba(239, 68, 68, 0.1)", // For error/delete actions
+  cardActionBorderError: "rgba(239, 68, 68, 0.3)", // For error/delete action borders
+
   // Status colors
   error: "#EF4444",
   success: "#10B981",

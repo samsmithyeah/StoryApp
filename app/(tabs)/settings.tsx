@@ -20,6 +20,7 @@ import { AdvancedSettingsSection } from "../../components/settings/AdvancedSetti
 import { ChildrenSection } from "../../components/settings/ChildrenSection";
 import { DebugSection } from "../../components/settings/DebugSection";
 import { SavedCharactersSection } from "../../components/settings/SavedCharactersSection";
+import { ReferralSection } from "../../components/settings/ReferralSection";
 import { SettingsHeader } from "../../components/settings/SettingsHeader";
 import { SupportSection } from "../../components/settings/SupportSection";
 import { Colors, Spacing } from "../../constants/Theme";
@@ -219,6 +220,8 @@ export default function SettingsScreen() {
             onEditCharacter={handleEditSavedCharacter}
             onDeleteCharacter={handleDeleteSavedCharacter}
           />
+
+          <ReferralSection />
 
           <AdvancedSettingsSection
             isAdmin={isAdmin}
