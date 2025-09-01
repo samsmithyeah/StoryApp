@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/Theme";
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { StyleSheet, View, LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -8,8 +8,6 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-const { width } = Dimensions.get("window");
-const SLIDER_WIDTH = width - 96; // Account for container padding
 const THUMB_SIZE = 48; // Size of the thumb container for better touch area
 
 interface CustomSliderProps {
@@ -27,46 +25,56 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
 }) => {
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
+  const sliderWidth = useSharedValue(0);
 
   // Update translateX when value changes
   React.useEffect(() => {
-    const progress = (value - minValue) / (maxValue - minValue);
-    // Position thumb so its center aligns with the progress
-    translateX.value = progress * SLIDER_WIDTH - THUMB_SIZE / 2;
-  }, [value, translateX, minValue, maxValue]);
+    if (sliderWidth.value > 0) {
+      const progress = (value - minValue) / (maxValue - minValue);
+      // Position thumb so its center aligns with the progress
+      translateX.value = progress * sliderWidth.value - THUMB_SIZE / 2;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- translateX is a SharedValue, not a regular dependency
+  }, [value, minValue, maxValue, sliderWidth]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
       startX.value = translateX.value;
     })
     .onUpdate((event) => {
-      const newTranslateX = Math.max(
-        -(THUMB_SIZE / 2),
-        Math.min(
-          SLIDER_WIDTH - THUMB_SIZE / 2,
-          startX.value + event.translationX
-        )
-      );
-      translateX.value = newTranslateX;
+      if (sliderWidth.value > 0) {
+        const newTranslateX = Math.max(
+          -(THUMB_SIZE / 2),
+          Math.min(
+            sliderWidth.value - THUMB_SIZE / 2,
+            startX.value + event.translationX
+          )
+        );
+        translateX.value = newTranslateX;
 
-      // Convert thumb position back to progress (0-1)
-      const progress = (newTranslateX + THUMB_SIZE / 2) / SLIDER_WIDTH;
-      const newValue = Math.round(minValue + progress * (maxValue - minValue));
-      runOnJS(onValueChange)(newValue);
+        // Convert thumb position back to progress (0-1)
+        const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
+        const newValue = Math.round(
+          minValue + progress * (maxValue - minValue)
+        );
+        runOnJS(onValueChange)(newValue);
+      }
     });
 
   const tapGesture = Gesture.Tap().onEnd((event) => {
-    // Position thumb so its center is at the tap location
-    const newTranslateX = Math.max(
-      -(THUMB_SIZE / 2),
-      Math.min(SLIDER_WIDTH - THUMB_SIZE / 2, event.x - THUMB_SIZE / 2)
-    );
-    translateX.value = newTranslateX;
+    if (sliderWidth.value > 0) {
+      // Position thumb so its center is at the tap location
+      const newTranslateX = Math.max(
+        -(THUMB_SIZE / 2),
+        Math.min(sliderWidth.value - THUMB_SIZE / 2, event.x - THUMB_SIZE / 2)
+      );
+      translateX.value = newTranslateX;
 
-    // Convert tap position to progress (0-1)
-    const progress = event.x / SLIDER_WIDTH;
-    const newValue = Math.round(minValue + progress * (maxValue - minValue));
-    runOnJS(onValueChange)(newValue);
+      // Convert clamped thumb position to progress (0-1) - fixes out-of-bounds bug
+      const progress = (newTranslateX + THUMB_SIZE / 2) / sliderWidth.value;
+      const newValue = Math.round(minValue + progress * (maxValue - minValue));
+      runOnJS(onValueChange)(newValue);
+    }
   });
 
   const composedGesture = Gesture.Race(panGesture, tapGesture);
@@ -78,18 +86,31 @@ export const CustomSlider: React.FC<CustomSliderProps> = ({
   });
 
   const progressStyle = useAnimatedStyle(() => {
-    // Progress should go to the center of the thumb
-    const thumbCenterX = translateX.value + THUMB_SIZE / 2;
-    const percentage = (thumbCenterX / SLIDER_WIDTH) * 100;
-    return {
-      width: `${Math.max(0, Math.min(percentage, 100))}%`,
-    };
+    if (sliderWidth.value > 0) {
+      // Progress should go to the center of the thumb
+      const thumbCenterX = translateX.value + THUMB_SIZE / 2;
+      const percentage = (thumbCenterX / sliderWidth.value) * 100;
+      return {
+        width: `${Math.max(0, Math.min(percentage, 100))}%`,
+      };
+    }
+    return { width: "0%" };
   });
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    sliderWidth.value = width;
+    // Re-calculate thumb position when layout changes
+    if (width > 0) {
+      const progress = (value - minValue) / (maxValue - minValue);
+      translateX.value = progress * width - THUMB_SIZE / 2;
+    }
+  };
 
   return (
     <View style={styles.customSliderContainer}>
       <GestureDetector gesture={composedGesture}>
-        <View style={styles.sliderInteractiveArea}>
+        <View style={styles.sliderInteractiveArea} onLayout={onLayout}>
           <View style={styles.sliderTrack}>
             <Animated.View style={[styles.sliderProgress, progressStyle]} />
           </View>
