@@ -6,8 +6,8 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 import { TIMEOUTS } from "./constants";
+import { DEFAULT_MODELS } from "./models";
 import { StoryGenerationRequest, StoryPage } from "./types";
-import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
@@ -45,7 +45,7 @@ function getArtStyleDescriptions(data: StoryGenerationRequest): string[] {
 
 export const generateStory = onCall(
   {
-    secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
+    secrets: [openaiApiKey, geminiApiKey],
     timeoutSeconds: TIMEOUTS.STORY_GENERATION,
     memory: "1GiB",
   },
@@ -395,11 +395,10 @@ Return the story in this JSON format:
               ? data.geminiThinkingBudget
               : undefined,
           // Cover image generation details
-          coverImageModel:
-            data.coverImageModel || "gemini-2.0-flash-preview-image-generation",
+          coverImageModel: data.coverImageModel || DEFAULT_MODELS.COVER_IMAGE,
           coverImagePrompt: "", // Will be updated after cover generation
           // Page image generation details
-          pageImageModel: data.pageImageModel || "gpt-image-1",
+          pageImageModel: data.pageImageModel || DEFAULT_MODELS.PAGE_IMAGE,
           pageImagePrompts: storyContent.pages.map((p: any) => p.imagePrompt),
           pageImageGenerationData: {}, // Will be populated as individual pages are generated
           illustrationStyle: data.illustrationStyle,
@@ -438,7 +437,7 @@ Return the story in this JSON format:
       logger.info("Publishing cover image generation task", { storyId });
 
       const selectedCoverImageModel =
-        data.coverImageModel || "gemini-2.0-flash-preview-image-generation";
+        data.coverImageModel || DEFAULT_MODELS.COVER_IMAGE;
 
       const artStyleDescriptions = getArtStyleDescriptions(data);
 

@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
 import {
   doc,
   getDoc,
+  serverTimestamp,
   setDoc,
   updateDoc,
-  serverTimestamp,
 } from "@react-native-firebase/firestore";
+import { useEffect, useState } from "react";
 import { db } from "../services/firebase/config";
-import { useAuth } from "./useAuth";
 import { logger } from "../utils/logger";
+import { useAuth } from "./useAuth";
 
 // Note: Firestore security rules must allow read/write access to:
 // users/{userId}/preferences/{document}
@@ -20,11 +20,8 @@ import { logger } from "../utils/logger";
 export interface UserPreferences {
   // Model preferences
   textModel: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel:
-    | "gemini-2.0-flash-preview-image-generation"
-    | "dall-e-3"
-    | "gpt-image-1";
-  pageImageModel: "flux" | "gemini" | "gpt-image-1";
+  coverImageModel: "gemini-2.5-flash-image-preview" | "gpt-image-1";
+  pageImageModel: "gemini" | "gpt-image-1";
   // Model generation settings
   temperature: number; // 0.0 to 2.0, controls randomness/creativity
   geminiThinkingBudget: number; // -1 for dynamic, 128-32768 for fixed budget
@@ -33,7 +30,7 @@ export interface UserPreferences {
 const DEFAULT_PREFERENCES: UserPreferences = {
   textModel: "gemini-2.5-pro",
   coverImageModel: "gpt-image-1",
-  pageImageModel: "gemini",
+  pageImageModel: "gpt-image-1",
   temperature: 0.9,
   geminiThinkingBudget: -1, // Dynamic thinking
 };

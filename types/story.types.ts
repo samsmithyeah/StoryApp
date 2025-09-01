@@ -25,12 +25,9 @@ export interface StoryConfiguration {
   illustrationAiDescription?: string;
   illustrationAiDescriptionBackup1?: string;
   illustrationAiDescriptionBackup2?: string;
-  pageImageModel?: "flux" | "gemini" | "gpt-image-1";
+  pageImageModel?: "gemini" | "gpt-image-1";
   textModel?: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel?:
-    | "gemini-2.5-flash-image-preview"
-    | "dall-e-3"
-    | "gpt-image-1";
+  coverImageModel?: "gemini-2.5-flash-image-preview" | "gpt-image-1";
   targetAge?: number;
   storyId?: string;
   storyAbout?: string;
