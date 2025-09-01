@@ -24,6 +24,7 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
+import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../store/authStore";
 
@@ -164,7 +165,7 @@ export default function LoginScreen() {
         >
           <View style={styles.header}>
             <Text style={styles.appName}>DreamWeaver</Text>
-            <Text style={styles.tagline}>Your bedtime adventures</Text>
+            <Text style={styles.tagline}>{TAGLINE}</Text>
           </View>
 
           <View style={styles.authContainer}>

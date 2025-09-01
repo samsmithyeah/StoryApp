@@ -30,6 +30,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StoryCard } from "../../components/story/StoryCard";
 import { Button } from "../../components/ui/Button";
+import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
@@ -204,7 +205,7 @@ export default function LibraryScreen() {
             <>
               <View style={styles.hero}>
                 <Text style={styles.brand}>DreamWeaver</Text>
-                <Text style={styles.tagline}>Your bedtime adventures</Text>
+                <Text style={styles.tagline}>{TAGLINE}</Text>
               </View>
 
               <Text style={styles.sectionLabel}>LIBRARY</Text>

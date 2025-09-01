@@ -83,7 +83,7 @@ export default function CreateScreen() {
 
             <Text style={styles.title}>Create a story</Text>
             <Text style={styles.subtitle}>
-              Create a personalised bedtime story for your child
+              Create a personalised story for your children
             </Text>
 
             <Button
