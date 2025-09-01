@@ -50,7 +50,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
-    pageCount: 5,
+    pageCount: 6,
     shouldRhyme: false,
     illustrationStyle: "loose-ink-wash",
     illustrationAiDescription:
@@ -150,7 +150,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       data.mood ||
       data.storyAbout ||
       (data.characters && data.characters.length > 0) ||
-      data.pageCount !== 5 ||
+      data.pageCount !== 6 ||
       data.shouldRhyme !== false ||
       data.illustrationStyle !== "loose-ink-wash"
     );
@@ -284,7 +284,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       case "length":
         return (
           <StoryDetails
-            pageCount={wizardData.pageCount || 5}
+            pageCount={wizardData.pageCount || 6}
             shouldRhyme={wizardData.shouldRhyme || false}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

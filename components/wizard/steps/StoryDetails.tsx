@@ -1,3 +1,4 @@
+import { CustomSlider } from "@/components/ui/CustomSlider";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { InsufficientCreditsModal } from "@/components/ui/InsufficientCreditsModal";
 import { Colors } from "@/constants/Theme";
@@ -9,7 +10,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -18,6 +18,9 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+
+const MIN_PAGES = 3;
+const MAX_PAGES = 20;
 
 interface StoryDetailsProps {
   pageCount?: number;
@@ -29,7 +32,7 @@ interface StoryDetailsProps {
 }
 
 export const StoryDetails: React.FC<StoryDetailsProps> = ({
-  pageCount = 5,
+  pageCount = 6,
   shouldRhyme = false,
   onUpdate,
   onNext,
@@ -75,7 +78,7 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Story Length</Text>
+            <Text style={styles.sectionTitle}>Story length</Text>
             <View style={styles.sliderContainer}>
               <View style={styles.sliderHeader}>
                 <Text style={styles.sliderLabel}>{pageCount} pages</Text>
@@ -88,40 +91,15 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
                   <Text style={styles.creditCostText}>{pageCount} credits</Text>
                 </View>
               </View>
-              <View style={styles.customSlider}>
-                <View style={styles.sliderTrack}>
-                  <View
-                    style={[
-                      styles.sliderProgress,
-                      { width: `${((pageCount - 3) / (10 - 3)) * 100}%` },
-                    ]}
-                  />
-                </View>
-                <View style={styles.sliderButtons}>
-                  {[3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <TouchableOpacity
-                      key={num}
-                      style={[
-                        styles.sliderButton,
-                        pageCount === num && styles.sliderButtonActive,
-                      ]}
-                      onPress={() => handlePageCountChange(num)}
-                    >
-                      <Text
-                        style={[
-                          styles.sliderButtonText,
-                          pageCount === num && styles.sliderButtonTextActive,
-                        ]}
-                      >
-                        {num}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              <CustomSlider
+                value={pageCount}
+                onValueChange={handlePageCountChange}
+                minValue={MIN_PAGES}
+                maxValue={MAX_PAGES}
+              />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderEndLabel}>3 pages</Text>
-                <Text style={styles.sliderEndLabel}>10 pages</Text>
+                <Text style={styles.sliderEndLabel}>{MIN_PAGES} pages</Text>
+                <Text style={styles.sliderEndLabel}>{MAX_PAGES} pages</Text>
               </View>
             </View>
           </View>
@@ -191,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   sliderLabel: {
     fontSize: isTablet ? 20 : 18,
@@ -212,47 +190,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginLeft: 6,
   },
-  customSlider: {
-    marginVertical: 16,
-  },
-  sliderTrack: {
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 2,
-    marginBottom: 16,
-  },
-  sliderProgress: {
-    height: "100%",
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  sliderButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  sliderButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sliderButtonActive: {
-    backgroundColor: Colors.primary,
-  },
-  sliderButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.textSecondary,
-  },
-  sliderButtonTextActive: {
-    color: Colors.background,
-  },
   sliderLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 8,
   },
   sliderEndLabel: {
     fontSize: isTablet ? 14 : 12,
