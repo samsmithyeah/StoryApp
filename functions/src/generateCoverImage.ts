@@ -2,6 +2,7 @@ import { PubSub } from "@google-cloud/pubsub";
 import { getFirestore } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { IMAGE_SETTINGS, TIMEOUTS } from "./constants";
+import { CoverImageModel, FALLBACK_MODELS, IMAGE_MODELS } from "./models";
 import { getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient } from "./utils/openai";
@@ -15,7 +16,7 @@ interface CoverImageGenerationPayload {
   userId: string;
   title: string;
   coverImagePrompt: string;
-  coverImageModel: "gemini-2.5-flash-image-preview" | "gpt-image-1";
+  coverImageModel: CoverImageModel;
   artStyle: string;
   artStyleBackup1?: string;
   artStyleBackup2?: string;
@@ -59,11 +60,7 @@ export const generateCoverImage = onMessagePublished(
       // Define primary and fallback models
       const primaryModel = coverImageModel;
       const fallbackModel =
-        coverImageModel === "gpt-image-1"
-          ? "gemini-2.5-flash-image-preview"
-          : coverImageModel === "gemini-2.5-flash-image-preview"
-            ? "gpt-image-1"
-            : null;
+        FALLBACK_MODELS.COVER_IMAGE[coverImageModel] || null;
 
       const modelsToTry = fallbackModel
         ? [primaryModel, fallbackModel]
@@ -96,7 +93,7 @@ export const generateCoverImage = onMessagePublished(
               promptLength: finalCoverPrompt.length,
             });
 
-            if (currentModel === "gemini-2.5-flash-image-preview") {
+            if (currentModel === IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW) {
               const geminiClient = getGeminiClient();
               const startTime = Date.now();
 
@@ -112,7 +109,7 @@ export const generateCoverImage = onMessagePublished(
               });
 
               coverImageGenerated = true;
-            } else if (currentModel === "gpt-image-1") {
+            } else if (currentModel === IMAGE_MODELS.GPT_IMAGE_1) {
               const openai = getOpenAIClient();
               const startTime = Date.now();
 

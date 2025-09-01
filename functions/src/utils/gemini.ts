@@ -32,6 +32,9 @@ interface GeminiResponse {
       }[];
     };
   }[];
+  promptFeedback?: {
+    blockReason?: string;
+  };
 }
 
 export class GeminiClient {
@@ -102,11 +105,12 @@ export class GeminiClient {
     });
 
     const response = await fetch(
-      `${this.baseUrl}/models/${this.textModel}:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/models/${this.textModel}:generateContent`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey,
         },
         body: JSON.stringify(request),
       }
@@ -133,8 +137,8 @@ export class GeminiClient {
     });
 
     // Check for content blocked by safety filters
-    if ((responseData as any).promptFeedback?.blockReason) {
-      const blockReason = (responseData as any).promptFeedback.blockReason;
+    if (responseData.promptFeedback?.blockReason) {
+      const blockReason = responseData.promptFeedback.blockReason;
       logger.error("GeminiClient content blocked by safety filter", {
         blockReason,
       });

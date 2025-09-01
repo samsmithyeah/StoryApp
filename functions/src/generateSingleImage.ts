@@ -9,13 +9,14 @@ import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
 import { sendStoryCompleteNotification } from "./sendStoryCompleteNotification";
 import { TIMEOUTS } from "./constants";
+import { FALLBACK_MODELS, IMAGE_MODELS, PageImageModel } from "./models";
 
 interface ImageGenerationPayload {
   storyId: string;
   userId: string;
   pageIndex: number;
   imagePrompt: string;
-  imageProvider: "gemini" | "gpt-image-1";
+  imageProvider: PageImageModel;
   consistencyInput: {
     imageUrl: string;
     text: string;
@@ -79,12 +80,7 @@ REQUIREMENTS:
 
       // Define primary and fallback models
       const primaryModel = imageProvider;
-      const fallbackModel =
-        imageProvider === "gpt-image-1"
-          ? "gemini"
-          : imageProvider === "gemini"
-            ? "gpt-image-1"
-            : null;
+      const fallbackModel = FALLBACK_MODELS.PAGE_IMAGE[imageProvider] || null;
 
       const modelsToTry = fallbackModel
         ? [primaryModel, fallbackModel]
@@ -126,7 +122,7 @@ REQUIREMENTS:
               styleIndex: currentStyleIndex,
             });
 
-            if (currentModel === "gpt-image-1") {
+            if (currentModel === IMAGE_MODELS.GPT_IMAGE_1) {
               const openai = getOpenAIClient();
 
               // Create a readable stream and convert to File using toFile utility
@@ -136,27 +132,37 @@ REQUIREMENTS:
                 type: "image/png",
               });
 
-              const response = await retryWithBackoff(() =>
-                openai.images.edit({
-                  model: "gpt-image-1",
-                  image: imageFile,
-                  prompt: currentPrompt,
-                  quality: "medium",
-                  size: "1024x1024",
-                  n: 1,
-                })
-              );
+              try {
+                const response = await retryWithBackoff(() =>
+                  openai.images.edit({
+                    model: IMAGE_MODELS.GPT_IMAGE_1,
+                    image: imageFile,
+                    prompt: currentPrompt,
+                    quality: "medium",
+                    size: "1024x1024",
+                    n: 1,
+                  })
+                );
 
-              const imageData = response.data?.[0];
-              if (!imageData?.b64_json) {
-                throw new Error("No base64 image data returned from OpenAI");
+                const imageData = response.data?.[0];
+                if (!imageData?.b64_json) {
+                  throw new Error("No base64 image data returned from OpenAI");
+                }
+
+                finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+                imageGenerated = true;
+                actualModelUsed = currentModel;
+                finalPromptUsed = currentPrompt;
+              } finally {
+                // Cleanup image file resources
+                if (
+                  imageFile &&
+                  typeof (imageFile as any).stream?.destroy === "function"
+                ) {
+                  (imageFile as any).stream.destroy();
+                }
               }
-
-              finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-              imageGenerated = true;
-              actualModelUsed = currentModel;
-              finalPromptUsed = currentPrompt;
-            } else if (currentModel === "gemini") {
+            } else if (currentModel === IMAGE_MODELS.GEMINI) {
               const geminiClient = getGeminiClient();
 
               finalImageUrl = await retryWithBackoff(() =>

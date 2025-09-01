@@ -6,6 +6,7 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 import { TIMEOUTS } from "./constants";
+import { DEFAULT_MODELS } from "./models";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
@@ -394,10 +395,10 @@ Return the story in this JSON format:
               ? data.geminiThinkingBudget
               : undefined,
           // Cover image generation details
-          coverImageModel: data.coverImageModel || "gpt-image-1",
+          coverImageModel: data.coverImageModel || DEFAULT_MODELS.COVER_IMAGE,
           coverImagePrompt: "", // Will be updated after cover generation
           // Page image generation details
-          pageImageModel: data.pageImageModel || "gpt-image-1",
+          pageImageModel: data.pageImageModel || DEFAULT_MODELS.PAGE_IMAGE,
           pageImagePrompts: storyContent.pages.map((p: any) => p.imagePrompt),
           pageImageGenerationData: {}, // Will be populated as individual pages are generated
           illustrationStyle: data.illustrationStyle,
@@ -435,7 +436,8 @@ Return the story in this JSON format:
       // 6. Publish Cover Image Generation Task to Pub/Sub
       logger.info("Publishing cover image generation task", { storyId });
 
-      const selectedCoverImageModel = data.coverImageModel || "gpt-image-1";
+      const selectedCoverImageModel =
+        data.coverImageModel || DEFAULT_MODELS.COVER_IMAGE;
 
       const artStyleDescriptions = getArtStyleDescriptions(data);
 
