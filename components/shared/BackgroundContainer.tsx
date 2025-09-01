@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { ImageBackground, StyleSheet } from "react-native";
+import { ImageBackground, StyleSheet, useWindowDimensions } from "react-native";
 import { Colors } from "../../constants/Theme";
 
 interface BackgroundContainerProps {
@@ -13,10 +13,12 @@ export const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
   children,
   showDecorations = true,
 }) => {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isTablet = Math.min(winWidth, winHeight) >= 768;
   return (
     <ImageBackground
       source={require("../../assets/images/background-landscape.png")}
-      resizeMode="cover"
+      resizeMode={isTablet ? "cover" : "none"}
       style={styles.container}
     >
       <LinearGradient
