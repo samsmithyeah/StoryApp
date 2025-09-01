@@ -125,43 +125,33 @@ REQUIREMENTS:
             if (currentModel === IMAGE_MODELS.GPT_IMAGE_1) {
               const openai = getOpenAIClient();
 
-              // Create a readable stream and convert to File using toFile utility
+              // The stream and file must be created inside the retry callback
+              // because the OpenAI SDK consumes the stream on each API call
               const imageBuffer = Buffer.from(base64Data, "base64");
-              const imageStream = Readable.from(imageBuffer);
-              const imageFile = await toFile(imageStream, "cover.png", {
-                type: "image/png",
+              const response = await retryWithBackoff(async () => {
+                const imageStream = Readable.from(imageBuffer);
+                const imageFile = await toFile(imageStream, "cover.png", {
+                  type: "image/png",
+                });
+                return openai.images.edit({
+                  model: IMAGE_MODELS.GPT_IMAGE_1,
+                  image: imageFile,
+                  prompt: currentPrompt,
+                  quality: "medium",
+                  size: "1024x1024",
+                  n: 1,
+                });
               });
 
-              try {
-                const response = await retryWithBackoff(() =>
-                  openai.images.edit({
-                    model: IMAGE_MODELS.GPT_IMAGE_1,
-                    image: imageFile,
-                    prompt: currentPrompt,
-                    quality: "medium",
-                    size: "1024x1024",
-                    n: 1,
-                  })
-                );
-
-                const imageData = response.data?.[0];
-                if (!imageData?.b64_json) {
-                  throw new Error("No base64 image data returned from OpenAI");
-                }
-
-                finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-                imageGenerated = true;
-                actualModelUsed = currentModel;
-                finalPromptUsed = currentPrompt;
-              } finally {
-                // Cleanup image file resources
-                if (
-                  imageFile &&
-                  typeof (imageFile as any).stream?.destroy === "function"
-                ) {
-                  (imageFile as any).stream.destroy();
-                }
+              const imageData = response.data?.[0];
+              if (!imageData?.b64_json) {
+                throw new Error("No base64 image data returned from OpenAI");
               }
+
+              finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+              imageGenerated = true;
+              actualModelUsed = currentModel;
+              finalPromptUsed = currentPrompt;
             } else if (currentModel === IMAGE_MODELS.GEMINI) {
               const geminiClient = getGeminiClient();
 
