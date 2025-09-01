@@ -58,32 +58,38 @@ const createMockStory = (
       state === "complete" || state === "complete-with-failures"
         ? "completed"
         : "generating",
-    imagesGenerated:
-      state === "complete"
-        ? 5
-        : state === "complete-with-failures"
-          ? 3
-          : state === "most-images"
-            ? 4
-            : state === "many-failed"
-              ? 2
-              : state === "partial-images"
-                ? 2
-                : state === "some-failed"
-                  ? 3
-                  : state === "with-cover"
-                    ? 0
-                    : state === "text-only"
-                      ? 0
-                      : 0,
-    imagesFailed:
-      state === "complete-with-failures"
-        ? 2
-        : state === "many-failed"
-          ? 2
-          : state === "some-failed"
-            ? 1
-            : 0,
+    imagesGenerated: (() => {
+      switch (state) {
+        case "complete":
+          return 5;
+        case "complete-with-failures":
+          return 3;
+        case "most-images":
+          return 4;
+        case "many-failed":
+          return 2;
+        case "partial-images":
+          return 2;
+        case "some-failed":
+          return 3;
+        case "with-cover":
+        case "text-only":
+        default:
+          return 0;
+      }
+    })(),
+    imagesFailed: (() => {
+      switch (state) {
+        case "complete-with-failures":
+          return 2;
+        case "many-failed":
+          return 2;
+        case "some-failed":
+          return 1;
+        default:
+          return 0;
+      }
+    })(),
     totalImages: 5,
   };
 
