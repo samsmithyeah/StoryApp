@@ -4,6 +4,7 @@ import { db } from "@/services/firebase/config";
 import { generateStory } from "@/services/firebase/stories";
 import { Story, StoryConfiguration } from "@/types/story.types";
 import { logger } from "@/utils/logger";
+import { DEFAULT_PAGE_COUNT } from "@/constants/Story";
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -50,7 +51,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
-    pageCount: 6,
+    pageCount: DEFAULT_PAGE_COUNT,
     shouldRhyme: false,
     illustrationStyle: "loose-ink-wash",
     illustrationAiDescription:
@@ -150,7 +151,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       data.mood ||
       data.storyAbout ||
       (data.characters && data.characters.length > 0) ||
-      data.pageCount !== 6 ||
+      data.pageCount !== DEFAULT_PAGE_COUNT ||
       data.shouldRhyme !== false ||
       data.illustrationStyle !== "loose-ink-wash"
     );
@@ -284,7 +285,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       case "length":
         return (
           <StoryDetails
-            pageCount={wizardData.pageCount || 6}
+            pageCount={wizardData.pageCount || DEFAULT_PAGE_COUNT}
             shouldRhyme={wizardData.shouldRhyme || false}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}

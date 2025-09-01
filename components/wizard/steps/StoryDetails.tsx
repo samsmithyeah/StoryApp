@@ -2,6 +2,11 @@ import { CustomSlider } from "@/components/ui/CustomSlider";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { InsufficientCreditsModal } from "@/components/ui/InsufficientCreditsModal";
 import { Colors } from "@/constants/Theme";
+import {
+  DEFAULT_PAGE_COUNT,
+  MIN_PAGE_COUNT,
+  MAX_PAGE_COUNT,
+} from "@/constants/Story";
 import { useCredits } from "@/hooks/useCredits";
 import React, { useState } from "react";
 import {
@@ -19,9 +24,6 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-const MIN_PAGES = 3;
-const MAX_PAGES = 20;
-
 interface StoryDetailsProps {
   pageCount?: number;
   shouldRhyme?: boolean;
@@ -32,7 +34,7 @@ interface StoryDetailsProps {
 }
 
 export const StoryDetails: React.FC<StoryDetailsProps> = ({
-  pageCount = 6,
+  pageCount = DEFAULT_PAGE_COUNT,
   shouldRhyme = false,
   onUpdate,
   onNext,
@@ -94,12 +96,16 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
               <CustomSlider
                 value={pageCount}
                 onValueChange={handlePageCountChange}
-                minValue={MIN_PAGES}
-                maxValue={MAX_PAGES}
+                minValue={MIN_PAGE_COUNT}
+                maxValue={MAX_PAGE_COUNT}
               />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderEndLabel}>{MIN_PAGES} pages</Text>
-                <Text style={styles.sliderEndLabel}>{MAX_PAGES} pages</Text>
+                <Text style={styles.sliderEndLabel}>
+                  {MIN_PAGE_COUNT} pages
+                </Text>
+                <Text style={styles.sliderEndLabel}>
+                  {MAX_PAGE_COUNT} pages
+                </Text>
               </View>
             </View>
           </View>
