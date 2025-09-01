@@ -1,12 +1,12 @@
+import { PubSub } from "@google-cloud/pubsub";
 import { getFirestore } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
-import { PubSub } from "@google-cloud/pubsub";
+import { IMAGE_SETTINGS, TIMEOUTS } from "./constants";
 import { getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 import { uploadImageToStorage } from "./utils/storage";
-import { TIMEOUTS, IMAGE_SETTINGS } from "./constants";
 
 const pubsub = new PubSub();
 
@@ -15,10 +15,7 @@ interface CoverImageGenerationPayload {
   userId: string;
   title: string;
   coverImagePrompt: string;
-  coverImageModel:
-    | "gemini-2.0-flash-preview-image-generation"
-    | "dall-e-3"
-    | "gpt-image-1";
+  coverImageModel: "gemini-2.5-flash-image-preview" | "gpt-image-1";
   artStyle: string;
   artStyleBackup1?: string;
   artStyleBackup2?: string;
@@ -59,72 +56,146 @@ export const generateCoverImage = onMessagePublished(
       if (artStyleBackup1) artStyleDescriptions.push(artStyleBackup1);
       if (artStyleBackup2) artStyleDescriptions.push(artStyleBackup2);
 
-      let currentStyleIndex = 0;
+      // Define primary and fallback models
+      const primaryModel = coverImageModel;
+      const fallbackModel =
+        coverImageModel === "gpt-image-1"
+          ? "gemini-2.5-flash-image-preview"
+          : coverImageModel === "gemini-2.5-flash-image-preview"
+            ? "gpt-image-1"
+            : null;
+
+      const modelsToTry = fallbackModel
+        ? [primaryModel, fallbackModel]
+        : [primaryModel];
+
       let coverImageGenerated = false;
       let coverImageUrl = "";
       let finalCoverPrompt = "";
+      let lastError: any = null;
 
-      // Try each art style description until one succeeds
-      while (
-        !coverImageGenerated &&
-        currentStyleIndex < artStyleDescriptions.length
-      ) {
-        const currentStyleDescription = artStyleDescriptions[currentStyleIndex];
-        finalCoverPrompt = `Aspect ratio: ${IMAGE_SETTINGS.COVER_ASPECT_RATIO}. ${coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in ${IMAGE_SETTINGS.COVER_ASPECT_RATIO} aspect ratio format. Add the book title "${title}" to the image. Do not add the name of the author or any other text to the image.`;
+      // Try each model
+      for (const currentModel of modelsToTry) {
+        let currentStyleIndex = 0;
 
-        try {
-          if (coverImageModel === "gemini-2.0-flash-preview-image-generation") {
-            const geminiClient = getGeminiClient();
-            coverImageUrl = await retryWithBackoff(() =>
-              geminiClient.generateImage(finalCoverPrompt)
-            );
-            coverImageGenerated = true;
-          } else if (
-            coverImageModel === "dall-e-3" ||
-            coverImageModel === "gpt-image-1"
-          ) {
-            const openai = getOpenAIClient();
-            const dalleResponse = await retryWithBackoff(() =>
-              openai.images.generate({
-                model: coverImageModel,
-                prompt: finalCoverPrompt,
-                size: IMAGE_SETTINGS.COVER_IMAGE_SIZE,
-                quality: "medium",
-                n: 1,
-                // Use base64 for both models for consistency
-                ...(coverImageModel === "dall-e-3" && {
-                  response_format: "b64_json",
-                }),
-                // Use low moderation for gpt-image-1 to reduce false positives
-                ...(coverImageModel === "gpt-image-1" && {
+        // Try each art style description for this model
+        while (
+          !coverImageGenerated &&
+          currentStyleIndex < artStyleDescriptions.length
+        ) {
+          const currentStyleDescription =
+            artStyleDescriptions[currentStyleIndex];
+          finalCoverPrompt = `Aspect ratio: ${IMAGE_SETTINGS.COVER_ASPECT_RATIO}. ${coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in ${IMAGE_SETTINGS.COVER_ASPECT_RATIO} aspect ratio format. Add the book title "${title}" to the image. Do not add the name of the author or any other text to the image.`;
+
+          try {
+            logger.debug("Attempting cover image generation", {
+              storyId,
+              model: currentModel,
+              isPrimary: currentModel === primaryModel,
+              styleIndex: currentStyleIndex,
+              promptLength: finalCoverPrompt.length,
+            });
+
+            if (currentModel === "gemini-2.5-flash-image-preview") {
+              const geminiClient = getGeminiClient();
+              const startTime = Date.now();
+
+              coverImageUrl = await retryWithBackoff(() =>
+                geminiClient.generateImage(finalCoverPrompt)
+              );
+
+              const duration = Date.now() - startTime;
+              logger.debug("Gemini cover image generation completed", {
+                storyId,
+                duration,
+                imageUrlLength: coverImageUrl.length,
+              });
+
+              coverImageGenerated = true;
+            } else if (currentModel === "gpt-image-1") {
+              const openai = getOpenAIClient();
+              const startTime = Date.now();
+
+              const dalleResponse = await retryWithBackoff(() =>
+                openai.images.generate({
+                  model: currentModel,
+                  prompt: finalCoverPrompt,
+                  size: IMAGE_SETTINGS.COVER_IMAGE_SIZE,
+                  quality: "medium",
+                  n: 1,
+                  // Use low moderation for gpt-image-1 to reduce false positives
                   moderation: "low",
-                }),
-              })
-            );
+                })
+              );
 
-            // Both models now return base64 for consistency
-            const imageData = dalleResponse.data?.[0];
-            if (!imageData?.b64_json) {
-              throw new Error("No base64 image data returned from OpenAI");
+              const duration = Date.now() - startTime;
+              logger.debug("OpenAI cover image generation completed", {
+                storyId,
+                model: currentModel,
+                duration,
+              });
+
+              // Both models now return base64 for consistency
+              const imageData = dalleResponse.data?.[0];
+              if (!imageData?.b64_json) {
+                throw new Error("No base64 image data returned from OpenAI");
+              }
+
+              // Convert base64 to data URL for both models
+              coverImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+              coverImageGenerated = true;
             }
 
-            // Convert base64 to data URL for both models
-            coverImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-            coverImageGenerated = true;
+            if (coverImageGenerated) {
+              logger.info("Cover image generated successfully", {
+                storyId,
+                model: currentModel,
+                wasFailover: currentModel !== primaryModel,
+                styleIndex: currentStyleIndex,
+              });
+              break; // Break out of style loop
+            }
+          } catch (error: any) {
+            lastError = error;
+            logger.warn("Cover image generation attempt failed", {
+              storyId,
+              model: currentModel,
+              styleIndex: currentStyleIndex,
+              error: error.message,
+            });
+
+            // Check if it's a safety system rejection from OpenAI - try next style
+            if (
+              error.status === 400 &&
+              error.message?.includes("safety system") &&
+              currentStyleIndex < artStyleDescriptions.length - 1
+            ) {
+              logger.debug("Safety system rejection, trying next style", {
+                storyId,
+                model: currentModel,
+                nextStyleIndex: currentStyleIndex + 1,
+              });
+              currentStyleIndex++;
+              continue;
+            } else {
+              // Other errors - break out of style loop and try next model
+              break;
+            }
           }
-        } catch (error: any) {
-          // Check if it's a safety system rejection from OpenAI
-          if (
-            error.status === 400 &&
-            error.message?.includes("safety system") &&
-            currentStyleIndex < artStyleDescriptions.length - 1
-          ) {
-            currentStyleIndex++;
-            continue;
-          } else {
-            // If it's not a safety error or we're out of backups, re-throw
-            throw error;
-          }
+        }
+
+        if (coverImageGenerated) {
+          break; // Break out of model loop
+        }
+
+        // Log failover attempt
+        if (currentModel === primaryModel && fallbackModel) {
+          logger.info("Primary model failed, attempting fallback", {
+            storyId,
+            primaryModel,
+            fallbackModel,
+            lastError: lastError?.message,
+          });
         }
       }
 

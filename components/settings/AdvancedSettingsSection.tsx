@@ -241,34 +241,13 @@ export function AdvancedSettingsSection({
               <TouchableOpacity
                 style={[
                   styles.modelOption,
-                  preferences.coverImageModel === "dall-e-3" &&
-                    styles.selectedModelOption,
-                ]}
-                onPress={() =>
-                  onUpdatePreferences({ coverImageModel: "dall-e-3" })
-                }
-              >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.coverImageModel === "dall-e-3" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  DALL-E 3
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modelOption,
                   preferences.coverImageModel ===
-                    "gemini-2.0-flash-preview-image-generation" &&
+                    "gemini-2.5-flash-image-preview" &&
                     styles.selectedModelOption,
                 ]}
                 onPress={() =>
                   onUpdatePreferences({
-                    coverImageModel:
-                      "gemini-2.0-flash-preview-image-generation",
+                    coverImageModel: "gemini-2.5-flash-image-preview",
                   })
                 }
               >
@@ -276,7 +255,7 @@ export function AdvancedSettingsSection({
                   style={[
                     styles.modelOptionText,
                     preferences.coverImageModel ===
-                      "gemini-2.0-flash-preview-image-generation" &&
+                      "gemini-2.5-flash-image-preview" &&
                       styles.selectedModelOptionText,
                   ]}
                 >
@@ -307,24 +286,6 @@ export function AdvancedSettingsSection({
                   ]}
                 >
                   GPT Image-1
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modelOption,
-                  preferences.pageImageModel === "flux" &&
-                    styles.selectedModelOption,
-                ]}
-                onPress={() => onUpdatePreferences({ pageImageModel: "flux" })}
-              >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.pageImageModel === "flux" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  FLUX
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity

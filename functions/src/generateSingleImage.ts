@@ -2,7 +2,6 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { toFile } from "openai";
 import { Readable } from "stream";
-import { getFluxClient } from "./utils/flux";
 import { getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient } from "./utils/openai";
@@ -16,7 +15,7 @@ interface ImageGenerationPayload {
   userId: string;
   pageIndex: number;
   imagePrompt: string;
-  imageProvider: "flux" | "gemini" | "gpt-image-1";
+  imageProvider: "gemini" | "gpt-image-1";
   consistencyInput: {
     imageUrl: string;
     text: string;
@@ -33,7 +32,7 @@ interface ImageGenerationPayload {
 export const generateSingleImage = onMessagePublished(
   {
     topic: "generate-story-image",
-    secrets: ["FLUX_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"],
+    secrets: ["GEMINI_API_KEY", "OPENAI_API_KEY"],
     timeoutSeconds: TIMEOUTS.SINGLE_IMAGE_GENERATION,
     memory: "1GiB",
   },
@@ -78,36 +77,33 @@ REQUIREMENTS:
 • Child-friendly illustration style`;
       };
 
-      const subsequentPrompt = createPrompt(artStyle);
+      // Define primary and fallback models
+      const primaryModel = imageProvider;
+      const fallbackModel =
+        imageProvider === "gpt-image-1"
+          ? "gemini"
+          : imageProvider === "gemini"
+            ? "gpt-image-1"
+            : null;
+
+      const modelsToTry = fallbackModel
+        ? [primaryModel, fallbackModel]
+        : [primaryModel];
 
       let finalImageUrl: string = "";
-      if (imageProvider === "flux") {
-        const fluxClient = getFluxClient();
-        finalImageUrl = await retryWithBackoff(() =>
-          fluxClient.generateImageWithPolling({
-            prompt: subsequentPrompt,
-            input_image: consistencyInput.imageUrl,
-            aspect_ratio: "1:1",
-          })
-        );
-      } else if (imageProvider === "gpt-image-1") {
-        const openai = getOpenAIClient();
+      let actualModelUsed = imageProvider;
+      let imageGenerated = false;
+      let lastError: any = null;
+      let finalPromptUsed = "";
 
-        // Extract base64 data from the cover image
-        const base64Data = consistencyInput.imageUrl.split(",")[1];
-        if (!base64Data) {
-          throw new Error(
-            "Could not extract base64 data from cover image for GPT-4"
-          );
-        }
+      // Extract base64 data from the cover image (needed for both models)
+      const base64Data = consistencyInput.imageUrl.split(",")[1];
+      if (!base64Data) {
+        throw new Error("Could not extract base64 data from cover image");
+      }
 
-        // Create a readable stream and convert to File using toFile utility
-        const imageBuffer = Buffer.from(base64Data, "base64");
-        const imageStream = Readable.from(imageBuffer);
-        const imageFile = await toFile(imageStream, "cover.png", {
-          type: "image/png",
-        });
-
+      // Try each model
+      for (const currentModel of modelsToTry) {
         // Prepare art style descriptions in fallback order
         const artStyleOptions: (string | undefined)[] = [
           artStyle,
@@ -115,66 +111,126 @@ REQUIREMENTS:
           artStyleBackup2,
         ];
         let currentStyleIndex = 0;
-        let imageGenerated = false;
 
-        // Try each art style description until one succeeds
+        // Try each art style description for this model
         while (!imageGenerated && currentStyleIndex < artStyleOptions.length) {
           const currentStyle = artStyleOptions[currentStyleIndex];
           const currentPrompt = createPrompt(currentStyle);
 
           try {
-            const response = await retryWithBackoff(() =>
-              openai.images.edit({
-                model: "gpt-image-1",
-                image: imageFile,
-                prompt: currentPrompt,
-                quality: "medium",
-                size: "1024x1024",
-                n: 1,
-              })
-            );
+            logger.debug("Attempting page image generation", {
+              storyId,
+              pageIndex: pageIndex + 1,
+              model: currentModel,
+              isPrimary: currentModel === primaryModel,
+              styleIndex: currentStyleIndex,
+            });
 
-            const imageData = response.data?.[0];
-            if (!imageData?.b64_json) {
-              throw new Error("No base64 image data returned from OpenAI");
+            if (currentModel === "gpt-image-1") {
+              const openai = getOpenAIClient();
+
+              // Create a readable stream and convert to File using toFile utility
+              const imageBuffer = Buffer.from(base64Data, "base64");
+              const imageStream = Readable.from(imageBuffer);
+              const imageFile = await toFile(imageStream, "cover.png", {
+                type: "image/png",
+              });
+
+              const response = await retryWithBackoff(() =>
+                openai.images.edit({
+                  model: "gpt-image-1",
+                  image: imageFile,
+                  prompt: currentPrompt,
+                  quality: "medium",
+                  size: "1024x1024",
+                  n: 1,
+                })
+              );
+
+              const imageData = response.data?.[0];
+              if (!imageData?.b64_json) {
+                throw new Error("No base64 image data returned from OpenAI");
+              }
+
+              finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+              imageGenerated = true;
+              actualModelUsed = currentModel;
+              finalPromptUsed = currentPrompt;
+            } else if (currentModel === "gemini") {
+              const geminiClient = getGeminiClient();
+
+              finalImageUrl = await retryWithBackoff(() =>
+                geminiClient.editImage(currentPrompt, base64Data)
+              );
+
+              imageGenerated = true;
+              actualModelUsed = currentModel;
+              finalPromptUsed = currentPrompt;
             }
 
-            finalImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-            imageGenerated = true;
-
-            if (currentStyleIndex > 0) {
+            if (imageGenerated) {
+              logger.info("Page image generated successfully", {
+                storyId,
+                pageIndex: pageIndex + 1,
+                model: currentModel,
+                wasFailover: currentModel !== primaryModel,
+                styleIndex: currentStyleIndex,
+              });
+              break; // Break out of style loop
             }
           } catch (error: any) {
-            // Check if it's a safety system rejection and we have more styles to try
+            lastError = error;
+            logger.warn("Page image generation attempt failed", {
+              storyId,
+              pageIndex: pageIndex + 1,
+              model: currentModel,
+              styleIndex: currentStyleIndex,
+              error: error.message,
+            });
+
+            // Check if it's a safety system rejection - try next style
             if (
               error.status === 400 &&
               error.message?.includes("safety system") &&
               currentStyleIndex < artStyleOptions.length - 1
             ) {
+              logger.debug("Safety system rejection, trying next style", {
+                storyId,
+                pageIndex: pageIndex + 1,
+                model: currentModel,
+                nextStyleIndex: currentStyleIndex + 1,
+              });
               currentStyleIndex++;
               continue;
             } else {
-              // If it's not a safety error or we're out of backups, re-throw
-              throw error;
+              // Other errors - break out of style loop and try next model
+              break;
             }
           }
         }
 
-        if (!imageGenerated) {
-          throw new Error(
-            `Failed to generate image for page ${pageIndex + 1} with all available art style descriptions`
+        if (imageGenerated) {
+          break; // Break out of model loop
+        }
+
+        // Log failover attempt
+        if (currentModel === primaryModel && fallbackModel) {
+          logger.info(
+            "Primary model failed for page image, attempting fallback",
+            {
+              storyId,
+              pageIndex: pageIndex + 1,
+              primaryModel,
+              fallbackModel,
+              lastError: lastError?.message,
+            }
           );
         }
-      } else {
-        // Gemini
-        const geminiClient = getGeminiClient();
-        const base64Data = consistencyInput.imageUrl.split(",")[1];
-        if (!base64Data)
-          throw new Error(
-            "Could not extract base64 data from consistency input."
-          );
-        finalImageUrl = await retryWithBackoff(() =>
-          geminiClient.editImage(subsequentPrompt, base64Data)
+      }
+
+      if (!imageGenerated) {
+        throw new Error(
+          `Failed to generate image for page ${pageIndex + 1} with all available models and art style descriptions`
         );
       }
 
@@ -211,7 +267,7 @@ REQUIREMENTS:
         }
 
         // Store the prompt used for this specific image
-        const imageGenerationPrompt = subsequentPrompt;
+        const imageGenerationPrompt = finalPromptUsed;
 
         const updateData: { [key: string]: any } = {
           storyContent: newStoryContent,
@@ -220,7 +276,9 @@ REQUIREMENTS:
           [`generationMetadata.pageImageGenerationData.page${pageIndex + 1}`]: {
             prompt: imageGenerationPrompt,
             originalImagePrompt: imagePrompt,
-            model: imageProvider,
+            model: actualModelUsed,
+            originalModel: imageProvider,
+            usedFallback: actualModelUsed !== imageProvider,
             generatedAt: FieldValue.serverTimestamp(),
           },
         };

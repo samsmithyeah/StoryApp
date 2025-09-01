@@ -37,7 +37,7 @@ interface GeminiResponse {
 export class GeminiClient {
   private apiKey: string;
   private baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-  private imageModel = "gemini-2.0-flash-preview-image-generation";
+  private imageModel = "gemini-2.5-flash-image-preview";
   private textModel = "gemini-2.5-pro";
 
   constructor(apiKey: string) {
@@ -165,12 +165,14 @@ export class GeminiClient {
   async generateImage(prompt: string): Promise<string> {
     logger.debug("GeminiClient generating image", {
       promptPreview: prompt.substring(0, 100),
+      imageModel: this.imageModel,
+      promptLength: prompt.length,
     });
 
-    const request: GeminiGenerateRequest = {
+    // Simplified request format based on official API docs
+    const request = {
       contents: [
         {
-          role: "user",
           parts: [
             {
               text: prompt,
@@ -178,58 +180,110 @@ export class GeminiClient {
           ],
         },
       ],
-      generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],
-        temperature: 0.9,
-      },
     };
 
-    const response = await fetch(
-      `${this.baseUrl}/models/${this.imageModel}:generateContent?key=${this.apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      }
-    );
+    logger.debug("GeminiClient image request", {
+      url: `${this.baseUrl}/models/${this.imageModel}:generateContent`,
+      requestBody: request,
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error("GeminiClient API error", {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-      });
-      throw new Error(
-        `Gemini API request failed: ${response.status} ${response.statusText}`
+    const fetchStartTime = Date.now();
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/models/${this.imageModel}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey, // Use header instead of URL param
+          },
+          body: JSON.stringify(request),
+        }
       );
+
+      const fetchDuration = Date.now() - fetchStartTime;
+      logger.debug("GeminiClient fetch completed", {
+        duration: fetchDuration,
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("GeminiClient image API error", {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          duration: fetchDuration,
+          url: `${this.baseUrl}/models/${this.imageModel}:generateContent`,
+        });
+        throw new Error(
+          `Gemini image API request failed: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const responseData = (await response.json()) as GeminiResponse;
+      logger.debug("GeminiClient image response received", {
+        candidatesCount: responseData.candidates?.length || 0,
+        duration: fetchDuration,
+        responseKeys: Object.keys(responseData),
+      });
+
+      // Log the full response structure for debugging
+      if (responseData.candidates && responseData.candidates.length > 0) {
+        const candidate = responseData.candidates[0];
+        logger.debug("GeminiClient candidate details", {
+          partsCount: candidate.content.parts.length,
+          partTypes: candidate.content.parts.map((part) =>
+            part.text ? "text" : part.inlineData ? "inlineData" : "unknown"
+          ),
+        });
+      } else {
+        logger.error("GeminiClient no candidates in response", {
+          fullResponse: responseData,
+        });
+      }
+
+      // Find the image in the response
+      const candidate = responseData.candidates?.[0];
+      if (!candidate) {
+        throw new Error("No candidates in Gemini image response");
+      }
+
+      const imagePart = candidate.content.parts.find((part) => part.inlineData);
+      if (!imagePart || !imagePart.inlineData) {
+        logger.error("GeminiClient no image data found", {
+          partsCount: candidate.content.parts.length,
+          partTypes: candidate.content.parts.map((part) =>
+            part.text ? "text" : part.inlineData ? "inlineData" : "unknown"
+          ),
+          textParts: candidate.content.parts
+            .filter((part) => part.text)
+            .map((part) => part.text?.substring(0, 100)),
+        });
+        throw new Error("No image data in Gemini response");
+      }
+
+      // Convert base64 to data URL
+      const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+      logger.debug("GeminiClient image generated successfully", {
+        mimeType: imagePart.inlineData.mimeType,
+        dataSizeKB: Math.round(imagePart.inlineData.data.length / 1024),
+        totalDuration: fetchDuration,
+      });
+
+      return imageDataUrl;
+    } catch (error: any) {
+      const fetchDuration = Date.now() - fetchStartTime;
+      logger.error("GeminiClient image generation error", {
+        error: error.message,
+        duration: fetchDuration,
+        errorType: error.constructor.name,
+        stack: error.stack,
+      });
+      throw error;
     }
-
-    const responseData = (await response.json()) as GeminiResponse;
-    logger.debug("GeminiClient response received", {
-      candidatesCount: responseData.candidates?.length || 0,
-    });
-
-    // Find the image in the response
-    const candidate = responseData.candidates?.[0];
-    if (!candidate) {
-      throw new Error("No candidates in Gemini response");
-    }
-
-    const imagePart = candidate.content.parts.find((part) => part.inlineData);
-    if (!imagePart || !imagePart.inlineData) {
-      throw new Error("No image data in Gemini response");
-    }
-
-    // Convert base64 to data URL
-    const imageDataUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    logger.debug("GeminiClient image generated successfully", {
-      mimeType: imagePart.inlineData.mimeType,
-    });
-
-    return imageDataUrl;
   }
 
   async editImage(
@@ -295,12 +349,42 @@ export class GeminiClient {
     // Find the image in the response
     const candidate = responseData.candidates?.[0];
     if (!candidate) {
-      throw new Error("No candidates in Gemini response");
+      logger.error("GeminiClient no candidates in edit response", {
+        fullResponse: responseData,
+      });
+      throw new Error("No candidates in Gemini edit response");
+    }
+
+    // Check if candidate has content property
+    if (!candidate.content) {
+      logger.error("GeminiClient edit candidate has no content", {
+        candidate,
+        candidateKeys: Object.keys(candidate),
+      });
+      throw new Error("No content in Gemini edit candidate");
+    }
+
+    // Check if content has parts property
+    if (!candidate.content.parts) {
+      logger.error("GeminiClient edit candidate content has no parts", {
+        content: candidate.content,
+        contentKeys: Object.keys(candidate.content),
+      });
+      throw new Error("No parts in Gemini edit candidate content");
     }
 
     const imagePart = candidate.content.parts.find((part) => part.inlineData);
     if (!imagePart || !imagePart.inlineData) {
-      throw new Error("No image data in Gemini response");
+      logger.error("GeminiClient edit no image data found", {
+        partsCount: candidate.content.parts.length,
+        partTypes: candidate.content.parts.map((part) =>
+          part.text ? "text" : part.inlineData ? "inlineData" : "unknown"
+        ),
+        textParts: candidate.content.parts
+          .filter((part) => part.text)
+          .map((part) => part.text?.substring(0, 100)),
+      });
+      throw new Error("No image data in Gemini edit response");
     }
 
     // Convert base64 to data URL

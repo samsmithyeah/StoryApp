@@ -16,12 +16,9 @@ export interface StoryGenerationRequest {
   illustrationAiDescription?: string;
   illustrationAiDescriptionBackup1?: string;
   illustrationAiDescriptionBackup2?: string;
-  pageImageModel?: "flux" | "gemini" | "gpt-image-1"; // Optional, defaults to gpt-image-1
+  pageImageModel?: "gemini" | "gpt-image-1"; // Optional, defaults to gpt-image-1
   textModel?: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel?:
-    | "gemini-2.0-flash-preview-image-generation"
-    | "dall-e-3"
-    | "gpt-image-1";
+  coverImageModel?: "gemini-2.5-flash-image-preview" | "gpt-image-1";
   storyAbout?: string;
   characters?: StoryCharacter[];
   temperature?: number; // 0.0 to 2.0, controls randomness/creativity

@@ -7,7 +7,6 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 import { TIMEOUTS } from "./constants";
-import { fluxApiKey } from "./utils/flux";
 import { geminiApiKey } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { openaiApiKey } from "./utils/openai";
@@ -50,7 +49,7 @@ async function convertStorageUrlToBase64(storageUrl: string): Promise<string> {
 
 export const retryImageGeneration = onCall(
   {
-    secrets: [openaiApiKey, fluxApiKey, geminiApiKey],
+    secrets: [openaiApiKey, geminiApiKey],
     timeoutSeconds: TIMEOUTS.STORY_GENERATION,
     memory: "512MiB",
   },
