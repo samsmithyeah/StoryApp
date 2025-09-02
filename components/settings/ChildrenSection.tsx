@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { ChildProfileCard } from "./ChildProfileCard";
+import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Button } from "../ui/Button";
 import { IconSymbol } from "../ui/IconSymbol";
+import { ChildProfileCard } from "./ChildProfileCard";
 import { ErrorContainer } from "./ErrorContainer";
-import { Colors, Spacing, Typography } from "../../constants/Theme";
 import type { ChildrenSectionProps } from "./types";
 
 export function ChildrenSection({
@@ -17,11 +17,10 @@ export function ChildrenSection({
 }: ChildrenSectionProps) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Children's profiles</Text>
-      </View>
       <Text style={styles.sectionDescription}>
-        Add your children to create personalised stories
+        We use this information to tailor the stories for each child, and to
+        make the illustrations match their appearance if they feature in the
+        stories!
       </Text>
 
       <ErrorContainer error={error} onClearError={onClearError} />
@@ -75,8 +74,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.primary,
   },
   sectionDescription: {
-    fontSize: Typography.fontSize.small,
+    fontSize: Typography.fontSize.medium,
     color: Colors.textSecondary,
+    lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   emptyState: {

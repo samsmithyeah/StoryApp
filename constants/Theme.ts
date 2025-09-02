@@ -105,6 +105,7 @@ export const Spacing = {
   // Specific spacing
   screenPadding: 24,
   cardPadding: 18,
+  navigationBarHeight: 44, // Standard iOS navigation bar height
   buttonPadding: {
     horizontal: 24,
     vertical: 12,

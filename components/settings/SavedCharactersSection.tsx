@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { SavedCharacterCard } from "./SavedCharacterCard";
+import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { Button } from "../ui/Button";
 import { IconSymbol } from "../ui/IconSymbol";
 import { ErrorContainer } from "./ErrorContainer";
-import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { SavedCharacterCard } from "./SavedCharacterCard";
 import type { SavedCharactersSectionProps } from "./types";
 
 export function SavedCharactersSection({
@@ -17,11 +17,9 @@ export function SavedCharactersSection({
 }: SavedCharactersSectionProps) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Saved characters</Text>
-      </View>
       <Text style={styles.sectionDescription}>
-        Create reusable characters for your stories
+        Manage your story characters. You will be able to select these
+        characters to feature in your stories.
       </Text>
 
       <ErrorContainer error={error} onClearError={onClearError} />
@@ -79,8 +77,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.primary,
   },
   sectionDescription: {
-    fontSize: Typography.fontSize.small,
+    fontSize: Typography.fontSize.medium,
     color: Colors.textSecondary,
+    lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   emptyState: {

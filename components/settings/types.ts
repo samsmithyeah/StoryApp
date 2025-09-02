@@ -2,8 +2,11 @@ import { Child } from "../../types/child.types";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import type { UserPreferences } from "../../hooks/useUserPreferences";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface SettingsHeaderProps {}
+export interface SettingsHeaderProps {
+  title?: string;
+  subtitle?: string;
+  showBackButton?: boolean;
+}
 
 export interface ErrorContainerProps {
   error: string | null;

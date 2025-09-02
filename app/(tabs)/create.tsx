@@ -36,12 +36,12 @@ export default function CreateScreen() {
     if (children.length === 0) {
       Alert.alert(
         "No children added",
-        "Please add at least one child profile in settings before creating a story.",
+        "Please add at least one child profile before creating a story.",
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Go to settings",
-            onPress: () => router.push("/(tabs)/settings"),
+            text: "Add child profile",
+            onPress: () => router.push("/child-profile"),
           },
         ]
       );

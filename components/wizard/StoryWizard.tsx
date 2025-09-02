@@ -64,12 +64,25 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [generatedStoryId, setGeneratedStoryId] = useState<string | null>(null);
   const [storyData, setStoryData] = useState<Story | null>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
     setWizardData((prev) => ({ ...prev, ...data }));
   };
+
+  // Auto-select single child if there's exactly one child profile (only once)
+  useEffect(() => {
+    if (
+      children.length === 1 &&
+      wizardData.selectedChildren?.length === 0 &&
+      !hasAutoSelected
+    ) {
+      updateWizardData({ selectedChildren: [children[0].id] });
+      setHasAutoSelected(true);
+    }
+  }, [children, wizardData.selectedChildren, hasAutoSelected]);
 
   const isStoryFullyComplete = useCallback((story: Story | null): boolean => {
     // Story is complete when we have text, cover, and all page images (if enabled)
