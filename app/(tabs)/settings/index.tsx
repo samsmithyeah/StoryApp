@@ -8,12 +8,12 @@ import {
   StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { SettingsHeader } from "../../../components/settings/SettingsHeader";
-import { SettingsMenuItem } from "../../../components/settings/SettingsMenuItem";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { Spacing } from "../../../constants/Theme";
-import { useAuth } from "../../../hooks/useAuth";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { SettingsHeader } from "@/components/settings/SettingsHeader";
+import { SettingsMenuItem } from "@/components/settings/SettingsMenuItem";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { Spacing } from "@/constants/Theme";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -114,6 +114,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.screenPadding,
-    paddingBottom: Spacing.screenPadding + 20,
+    paddingBottom: Spacing.screenPadding + Spacing.xl,
   },
 });

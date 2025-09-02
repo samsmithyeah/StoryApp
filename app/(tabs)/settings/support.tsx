@@ -1,16 +1,14 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { SupportSection } from "../../../components/settings/SupportSection";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { SupportSection } from "@/components/settings/SupportSection";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
 
 export default function SupportSettingsScreen() {
   const router = useRouter();
-  const _insets = useSafeAreaInsets();
 
   return (
     <BackgroundContainer showDecorations={false}>

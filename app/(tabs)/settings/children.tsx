@@ -1,19 +1,17 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { ChildrenSection } from "../../../components/settings/ChildrenSection";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
-import { useChildren } from "../../../hooks/useChildren";
-import { Child } from "../../../types/child.types";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { ChildrenSection } from "@/components/settings/ChildrenSection";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
+import { useChildren } from "@/hooks/useChildren";
+import { Child } from "@/types/child.types";
 
 export default function ChildrenSettingsScreen() {
   const router = useRouter();
-  const _insets = useSafeAreaInsets();
   const {
     children,
     loading: _loading,

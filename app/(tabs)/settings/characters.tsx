@@ -1,19 +1,17 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { SavedCharactersSection } from "../../../components/settings/SavedCharactersSection";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
-import { useSavedCharacters } from "../../../hooks/useSavedCharacters";
-import { SavedCharacter } from "../../../types/savedCharacter.types";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { SavedCharactersSection } from "@/components/settings/SavedCharactersSection";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
+import { useSavedCharacters } from "@/hooks/useSavedCharacters";
+import { SavedCharacter } from "@/types/savedCharacter.types";
 
 export default function CharactersSettingsScreen() {
   const router = useRouter();
-  const _insets = useSafeAreaInsets();
   const {
     savedCharacters,
     loading: _savedCharsLoading,

@@ -8,18 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { IconSymbol } from "../../../components/ui/IconSymbol";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Colors, Spacing, Typography } from "../../../constants/Theme";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Colors, Spacing, Typography } from "@/constants/Theme";
 
 const SUPPORT_EMAIL = "support@dreamweaver-app.com";
 
 export default function HelpScreen() {
-  const _insets = useSafeAreaInsets();
-
   const handleEmailSupport = () => {
     const subject = encodeURIComponent("DreamWeaver App Support Request");
     const body = encodeURIComponent(
@@ -83,7 +80,7 @@ export default function HelpScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    marginTop: 15,
+    marginTop: Spacing.lg,
   },
   scrollView: {
     flex: 1,

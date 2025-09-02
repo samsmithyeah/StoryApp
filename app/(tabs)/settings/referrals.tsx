@@ -1,15 +1,12 @@
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { ReferralSection } from "../../../components/settings/ReferralSection";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { ReferralSection } from "@/components/settings/ReferralSection";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
 
 export default function ReferralsSettingsScreen() {
-  const _insets = useSafeAreaInsets();
-
   return (
     <BackgroundContainer showDecorations={false}>
       <StarsDecorations />

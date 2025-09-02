@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
-import { IconSymbol } from "../ui/IconSymbol";
+import { TEXT_MODELS, IMAGE_MODELS } from "../../constants/Models";
 import type { AdvancedSettingsSectionProps } from "./types";
 
 export function AdvancedSettingsSection({
@@ -15,303 +15,278 @@ export function AdvancedSettingsSection({
   preferences,
   onUpdatePreferences,
 }: AdvancedSettingsSectionProps) {
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-
   if (!isAdmin) return null;
 
   return (
     <View style={styles.section}>
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        onPress={() => setShowAdvancedSettings(!showAdvancedSettings)}
-      >
-        <View>
-          <Text style={styles.sectionTitle}>Debug model settings</Text>
-          <Text style={styles.sectionDescription}>
-            Configure AI model preferences
-          </Text>
-        </View>
-        <IconSymbol
-          name={showAdvancedSettings ? "chevron.up" : "chevron.down"}
-          size={20}
-          color={Colors.textSecondary}
-        />
-      </TouchableOpacity>
-
-      {showAdvancedSettings && (
-        <View style={styles.advancedSettingsContent}>
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Story Text Model</Text>
-            <View style={styles.modelOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.modelOption,
-                  preferences.textModel === "gpt-4o" &&
-                    styles.selectedModelOption,
-                ]}
-                onPress={() => onUpdatePreferences({ textModel: "gpt-4o" })}
-              >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.textModel === "gpt-4o" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  GPT-4o
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modelOption,
-                  preferences.textModel === "gemini-2.5-pro" &&
-                    styles.selectedModelOption,
-                ]}
-                onPress={() =>
-                  onUpdatePreferences({ textModel: "gemini-2.5-pro" })
-                }
-              >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.textModel === "gemini-2.5-pro" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  Gemini 2.5 Pro
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {preferences.textModel === "gemini-2.5-pro" && (
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Gemini Thinking Budget</Text>
-              <Text style={styles.settingDescription}>
-                Control how much reasoning the model applies to complex tasks
-              </Text>
-              <View style={styles.modelOptions}>
-                <TouchableOpacity
-                  style={[
-                    styles.modelOption,
-                    preferences.geminiThinkingBudget === -1 &&
-                      styles.selectedModelOption,
-                  ]}
-                  onPress={() =>
-                    onUpdatePreferences({ geminiThinkingBudget: -1 })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      preferences.geminiThinkingBudget === -1 &&
-                        styles.selectedModelOptionText,
-                    ]}
-                  >
-                    Dynamic
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modelOption,
-                    preferences.geminiThinkingBudget === 128 &&
-                      styles.selectedModelOption,
-                  ]}
-                  onPress={() =>
-                    onUpdatePreferences({ geminiThinkingBudget: 128 })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      preferences.geminiThinkingBudget === 128 &&
-                        styles.selectedModelOptionText,
-                    ]}
-                  >
-                    Minimal (128)
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modelOption,
-                    preferences.geminiThinkingBudget === 1024 &&
-                      styles.selectedModelOption,
-                  ]}
-                  onPress={() =>
-                    onUpdatePreferences({ geminiThinkingBudget: 1024 })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      preferences.geminiThinkingBudget === 1024 &&
-                        styles.selectedModelOptionText,
-                    ]}
-                  >
-                    Low (1024)
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modelOption,
-                    preferences.geminiThinkingBudget === 4096 &&
-                      styles.selectedModelOption,
-                  ]}
-                  onPress={() =>
-                    onUpdatePreferences({ geminiThinkingBudget: 4096 })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      preferences.geminiThinkingBudget === 4096 &&
-                        styles.selectedModelOptionText,
-                    ]}
-                  >
-                    Medium (4096)
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modelOption,
-                    preferences.geminiThinkingBudget === 16384 &&
-                      styles.selectedModelOption,
-                  ]}
-                  onPress={() =>
-                    onUpdatePreferences({ geminiThinkingBudget: 16384 })
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      preferences.geminiThinkingBudget === 16384 &&
-                        styles.selectedModelOptionText,
-                    ]}
-                  >
-                    High (16384)
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Temperature</Text>
-            <Text style={styles.settingDescription}>
-              Controls creativity and randomness (0.1 - 2.0)
+      <View style={styles.settingItem}>
+        <Text style={styles.settingLabel}>Story text model</Text>
+        <View style={styles.modelOptions}>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.textModel === TEXT_MODELS.GPT_4O &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({ textModel: TEXT_MODELS.GPT_4O })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.textModel === TEXT_MODELS.GPT_4O &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {TEXT_MODELS.GPT_4O}
             </Text>
-            <TextInput
-              style={styles.temperatureInput}
-              value={preferences.temperature.toString()}
-              onChangeText={(text) => {
-                const value = parseFloat(text);
-                if (!isNaN(value) && value >= 0.1 && value <= 2.0) {
-                  onUpdatePreferences({ temperature: value });
-                }
-              }}
-              keyboardType="decimal-pad"
-              placeholder="0.9"
-              placeholderTextColor={Colors.textSecondary}
-            />
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.textModel === TEXT_MODELS.GEMINI_2_5_PRO &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({ textModel: TEXT_MODELS.GEMINI_2_5_PRO })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.textModel === TEXT_MODELS.GEMINI_2_5_PRO &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {TEXT_MODELS.GEMINI_2_5_PRO}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Cover Image Model</Text>
-            <View style={styles.modelOptions}>
-              <TouchableOpacity
+      {preferences.textModel === TEXT_MODELS.GEMINI_2_5_PRO && (
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Gemini thinking budget</Text>
+          <Text style={styles.settingDescription}>
+            Control how much reasoning the model applies to complex tasks
+          </Text>
+          <View style={styles.modelOptions}>
+            <TouchableOpacity
+              style={[
+                styles.modelOption,
+                preferences.geminiThinkingBudget === -1 &&
+                  styles.selectedModelOption,
+              ]}
+              onPress={() => onUpdatePreferences({ geminiThinkingBudget: -1 })}
+            >
+              <Text
                 style={[
-                  styles.modelOption,
-                  preferences.coverImageModel === "gpt-image-1" &&
-                    styles.selectedModelOption,
+                  styles.modelOptionText,
+                  preferences.geminiThinkingBudget === -1 &&
+                    styles.selectedModelOptionText,
                 ]}
-                onPress={() =>
-                  onUpdatePreferences({ coverImageModel: "gpt-image-1" })
-                }
               >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.coverImageModel === "gpt-image-1" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  GPT Image-1
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                Dynamic
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modelOption,
+                preferences.geminiThinkingBudget === 128 &&
+                  styles.selectedModelOption,
+              ]}
+              onPress={() => onUpdatePreferences({ geminiThinkingBudget: 128 })}
+            >
+              <Text
                 style={[
-                  styles.modelOption,
-                  preferences.coverImageModel ===
-                    "gemini-2.5-flash-image-preview" &&
-                    styles.selectedModelOption,
+                  styles.modelOptionText,
+                  preferences.geminiThinkingBudget === 128 &&
+                    styles.selectedModelOptionText,
                 ]}
-                onPress={() =>
-                  onUpdatePreferences({
-                    coverImageModel: "gemini-2.5-flash-image-preview",
-                  })
-                }
               >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.coverImageModel ===
-                      "gemini-2.5-flash-image-preview" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  Gemini
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Page Image Model</Text>
-            <View style={styles.modelOptions}>
-              <TouchableOpacity
+                Minimal (128)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modelOption,
+                preferences.geminiThinkingBudget === 1024 &&
+                  styles.selectedModelOption,
+              ]}
+              onPress={() =>
+                onUpdatePreferences({ geminiThinkingBudget: 1024 })
+              }
+            >
+              <Text
                 style={[
-                  styles.modelOption,
-                  preferences.pageImageModel === "gpt-image-1" &&
-                    styles.selectedModelOption,
+                  styles.modelOptionText,
+                  preferences.geminiThinkingBudget === 1024 &&
+                    styles.selectedModelOptionText,
                 ]}
-                onPress={() =>
-                  onUpdatePreferences({ pageImageModel: "gpt-image-1" })
-                }
               >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.pageImageModel === "gpt-image-1" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  GPT Image-1
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                Low (1024)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modelOption,
+                preferences.geminiThinkingBudget === 4096 &&
+                  styles.selectedModelOption,
+              ]}
+              onPress={() =>
+                onUpdatePreferences({ geminiThinkingBudget: 4096 })
+              }
+            >
+              <Text
                 style={[
-                  styles.modelOption,
-                  preferences.pageImageModel === "gemini" &&
-                    styles.selectedModelOption,
+                  styles.modelOptionText,
+                  preferences.geminiThinkingBudget === 4096 &&
+                    styles.selectedModelOptionText,
                 ]}
-                onPress={() =>
-                  onUpdatePreferences({ pageImageModel: "gemini" })
-                }
               >
-                <Text
-                  style={[
-                    styles.modelOptionText,
-                    preferences.pageImageModel === "gemini" &&
-                      styles.selectedModelOptionText,
-                  ]}
-                >
-                  Gemini
-                </Text>
-              </TouchableOpacity>
-            </View>
+                Medium (4096)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modelOption,
+                preferences.geminiThinkingBudget === 16384 &&
+                  styles.selectedModelOption,
+              ]}
+              onPress={() =>
+                onUpdatePreferences({ geminiThinkingBudget: 16384 })
+              }
+            >
+              <Text
+                style={[
+                  styles.modelOptionText,
+                  preferences.geminiThinkingBudget === 16384 &&
+                    styles.selectedModelOptionText,
+                ]}
+              >
+                High (16384)
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
+
+      <View style={styles.settingItem}>
+        <Text style={styles.settingLabel}>Temperature</Text>
+        <Text style={styles.settingDescription}>
+          Controls creativity and randomness (0.1 - 2.0)
+        </Text>
+        <TextInput
+          style={styles.temperatureInput}
+          value={preferences.temperature.toString()}
+          onChangeText={(text) => {
+            const value = parseFloat(text);
+            if (!isNaN(value) && value >= 0.1 && value <= 2.0) {
+              onUpdatePreferences({ temperature: value });
+            }
+          }}
+          keyboardType="decimal-pad"
+          placeholder="0.9"
+          placeholderTextColor={Colors.textSecondary}
+        />
+      </View>
+
+      <View style={styles.settingItem}>
+        <Text style={styles.settingLabel}>Cover image model</Text>
+        <View style={styles.modelOptions}>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.coverImageModel === IMAGE_MODELS.GPT_IMAGE_1 &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({ coverImageModel: IMAGE_MODELS.GPT_IMAGE_1 })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.coverImageModel === IMAGE_MODELS.GPT_IMAGE_1 &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {IMAGE_MODELS.GPT_IMAGE_1}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.coverImageModel ===
+                IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({
+                coverImageModel: IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.coverImageModel ===
+                  IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.settingItem}>
+        <Text style={styles.settingLabel}>Page image model</Text>
+        <View style={styles.modelOptions}>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.pageImageModel === IMAGE_MODELS.GPT_IMAGE_1 &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({ pageImageModel: IMAGE_MODELS.GPT_IMAGE_1 })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.pageImageModel === IMAGE_MODELS.GPT_IMAGE_1 &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {IMAGE_MODELS.GPT_IMAGE_1}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modelOption,
+              preferences.pageImageModel === IMAGE_MODELS.GEMINI &&
+                styles.selectedModelOption,
+            ]}
+            onPress={() =>
+              onUpdatePreferences({ pageImageModel: IMAGE_MODELS.GEMINI })
+            }
+          >
+            <Text
+              style={[
+                styles.modelOptionText,
+                preferences.pageImageModel === IMAGE_MODELS.GEMINI &&
+                  styles.selectedModelOptionText,
+              ]}
+            >
+              {IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }

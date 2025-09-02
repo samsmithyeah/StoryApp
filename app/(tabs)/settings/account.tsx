@@ -1,17 +1,15 @@
 import React, { useState } from "react";
 import { Alert, SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { AccountSection } from "../../../components/settings/AccountSection";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
-import { useAuth } from "../../../hooks/useAuth";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { AccountSection } from "@/components/settings/AccountSection";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
+import { useAuth } from "@/hooks/useAuth";
 import { logger } from "@/utils/logger";
 
 export default function AccountSettingsScreen() {
-  const _insets = useSafeAreaInsets();
   const { user, signOut, deleteAccount } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
 

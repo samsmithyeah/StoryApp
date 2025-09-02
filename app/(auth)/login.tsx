@@ -221,13 +221,17 @@ export default function LoginScreen() {
             <Text style={styles.footerText}>
               By continuing, you agree to our{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/settings/terms-of-service")}>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/terms-of-service")}
+            >
               <Text style={[styles.footerText, styles.footerLink]}>
                 Terms of Service
               </Text>
             </TouchableOpacity>
             <Text style={styles.footerText}> and </Text>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/settings/privacy-policy")}>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/privacy-policy")}
+            >
               <Text style={[styles.footerText, styles.footerLink]}>
                 Privacy Policy
               </Text>

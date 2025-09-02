@@ -1,18 +1,16 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
-import { StarsDecorations } from "../../../components/credits/StarsDecorations";
-import { WelcomeOnboarding } from "../../../components/onboarding/WelcomeOnboarding";
-import { DebugSection } from "../../../components/settings/DebugSection";
-import { ScreenHeader } from "../../../components/ui/ScreenHeader";
-import { Spacing } from "../../../constants/Theme";
-import { useAuth } from "../../../hooks/useAuth";
+import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import { StarsDecorations } from "@/components/credits/StarsDecorations";
+import { WelcomeOnboarding } from "@/components/onboarding/WelcomeOnboarding";
+import { DebugSection } from "@/components/settings/DebugSection";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Spacing } from "@/constants/Theme";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DebugSettingsScreen() {
   const router = useRouter();
-  const _insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [showWelcomeWizard, setShowWelcomeWizard] = useState(false);
 
