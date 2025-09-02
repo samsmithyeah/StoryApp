@@ -1,9 +1,9 @@
-import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StarsDecorations } from "@/components/credits/StarsDecorations";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Colors, Spacing, Typography } from "@/constants/Theme";
+import React from "react";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function TermsOfServiceScreen() {
   const sections = [
@@ -92,12 +92,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     marginTop: Spacing.lg,
-  },
-  sectionDescription: {
-    fontSize: Typography.fontSize.medium,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: Spacing.lg,
   },
   scrollView: {
     flex: 1,

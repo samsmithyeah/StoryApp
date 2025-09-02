@@ -41,12 +41,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44, // Standard iOS navigation bar height
+    height: Spacing.navigationBarHeight,
     paddingHorizontal: Spacing.md,
   },
   backButtonContainer: {
-    width: 44,
-    height: 44,
+    width: Spacing.navigationBarHeight,
+    height: Spacing.navigationBarHeight,
     justifyContent: "center",
     alignItems: "flex-start",
   },
