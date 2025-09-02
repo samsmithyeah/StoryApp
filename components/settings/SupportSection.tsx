@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
 import { SettingsLinkItem } from "../ui/SettingsLinkItem";
 import type { SupportSectionProps } from "./types";
@@ -7,30 +7,25 @@ import type { SupportSectionProps } from "./types";
 export function SupportSection({ onNavigate }: SupportSectionProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Support & legal</Text>
-      <Text style={styles.sectionDescription}>
-        Access help resources and legal information
-      </Text>
-
       <SettingsLinkItem
         title="Privacy policy"
         description="How we handle your data"
         icon="shield"
-        onPress={() => onNavigate("/privacy-policy")}
+        onPress={() => onNavigate("/(tabs)/settings/privacy-policy")}
       />
 
       <SettingsLinkItem
         title="Terms of service"
         description="Terms and conditions"
         icon="doc.text"
-        onPress={() => onNavigate("/terms-of-service")}
+        onPress={() => onNavigate("/(tabs)/settings/terms-of-service")}
       />
 
       <SettingsLinkItem
         title="Help & support"
         description="Get help or contact us"
         icon="questionmark.circle"
-        onPress={() => onNavigate("/help")}
+        onPress={() => onNavigate("/(tabs)/settings/help")}
       />
     </View>
   );
@@ -46,10 +41,5 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginBottom: Spacing.xs,
     fontFamily: Typography.fontFamily.primary,
-  },
-  sectionDescription: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
   },
 });

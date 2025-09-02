@@ -1,25 +1,24 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import React from "react";
 import {
-  ImageBackground,
   Linking,
-  Platform,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { IconSymbol } from "../components/ui/IconSymbol";
-import { Colors, Spacing, Typography } from "../constants/Theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StarsDecorations } from "../../../components/credits/StarsDecorations";
+import { BackgroundContainer } from "../../../components/shared/BackgroundContainer";
+import { IconSymbol } from "../../../components/ui/IconSymbol";
+import { ScreenHeader } from "../../../components/ui/ScreenHeader";
+import { Colors, Spacing, Typography } from "../../../constants/Theme";
 
 const SUPPORT_EMAIL = "support@dreamweaver-app.com";
 
 export default function HelpScreen() {
-  const router = useRouter();
+  const _insets = useSafeAreaInsets();
 
   const handleEmailSupport = () => {
     const subject = encodeURIComponent("DreamWeaver App Support Request");
@@ -30,39 +29,12 @@ export default function HelpScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require("../assets/images/background-landscape.png")}
-      resizeMode="cover"
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={StyleSheet.absoluteFill}
-      />
+    <BackgroundContainer showDecorations={false}>
+      <StarsDecorations />
+
+      <ScreenHeader title="Help & support" />
 
       <SafeAreaView style={styles.safeArea}>
-        <View
-          style={[
-            styles.header,
-            {
-              paddingTop:
-                Platform.select({
-                  android: StatusBar.currentHeight || 0,
-                  ios: 0,
-                }) || 0,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={28} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help & support</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -104,40 +76,14 @@ export default function HelpScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ImageBackground>
+    </BackgroundContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.lg,
-    backgroundColor: "transparent",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize.h3,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    fontFamily: Typography.fontFamily.primary,
-  },
-  headerSpacer: {
-    width: 40,
+    marginTop: 15,
   },
   scrollView: {
     flex: 1,

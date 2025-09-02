@@ -22,7 +22,6 @@ export function DebugSection({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Debug Screens</Text>
       <Text style={styles.sectionDescription}>
         Development and testing tools
       </Text>
@@ -67,8 +66,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.primary,
   },
   sectionDescription: {
-    fontSize: Typography.fontSize.small,
+    fontSize: Typography.fontSize.medium,
     color: Colors.textSecondary,
+    lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   debugButton: {

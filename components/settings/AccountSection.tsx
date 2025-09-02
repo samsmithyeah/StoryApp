@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../ui/Button";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { Button } from "../ui/Button";
 import type { AccountSectionProps } from "./types";
 
 export function AccountSection({
@@ -12,11 +12,6 @@ export function AccountSection({
 }: AccountSectionProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Account</Text>
-      <Text style={styles.sectionDescription}>
-        Manage your account and sign out options
-      </Text>
-
       <View style={styles.accountInfo}>
         <View style={styles.userAvatar}>
           <Text style={styles.userAvatarText}>
@@ -64,11 +59,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginBottom: Spacing.xs,
     fontFamily: Typography.fontFamily.primary,
-  },
-  sectionDescription: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
   },
   accountInfo: {
     flexDirection: "row",
