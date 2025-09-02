@@ -1,18 +1,24 @@
 import { CreditPackCard } from "@/components/credits/CreditPackCard";
 import { CreditsHeader } from "@/components/credits/CreditsHeader";
 import { InfoSection } from "@/components/credits/InfoSection";
-import { logger } from "@/utils/logger";
 import { PurchaseButton } from "@/components/credits/PurchaseButton";
 import { StarsDecorations } from "@/components/credits/StarsDecorations";
 import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
 import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
+import {
+  BorderRadius,
+  Colors,
+  isVerySmallScreen,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
+import { logger } from "@/utils/logger";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,12 +30,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import { PurchasesOffering, PurchasesPackage } from "react-native-purchases";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 interface CreditsScreenProps {
   isModal?: boolean;
@@ -132,7 +138,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.subscription.monthly.basic",
                   price: 4.99,
                   priceString: "$4.99",
-                  title: "Monthly Storyteller",
+                  title: "Monthly Storyteller fake",
                   description: "30 stories per month",
                 },
               },
@@ -142,7 +148,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.subscription.monthly.pro",
                   price: 12.99,
                   priceString: "$12.99",
-                  title: "Monthly Story Master",
+                  title: "Monthly Story Master fake",
                   description: "100 stories per month",
                 },
               },
@@ -152,7 +158,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.subscription.annual.basic",
                   price: 49.99,
                   priceString: "$49.99",
-                  title: "Annual Storyteller",
+                  title: "Annual Storyteller fake",
                   description: "360 stories per year",
                 },
               },
@@ -162,7 +168,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.subscription.annual.pro",
                   price: 119.99,
                   priceString: "$119.99",
-                  title: "Annual Story Master",
+                  title: "Annual Story Master fake",
                   description: "1200 stories per year",
                 },
               },
@@ -173,7 +179,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.credits.10",
                   price: 2.99,
                   priceString: "$2.99",
-                  title: "Starter Pack",
+                  title: "Starter Pack fake",
                   description: "10 credits",
                 },
               },
@@ -183,7 +189,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.credits.25",
                   price: 6.99,
                   priceString: "$6.99",
-                  title: "Story Bundle",
+                  title: "Story Bundle fake",
                   description: "25 credits",
                 },
               },
@@ -193,7 +199,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.credits.50",
                   price: 12.99,
                   priceString: "$12.99",
-                  title: "Family Pack",
+                  title: "Family Pack fake",
                   description: "50 credits",
                 },
               },
@@ -203,7 +209,7 @@ export default function CreditsScreen({
                   identifier: "com.dreamweaver.credits.100",
                   price: 24.99,
                   priceString: "$24.99",
-                  title: "Story Master",
+                  title: "Story Master fake",
                   description: "100 credits",
                 },
               },
@@ -427,79 +433,156 @@ export default function CreditsScreen({
     }
   };
 
-  const getProductInfo = (productId: string): ProductInfo => {
-    const products: Record<string, ProductInfo> = {
+  const getProductInfo = (
+    productId: string,
+    pkg?: PurchasesPackage
+  ): ProductInfo => {
+    // Always prefer the title from RevenueCat if available
+    let productName = pkg?.product?.title;
+    if (productName) {
+      // Clean up app name suffixes like "(DreamWeaver)" or "(AppName)"
+      productName = productName.replace(/\s*\([^)]+\)$/, "").trim();
+    }
+
+    // Fallback to hardcoded names only if no RevenueCat title
+    const hardcodedProducts: Record<
+      string,
+      {
+        name: string;
+        credits: number;
+        type: "subscription" | "pack";
+        period: "month" | "year" | null;
+        popular?: boolean;
+        bestValue?: boolean;
+      }
+    > = {
       // Subscriptions
       [PRODUCT_IDS.MONTHLY_BASIC]: {
-        credits: 30,
-        type: "subscription" as const,
         name: "Monthly Storyteller",
+        credits: 30,
+        type: "subscription",
         period: "month",
-        displayName: "Monthly\nStoryteller",
       },
       [PRODUCT_IDS.MONTHLY_PRO]: {
-        credits: 100,
-        type: "subscription" as const,
         name: "Monthly Story Master",
+        credits: 100,
+        type: "subscription",
         period: "month",
-        displayName: "Monthly\nStory Master",
         popular: true,
       },
       [PRODUCT_IDS.ANNUAL_BASIC]: {
-        credits: 360,
-        type: "subscription" as const,
         name: "Annual Storyteller",
+        credits: 360,
+        type: "subscription",
         period: "year",
-        displayName: "Annual\nStoryteller",
       },
       [PRODUCT_IDS.ANNUAL_PRO]: {
-        credits: 1200,
-        type: "subscription" as const,
         name: "Annual Story Master",
+        credits: 1200,
+        type: "subscription",
         period: "year",
-        displayName: "Annual\nStory Master",
         bestValue: true,
       },
       // Credit packs
       [PRODUCT_IDS.CREDITS_10]: {
-        credits: 10,
-        type: "pack" as const,
         name: "Starter Pack",
+        credits: 10,
+        type: "pack",
         period: null,
-        displayName: "Starter\nPack",
       },
       [PRODUCT_IDS.CREDITS_25]: {
-        credits: 25,
-        type: "pack" as const,
         name: "Story Bundle",
+        credits: 25,
+        type: "pack",
         period: null,
-        displayName: "Story\nBundle",
       },
       [PRODUCT_IDS.CREDITS_50]: {
-        credits: 50,
-        type: "pack" as const,
         name: "Family Pack",
+        credits: 50,
+        type: "pack",
         period: null,
-        displayName: "Family\nPack",
         popular: true,
       },
       [PRODUCT_IDS.CREDITS_100]: {
-        credits: 100,
-        type: "pack" as const,
         name: "Story Master",
+        credits: 100,
+        type: "pack",
         period: null,
-        displayName: "Story\nMaster",
       },
     };
-    return (
-      products[productId] || {
-        credits: 0,
-        type: "pack" as const,
-        name: "Unknown",
-        period: null,
-        displayName: "Unknown",
+
+    const hardcodedProduct = hardcodedProducts[productId];
+
+    // Use RevenueCat title if available, otherwise fallback to hardcoded name
+    const finalName =
+      productName || hardcodedProduct?.name || "Unknown Product";
+    const finalDisplayName = finalName.replace(/\s+/g, "\n");
+
+    // Determine product characteristics
+    const isSubscription =
+      productId.includes("subscription") ||
+      hardcodedProduct?.type === "subscription";
+    const isAnnual =
+      productId.includes("annual") || hardcodedProduct?.period === "year";
+    const isMonthly =
+      productId.includes("monthly") || hardcodedProduct?.period === "month";
+
+    // Determine credits - use hardcoded if available, otherwise try to infer
+    let credits = hardcodedProduct?.credits || 0;
+    if (!credits) {
+      if (isSubscription) {
+        if (productId.includes("basic")) {
+          credits = isAnnual ? 360 : 30;
+        } else if (productId.includes("pro")) {
+          credits = isAnnual ? 1200 : 100;
+        }
+      } else {
+        // Credit pack - try to extract number from product ID
+        const creditMatch = productId.match(/(\d+)/);
+        if (creditMatch) {
+          credits = parseInt(creditMatch[1], 10);
+        }
       }
-    );
+    }
+
+    // Determine badges - use hardcoded if available, otherwise infer from product characteristics
+    let popular = hardcodedProduct?.popular;
+    let bestValue = hardcodedProduct?.bestValue;
+
+    // If no hardcoded badges, infer them based on product patterns
+    if (popular === undefined && bestValue === undefined) {
+      if (isSubscription) {
+        // Monthly Pro is typically popular, Annual Pro is best value
+        if (productId.includes("pro")) {
+          if (isAnnual) {
+            bestValue = true;
+          } else if (isMonthly) {
+            popular = true;
+          }
+        }
+      } else {
+        // For credit packs, 50-credit pack is typically popular
+        if (credits === 50 || productId.includes("50")) {
+          popular = true;
+        }
+      }
+    }
+
+    return {
+      credits,
+      type: isSubscription ? ("subscription" as const) : ("pack" as const),
+      name: finalName,
+      period: isSubscription
+        ? isAnnual
+          ? "year"
+          : isMonthly
+            ? "month"
+            : null
+        : null,
+      displayName: finalDisplayName,
+      popular,
+      bestValue,
+    };
   };
 
   const isSubscriptionActive = (productId: string) => {
@@ -536,8 +619,8 @@ export default function CreditsScreen({
         // Find popular subscription
         const popularSubscription = subscriptions.find(
           (pkg) =>
-            getProductInfo(pkg.product.identifier).popular ||
-            getProductInfo(pkg.product.identifier).bestValue
+            getProductInfo(pkg.product.identifier, pkg).popular ||
+            getProductInfo(pkg.product.identifier, pkg).bestValue
         );
         if (popularSubscription) {
           setSelectedPackage(popularSubscription);
@@ -548,7 +631,7 @@ export default function CreditsScreen({
       if (!selectedPackage) {
         // Find popular credit pack
         const popularCreditPack = creditPacks.find(
-          (pkg) => getProductInfo(pkg.product.identifier).popular
+          (pkg) => getProductInfo(pkg.product.identifier, pkg).popular
         );
         if (popularCreditPack) {
           setSelectedPackage(popularCreditPack);
@@ -579,7 +662,9 @@ export default function CreditsScreen({
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingTop: insets.top + Spacing.screenPadding,
+                paddingTop:
+                  insets.top +
+                  (isVerySmallScreen() ? Spacing.md : Spacing.screenPadding),
               },
             ]}
             contentInsetAdjustmentBehavior="never"
@@ -618,7 +703,9 @@ export default function CreditsScreen({
                           activeSubscriptions.length > 0
                         }
                         onSelect={setSelectedPackage}
-                        getProductInfo={getProductInfo}
+                        getProductInfo={(productId) =>
+                          getProductInfo(productId, pkg)
+                        }
                       />
                     ))}
                   </View>
@@ -635,7 +722,9 @@ export default function CreditsScreen({
                         selectedPackage?.identifier === pkg.identifier
                       }
                       onSelect={setSelectedPackage}
-                      getProductInfo={getProductInfo}
+                      getProductInfo={(productId) =>
+                        getProductInfo(productId, pkg)
+                      }
                     />
                   ))}
                 </View>
@@ -724,7 +813,7 @@ export default function CreditsScreen({
               </>
             )}
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: isVerySmallScreen() ? 60 : 100 }} />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -737,7 +826,9 @@ export default function CreditsScreen({
           purchasing={purchasing}
           activeSubscriptions={activeSubscriptions}
           onPurchase={handlePurchase}
-          getProductInfo={getProductInfo}
+          getProductInfo={(productId) =>
+            getProductInfo(productId, selectedPackage || undefined)
+          }
           insets={insets}
         />
       )}
@@ -764,8 +855,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.screenPadding,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding,
+    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.screenPadding,
   },
   loadingContainer: {
     flex: 1,
@@ -783,12 +874,14 @@ const styles = StyleSheet.create({
   // Restore button
   restoreButton: {
     alignItems: "center",
-    paddingVertical: Spacing.lg,
-    marginTop: -15,
-    marginBottom: Spacing.lg,
+    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+    marginTop: isVerySmallScreen() ? -10 : -15,
+    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
   },
   restoreText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     textDecorationLine: "underline",
   },
@@ -796,15 +889,17 @@ const styles = StyleSheet.create({
   // Debug button - Development only
   debugButton: {
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingVertical: isVerySmallScreen() ? Spacing.sm : Spacing.md,
+    marginBottom: isVerySmallScreen() ? Spacing.sm : Spacing.md,
     backgroundColor: "rgba(255, 0, 0, 0.1)",
     borderRadius: BorderRadius.medium,
     borderWidth: 1,
     borderColor: "rgba(255, 0, 0, 0.3)",
   },
   debugText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -812,15 +907,17 @@ const styles = StyleSheet.create({
   // Force refresh button - Development only
   forceRefreshButton: {
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.xxl,
+    paddingVertical: isVerySmallScreen() ? Spacing.sm : Spacing.md,
+    marginBottom: isVerySmallScreen() ? Spacing.lg : Spacing.xxl,
     backgroundColor: "rgba(0, 150, 255, 0.1)",
     borderRadius: BorderRadius.medium,
     borderWidth: 1,
     borderColor: "rgba(0, 150, 255, 0.3)",
   },
   forceRefreshText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -833,9 +930,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   purchasingText: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     color: Colors.text,
-    marginTop: Spacing.lg,
+    marginTop: isVerySmallScreen() ? Spacing.md : Spacing.lg,
     textAlign: "center",
   },
 });

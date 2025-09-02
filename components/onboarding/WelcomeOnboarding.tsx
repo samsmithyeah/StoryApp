@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Toast from "react-native-toast-message";
-import { toastConfig } from "../ui/CustomToast";
 import {
-  Dimensions,
   Modal,
   Platform,
   StatusBar as RNStatusBar,
@@ -13,10 +10,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import {
   BorderRadius,
   Colors,
   CommonStyles,
+  isTablet,
+  isVerySmallScreen,
   Shadows,
   Spacing,
   Typography,
@@ -24,13 +24,13 @@ import {
 import { useChildren } from "../../hooks/useChildren";
 import { useAuthStore } from "../../store/authStore";
 import { Child } from "../../types/child.types";
-import { BackgroundContainer } from "../shared/BackgroundContainer";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
+import { BackgroundContainer } from "../shared/BackgroundContainer";
 import { Button } from "../ui/Button";
+import { toastConfig } from "../ui/CustomToast";
 import { IconSymbol } from "../ui/IconSymbol";
 
-const { width } = Dimensions.get("window");
-const isTablet = width >= 768;
+// Using centralized responsive utilities from Theme.ts
 
 const STEPS = [
   {
@@ -214,7 +214,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
             <View style={styles.iconPlain}>
               <IconSymbol
                 name={currentStepData.icon as any}
-                size={isTablet ? 100 : 80}
+                size={isTablet() ? 100 : 80}
                 color={Colors.primary}
               />
             </View>
@@ -287,8 +287,8 @@ const styles = StyleSheet.create({
   },
   progressHeader: {
     alignItems: "center",
-    paddingTop: isTablet ? Spacing.xxl : Spacing.xl,
-    paddingBottom: isTablet ? Spacing.xl : Spacing.lg,
+    paddingTop: isTablet() ? Spacing.xxl : Spacing.xl,
+    paddingBottom: isTablet() ? Spacing.xl : Spacing.lg,
     paddingHorizontal: Spacing.screenPadding,
   },
   content: {
@@ -302,9 +302,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepDot: {
-    width: isTablet ? 16 : 14,
-    height: isTablet ? 16 : 14,
-    borderRadius: isTablet ? 8 : 7,
+    width: isTablet() ? 16 : 14,
+    height: isTablet() ? 16 : 14,
+    borderRadius: isTablet() ? 8 : 7,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
     borderWidth: 2,
     borderColor: "rgba(212, 175, 55, 0.4)",
@@ -319,7 +319,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.success,
   },
   iconContainer: {
-    marginBottom: isTablet ? Spacing.huge : Spacing.xxxl,
+    marginBottom: isTablet()
+      ? Spacing.huge
+      : isVerySmallScreen()
+        ? Spacing.xl
+        : Spacing.xxxl,
   },
   iconGlow: {
     padding: Spacing.xl,
@@ -335,25 +339,33 @@ const styles = StyleSheet.create({
   },
   title: {
     ...CommonStyles.brandTitle,
-    fontSize: isTablet
+    fontSize: isTablet()
       ? Typography.fontSize.h1Tablet
-      : Typography.fontSize.h1Phone,
+      : isVerySmallScreen()
+        ? Typography.fontSize.h3
+        : Typography.fontSize.h1Phone,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: isTablet ? Typography.fontSize.h4 : Typography.fontSize.large,
+    fontSize: isTablet()
+      ? Typography.fontSize.h4
+      : isVerySmallScreen()
+        ? Typography.fontSize.medium
+        : Typography.fontSize.large,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.xxl,
-    lineHeight: isTablet ? 28 : 24,
+    marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.xxl,
+    lineHeight: isTablet() ? 28 : isVerySmallScreen() ? 20 : 24,
   },
   description: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: isTablet ? 28 : 22,
-    maxWidth: isTablet ? 480 : 320,
+    lineHeight: isTablet() ? 28 : isVerySmallScreen() ? 20 : 22,
+    maxWidth: isTablet() ? 480 : isVerySmallScreen() ? 280 : 320,
     opacity: 0.9,
   },
   existingChildrenNote: {

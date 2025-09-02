@@ -36,12 +36,18 @@ import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
 
-const { width, height } = Dimensions.get("window");
-const isTablet = width >= 768;
-const isPhoneMiddle = width < 430; // iPhone 14/15, Pixel 7
-const isPhoneSmall = width < 380; // iPhone SE / 13 mini
-const GAP = isTablet ? 20 : 16;
-const emptyTop = Math.round(height * (isTablet ? 0.25 : 0.18));
+import {
+  isTablet,
+  isPhoneMiddle,
+  isPhoneSmall,
+  isVerySmallScreen,
+} from "../../constants/Theme";
+
+const { height } = Dimensions.get("window"); // Still needed for emptyTop calculation
+const GAP = isTablet() ? 20 : 16;
+const emptyTop = Math.round(
+  height * (isTablet() ? 0.25 : isVerySmallScreen() ? 0.12 : 0.18)
+);
 
 /* --------------------------------------------------------------------- */
 
@@ -105,7 +111,7 @@ export default function LibraryScreen() {
         const buttonHeight = 52;
         const ctaBottomPosition = insets.top + 12 + buttonHeight;
         // Different trigger points for mobile vs tablet
-        const triggerOffset = isTablet ? 190 : 90;
+        const triggerOffset = isTablet() ? 190 : 90;
         const triggerPoint = heroTop + triggerOffset - ctaBottomPosition;
 
         if (offsetY > triggerPoint) {
@@ -143,7 +149,7 @@ export default function LibraryScreen() {
 
   /* hero offset so it never sits under the CTA */
   const ctaHeight = 52; // button height + padding
-  const heroTop = isTablet ? 120 : insets.top + ctaHeight + 100;
+  const heroTop = isTablet() ? 120 : insets.top + ctaHeight + 100;
 
   return (
     <ImageBackground
@@ -228,7 +234,7 @@ export default function LibraryScreen() {
 /* --------------------------------------------------------------------- */
 
 function Decorations() {
-  const moonSize = isTablet ? 160 : 120;
+  const moonSize = isTablet() ? 160 : 120;
   return (
     <>
       <Image
@@ -307,10 +313,10 @@ function EmptyState() {
         title="Create story"
         onPress={() => router.push("/create")}
         variant="primary"
-        size="large"
+        size={isVerySmallScreen() ? "medium" : "large"}
         style={{
-          paddingHorizontal: 36,
-          paddingVertical: 14,
+          paddingHorizontal: isVerySmallScreen() ? 24 : 36,
+          paddingVertical: isVerySmallScreen() ? 10 : 14,
           borderRadius: 999,
         }}
       />
@@ -361,14 +367,14 @@ const styles = StyleSheet.create({
   },
 
   /* hero -------------------------------------------------------------- */
-  hero: { alignItems: "center", marginBottom: isTablet ? 48 : 32 },
+  hero: { alignItems: "center", marginBottom: isTablet() ? 48 : 32 },
   brand: {
     fontFamily: "PlayfairDisplay-Regular",
-    fontSize: isTablet ? 64 : isPhoneSmall ? 34 : isPhoneMiddle ? 40 : 48,
+    fontSize: isTablet() ? 64 : isPhoneSmall() ? 34 : isPhoneMiddle() ? 40 : 48,
     color: "#D4AF37",
   },
   tagline: {
-    fontSize: isTablet ? 24 : isPhoneSmall ? 14 : 18,
+    fontSize: isTablet() ? 24 : isPhoneSmall() ? 14 : 18,
     color: "#B8B8B8",
     marginTop: 6,
   },
@@ -383,7 +389,7 @@ const styles = StyleSheet.create({
   /* library grid ------------------------------------------------------ */
   sectionLabel: {
     //fontSize: 20,
-    fontSize: isTablet ? 20 : isPhoneSmall ? 14 : 16,
+    fontSize: isTablet() ? 20 : isPhoneSmall() ? 14 : 16,
     color: "#FFF",
     letterSpacing: 1.6,
     marginBottom: 24,
@@ -406,16 +412,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingBottom: 80,
+    paddingBottom: isVerySmallScreen() ? 40 : 80,
   },
-  emptyBear: { width: 140, height: 140, marginBottom: 24, opacity: 0.95 },
+  emptyBear: {
+    width: isVerySmallScreen() ? 100 : 140,
+    height: isVerySmallScreen() ? 100 : 140,
+    marginBottom: isVerySmallScreen() ? 16 : 24,
+    opacity: 0.95,
+  },
   emptyBrand: {
-    fontSize: 48,
+    fontSize: isVerySmallScreen() ? 32 : 48,
     fontFamily: "PlayfairDisplay-Regular",
     color: "#FCD34D",
-    marginBottom: 6,
+    marginBottom: isVerySmallScreen() ? 4 : 6,
   },
-  emptyText: { fontSize: 20, color: "#fff", marginBottom: 32 },
+  emptyText: {
+    fontSize: isVerySmallScreen() ? 16 : 20,
+    color: "#fff",
+    marginBottom: isVerySmallScreen() ? 20 : 32,
+  },
   emptyButterfly: {
     position: "absolute",
     top: 30,

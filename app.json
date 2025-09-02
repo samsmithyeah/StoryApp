@@ -17,10 +17,7 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0f1129"
-      },
+      "icon": "./assets/icons/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.samlovesit.StoryApp",
       "googleServicesFile": "./google-services.json",

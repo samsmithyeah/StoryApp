@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
   Platform,
   StatusBar as RNStatusBar,
   SafeAreaView,
@@ -16,14 +15,15 @@ import { Button } from "../../components/ui/Button";
 import {
   BorderRadius,
   Colors,
+  isTablet,
+  isVerySmallScreen,
   Spacing,
   Typography,
 } from "../../constants/Theme";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthStatus } from "../../types/auth.types";
 
-const { width } = Dimensions.get("window");
-const isTablet = width >= 768;
+// Dimensions handled by centralized responsive utilities
 
 export default function VerifyEmailScreen() {
   const { signOut, authStatus } = useAuth();
@@ -63,7 +63,7 @@ export default function VerifyEmailScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        bounces={true}
       >
         <View style={styles.header}>
           <Text style={styles.appName}>DreamWeaver</Text>
@@ -81,16 +81,16 @@ export default function VerifyEmailScreen() {
             <EmailVerificationBanner onVerified={handleVerified} />
           )}
         </View>
-      </ScrollView>
 
-      <View style={styles.bottomActions}>
-        <Button
-          title="Sign out"
-          onPress={handleSignOut}
-          variant="danger"
-          style={styles.signOutButton}
-        />
-      </View>
+        <View style={styles.bottomActions}>
+          <Button
+            title="Sign out"
+            onPress={handleSignOut}
+            variant="danger"
+            style={styles.signOutButton}
+          />
+        </View>
+      </ScrollView>
     </WrapperComponent>
   );
 }
@@ -102,39 +102,51 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.screenPadding,
-    paddingTop: isTablet ? Spacing.massive : Spacing.xxxl,
-    paddingBottom: Spacing.xl,
+    paddingTop: isTablet()
+      ? Spacing.massive
+      : isVerySmallScreen()
+        ? Spacing.xl
+        : Spacing.xxxl,
+    paddingBottom: Platform.OS === "ios" ? Spacing.xl : Spacing.massive,
   },
   header: {
     alignItems: "center",
-    marginBottom: isTablet ? Spacing.massive : Spacing.huge,
+    marginBottom: isTablet()
+      ? Spacing.massive
+      : isVerySmallScreen()
+        ? Spacing.xl
+        : Spacing.huge,
   },
   appName: {
     fontFamily: Typography.fontFamily.primary,
-    fontSize: isTablet
+    fontSize: isTablet()
       ? Typography.fontSize.h1Tablet
-      : Typography.fontSize.h1Phone,
+      : isVerySmallScreen()
+        ? Typography.fontSize.h2
+        : Typography.fontSize.h1Phone,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary,
-    marginBottom: Spacing.xl,
+    marginBottom: isVerySmallScreen() ? Spacing.lg : Spacing.xl,
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   title: {
-    fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
+    fontSize: isTablet() ? Typography.fontSize.h2 : Typography.fontSize.h3,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text,
   },
   subtitle: {
-    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
+    fontSize: isTablet()
+      ? Typography.fontSize.medium
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: isTablet ? 24 : 20,
+    lineHeight: isTablet() ? 24 : 20,
   },
   authContainer: {
     width: "100%",
-    maxWidth: isTablet ? 500 : 400,
+    maxWidth: isTablet() ? 500 : 400,
     alignSelf: "center",
     backgroundColor: Platform.select({
       ios: "rgba(255, 255, 255, 0.03)",
@@ -143,12 +155,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: "rgba(212, 175, 55, 0.2)",
-    padding: isTablet ? Spacing.xxxl : Spacing.xxl,
+    padding: isTablet()
+      ? Spacing.xxxl
+      : isVerySmallScreen()
+        ? Spacing.lg
+        : Spacing.xxl,
   },
   bottomActions: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: Platform.OS === "ios" ? Spacing.xl : Spacing.massive,
-    maxWidth: isTablet ? 500 : 400,
+    paddingHorizontal: 0,
+    paddingTop: isVerySmallScreen() ? Spacing.md : Spacing.xl,
+    paddingBottom: Spacing.sm,
+    maxWidth: isTablet() ? 500 : 400,
     width: "100%",
     alignSelf: "center",
   },
