@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +11,8 @@ import { openInbox } from "react-native-email-link";
 import {
   BorderRadius,
   Colors,
+  isSmallScreen,
+  isVerySmallScreen,
   Spacing,
   Typography,
 } from "../../constants/Theme";
@@ -197,29 +198,27 @@ export const EmailVerificationBanner: React.FC<
   );
 };
 
-const { height } = Dimensions.get("window");
-const isSmallScreen = height < 700;
-const isVerySmallScreen = height < 650;
+// Using centralized responsive utilities from Theme.ts
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: isVerySmallScreen
+    paddingVertical: isVerySmallScreen()
       ? Spacing.sm
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.lg
         : Spacing.xl,
     alignItems: "center",
   },
   iconContainer: {
-    width: isVerySmallScreen ? 40 : isSmallScreen ? 48 : 56,
-    height: isVerySmallScreen ? 40 : isSmallScreen ? 48 : 56,
-    borderRadius: isVerySmallScreen ? 20 : isSmallScreen ? 24 : 28,
+    width: isVerySmallScreen() ? 40 : isSmallScreen() ? 48 : 56,
+    height: isVerySmallScreen() ? 40 : isSmallScreen() ? 48 : 56,
+    borderRadius: isVerySmallScreen() ? 20 : isSmallScreen() ? 24 : 28,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: isVerySmallScreen
+    marginBottom: isVerySmallScreen()
       ? Spacing.md
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.lg
         : Spacing.xl,
   },
@@ -228,29 +227,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.large
-      : isSmallScreen
+      : isSmallScreen()
         ? Typography.fontSize.h4
         : Typography.fontSize.h3,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text,
-    marginBottom: isVerySmallScreen ? Spacing.xs : Spacing.sm,
+    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
     textAlign: "center",
   },
   description: {
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.tiny
-      : isSmallScreen
+      : isSmallScreen()
         ? Typography.fontSize.small
         : Typography.fontSize.medium,
     color: Colors.textSecondary,
-    marginBottom: isVerySmallScreen
+    marginBottom: isVerySmallScreen()
       ? Spacing.md
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.lg
         : Spacing.xl,
-    lineHeight: isVerySmallScreen ? 18 : isSmallScreen ? 20 : 24,
+    lineHeight: isVerySmallScreen() ? 18 : isSmallScreen() ? 20 : 24,
     textAlign: "center",
   },
   autoCheckNotice: {
@@ -273,17 +272,17 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     backgroundColor: "rgba(245, 158, 11, 0.12)",
     borderRadius: BorderRadius.medium,
-    padding: isVerySmallScreen
+    padding: isVerySmallScreen()
       ? Spacing.xs
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.sm
         : Spacing.md,
-    marginBottom: isVerySmallScreen
+    marginBottom: isVerySmallScreen()
       ? Spacing.md
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.lg
         : Spacing.xl,
-    gap: isVerySmallScreen ? Spacing.xs : Spacing.sm,
+    gap: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.2)",
   },
@@ -308,9 +307,9 @@ const styles = StyleSheet.create({
   },
   actions: {
     width: "100%",
-    gap: isVerySmallScreen
+    gap: isVerySmallScreen()
       ? Spacing.xs
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.sm
         : Spacing.md,
   },
@@ -318,31 +317,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: isVerySmallScreen
+    paddingHorizontal: isVerySmallScreen()
       ? Spacing.sm
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.md
         : Spacing.buttonPadding.horizontal,
-    paddingVertical: isVerySmallScreen
+    paddingVertical: isVerySmallScreen()
       ? Spacing.xs
-      : isSmallScreen
+      : isSmallScreen()
         ? Spacing.sm
         : Spacing.buttonPadding.vertical + 2,
     borderRadius: BorderRadius.medium,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
     borderWidth: 1.5,
     borderColor: Colors.primary,
-    gap: isVerySmallScreen ? Spacing.xs : Spacing.sm,
-    minHeight: isVerySmallScreen ? 40 : isSmallScreen ? 44 : 48,
+    gap: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    minHeight: isVerySmallScreen() ? 40 : isSmallScreen() ? 44 : 48,
   },
   secondaryButton: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderColor: "rgba(184, 184, 184, 0.3)",
   },
   buttonText: {
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.tiny
-      : isSmallScreen
+      : isSmallScreen()
         ? Typography.fontSize.small
         : Typography.fontSize.button,
     fontWeight: Typography.fontWeight.semibold,

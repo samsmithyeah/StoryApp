@@ -1,5 +1,5 @@
 // Theme constants for DreamWeaver app
-import { Platform } from "react-native";
+import { Dimensions, Platform } from "react-native";
 
 export const Colors = {
   // Primary colors
@@ -216,7 +216,34 @@ export const CommonStyles = {
   },
 };
 
-// Responsive helpers
-export const isTablet = (width: number) => width >= 768;
-export const isPhoneSmall = (width: number) => width < 380;
-export const isPhoneMiddle = (width: number) => width < 430;
+// Responsive helpers that auto-calculate dimensions
+const getDimensions = () => Dimensions.get("window");
+
+export const isTablet = () => getDimensions().width >= 768;
+export const isPhoneSmall = () => getDimensions().width < 380;
+export const isPhoneMiddle = () => getDimensions().width < 430;
+
+// Height-based responsive helpers
+export const isSmallScreen = () => getDimensions().height < 700;
+export const isVerySmallScreen = () => getDimensions().height < 650;
+
+// Legacy functions that accept parameters (for backward compatibility)
+export const isTabletWidth = (width: number) => width >= 768;
+export const isPhoneSmallWidth = (width: number) => width < 380;
+export const isPhoneMiddleWidth = (width: number) => width < 430;
+export const isSmallScreenHeight = (height: number) => height < 700;
+export const isVerySmallScreenHeight = (height: number) => height < 650;
+
+// Convenience function to get all responsive states
+export const getResponsiveState = () => {
+  const { width, height } = getDimensions();
+  return {
+    width,
+    height,
+    isTablet: isTablet(),
+    isPhoneSmall: isPhoneSmall(),
+    isPhoneMiddle: isPhoneMiddle(),
+    isSmallScreen: isSmallScreen(),
+    isVerySmallScreen: isVerySmallScreen(),
+  };
+};

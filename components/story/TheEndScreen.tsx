@@ -212,7 +212,7 @@ const createStyles = ({ width, isTablet, isLandscape }: StyleParams) => {
       fontFamily: Typography.fontFamily.primary,
       fontSize: isTablet
         ? Typography.fontSize.h1Tablet * 2.0
-        : Typography.fontSize.h1Phone * 1.55,
+        : Typography.fontSize.h1Phone * 1.5,
       lineHeight: isTablet
         ? Typography.fontSize.h1Tablet * 2.0 * 1.05
         : Typography.fontSize.h1Phone * 1.55 * 1.05,

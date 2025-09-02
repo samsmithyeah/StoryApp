@@ -1,4 +1,10 @@
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import {
+  BorderRadius,
+  Colors,
+  isVerySmallScreen,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import { BlurView } from "expo-blur";
 import React from "react";
 import {
@@ -72,16 +78,20 @@ export function SubscriptionCard({
 
 const styles = StyleSheet.create({
   subscriptionCard: {
-    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
+    width:
+      (width -
+        (isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding) * 2 -
+        Spacing.md) /
+      2,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
     alignItems: "center",
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
-    minHeight: 160,
+    minHeight: isVerySmallScreen() ? 120 : 160,
   },
   subscriptionCardActive: {
     borderColor: Colors.success,
@@ -109,22 +119,28 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.large,
   },
   cardTitle: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
     textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 22,
+    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() ? 18 : 22,
   },
   cardCredits: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 18,
+    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() ? 16 : 18,
   },
   cardPrice: {
-    fontSize: Typography.fontSize.large,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.medium
+      : Typography.fontSize.large,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary,
     textAlign: "center",
@@ -134,8 +150,8 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    paddingVertical: isVerySmallScreen() ? 2 : 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
   },
@@ -144,8 +160,8 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    paddingVertical: isVerySmallScreen() ? 2 : 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
   },
@@ -154,8 +170,8 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    paddingVertical: isVerySmallScreen() ? 2 : 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
   },

@@ -2,7 +2,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Dimensions,
   Platform,
   StatusBar as RNStatusBar,
   SafeAreaView,
@@ -19,6 +18,7 @@ import { InsufficientCreditsModal } from "../../components/ui/InsufficientCredit
 import {
   Colors,
   CommonStyles,
+  isVerySmallScreen,
   Spacing,
   Typography,
 } from "../../constants/Theme";
@@ -67,7 +67,7 @@ export default function CreateScreen() {
             {
               paddingTop:
                 insets.top +
-                (isVerySmallScreen ? 40 : 60) +
+                (isVerySmallScreen() ? 40 : 60) +
                 (Platform.select({
                   android: RNStatusBar.currentHeight || 0,
                   ios: 0,
@@ -91,13 +91,13 @@ export default function CreateScreen() {
               title="Start"
               onPress={handleCreateStory}
               variant="primary"
-              size={isVerySmallScreen ? "medium" : "large"}
+              size={isVerySmallScreen() ? "medium" : "large"}
               disabled={creditsLoading}
               style={{
-                paddingHorizontal: isVerySmallScreen ? 32 : 48,
-                paddingVertical: isVerySmallScreen ? 12 : 16,
+                paddingHorizontal: isVerySmallScreen() ? 32 : 48,
+                paddingVertical: isVerySmallScreen() ? 12 : 16,
                 borderRadius: 25,
-                marginBottom: isVerySmallScreen ? 24 : 48,
+                marginBottom: isVerySmallScreen() ? 24 : 48,
               }}
             />
 
@@ -141,8 +141,7 @@ export default function CreateScreen() {
   );
 }
 
-const { height } = Dimensions.get("window");
-const isVerySmallScreen = height < 650;
+// Dimensions handled by centralized responsive utilities
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -153,7 +152,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: isVerySmallScreen ? Spacing.md : Spacing.screenPadding,
+    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.screenPadding,
     alignItems: "center",
   },
   content: {
@@ -162,26 +161,26 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   headerSection: {
-    marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.xxxl,
+    marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.xxxl,
   },
 
   // Header
   title: {
     ...CommonStyles.brandTitle,
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.h2
       : Typography.fontSize.h1,
     marginBottom: Spacing.sm,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.medium
       : Typography.fontSize.large,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.huge,
-    lineHeight: isVerySmallScreen ? 22 : 26,
+    marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
+    lineHeight: isVerySmallScreen() ? 22 : 26,
   },
 
   // Features section
@@ -192,7 +191,7 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: isVerySmallScreen ? Spacing.md : Spacing.lg,
+    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
   },
   bullet: {
     color: Colors.primary,
@@ -201,11 +200,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   featureText: {
-    fontSize: isVerySmallScreen
+    fontSize: isVerySmallScreen()
       ? Typography.fontSize.small
       : Typography.fontSize.medium,
     color: Colors.text,
     flex: 1,
-    lineHeight: isVerySmallScreen ? 20 : 22,
+    lineHeight: isVerySmallScreen() ? 20 : 22,
   },
 });

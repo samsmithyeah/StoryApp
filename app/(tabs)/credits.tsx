@@ -7,7 +7,13 @@ import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
 import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import {
+  BorderRadius,
+  Colors,
+  isVerySmallScreen,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
@@ -656,7 +662,9 @@ export default function CreditsScreen({
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingTop: insets.top + Spacing.screenPadding,
+                paddingTop:
+                  insets.top +
+                  (isVerySmallScreen() ? Spacing.md : Spacing.screenPadding),
               },
             ]}
             contentInsetAdjustmentBehavior="never"
@@ -805,7 +813,7 @@ export default function CreditsScreen({
               </>
             )}
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: isVerySmallScreen() ? 60 : 100 }} />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -847,8 +855,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.screenPadding,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding,
+    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.screenPadding,
   },
   loadingContainer: {
     flex: 1,
@@ -866,12 +874,14 @@ const styles = StyleSheet.create({
   // Restore button
   restoreButton: {
     alignItems: "center",
-    paddingVertical: Spacing.lg,
-    marginTop: -15,
-    marginBottom: Spacing.lg,
+    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+    marginTop: isVerySmallScreen() ? -10 : -15,
+    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
   },
   restoreText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     textDecorationLine: "underline",
   },
@@ -879,15 +889,17 @@ const styles = StyleSheet.create({
   // Debug button - Development only
   debugButton: {
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingVertical: isVerySmallScreen() ? Spacing.sm : Spacing.md,
+    marginBottom: isVerySmallScreen() ? Spacing.sm : Spacing.md,
     backgroundColor: "rgba(255, 0, 0, 0.1)",
     borderRadius: BorderRadius.medium,
     borderWidth: 1,
     borderColor: "rgba(255, 0, 0, 0.3)",
   },
   debugText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -895,15 +907,17 @@ const styles = StyleSheet.create({
   // Force refresh button - Development only
   forceRefreshButton: {
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.xxl,
+    paddingVertical: isVerySmallScreen() ? Spacing.sm : Spacing.md,
+    marginBottom: isVerySmallScreen() ? Spacing.lg : Spacing.xxl,
     backgroundColor: "rgba(0, 150, 255, 0.1)",
     borderRadius: BorderRadius.medium,
     borderWidth: 1,
     borderColor: "rgba(0, 150, 255, 0.3)",
   },
   forceRefreshText: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -916,9 +930,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   purchasingText: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     color: Colors.text,
-    marginTop: Spacing.lg,
+    marginTop: isVerySmallScreen() ? Spacing.md : Spacing.lg,
     textAlign: "center",
   },
 });

@@ -1,4 +1,10 @@
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import {
+  BorderRadius,
+  Colors,
+  isVerySmallScreen,
+  Spacing,
+  Typography,
+} from "@/constants/Theme";
 import React from "react";
 import {
   Dimensions,
@@ -42,39 +48,49 @@ export function CreditPackCard({
 
 const styles = StyleSheet.create({
   creditPackCard: {
-    width: (width - Spacing.screenPadding * 2 - Spacing.md) / 2,
+    width:
+      (width -
+        (isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding) * 2 -
+        Spacing.md) /
+      2,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
-    minHeight: 160,
+    minHeight: isVerySmallScreen() ? 120 : 160,
   },
   creditPackCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
   },
   cardTitle: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
     textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 22,
+    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() ? 18 : 22,
   },
   cardCredits: {
-    fontSize: Typography.fontSize.small,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.tiny
+      : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 18,
+    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() ? 16 : 18,
   },
   cardPrice: {
-    fontSize: Typography.fontSize.large,
+    fontSize: isVerySmallScreen()
+      ? Typography.fontSize.medium
+      : Typography.fontSize.large,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary,
     textAlign: "center",
@@ -84,8 +100,8 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
+    paddingVertical: isVerySmallScreen() ? 2 : 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
   },
