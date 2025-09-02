@@ -90,14 +90,6 @@ const styles = StyleSheet.create({
   subscriptionCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   subscriptionCardDisabled: {
     opacity: 0.5,

@@ -39,6 +39,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = React.memo(
     const minDim = Math.min(width, height);
     const maxDim = Math.max(width, height);
     const isTablet = maxDim >= 768 && minDim >= 500;
+    const isVerySmallScreen = height < 650;
 
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
@@ -74,8 +75,15 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = React.memo(
     }, [fadeAnim, slideAnim, scaleAnim]);
 
     const styles = useMemo(
-      () => createStyles({ width, height, isTablet, isLandscape }),
-      [width, height, isTablet, isLandscape]
+      () =>
+        createStyles({
+          width,
+          height,
+          isTablet,
+          isLandscape,
+          isVerySmallScreen,
+        }),
+      [width, height, isTablet, isLandscape, isVerySmallScreen]
     );
 
     return (
@@ -160,7 +168,7 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = React.memo(
                     title="Start reading"
                     onPress={onStartReading}
                     variant="wizard"
-                    size="large"
+                    size={isVerySmallScreen ? "medium" : "large"}
                   />
                 </View>
 
@@ -214,6 +222,7 @@ type StyleParams = {
   height: number;
   isTablet: boolean;
   isLandscape: boolean;
+  isVerySmallScreen: boolean;
 };
 
 const createStyles = ({
@@ -221,11 +230,12 @@ const createStyles = ({
   height,
   isTablet,
   isLandscape,
+  isVerySmallScreen,
 }: StyleParams) => {
   const supportsGap =
     Platform.OS !== "android" || Number(Platform.Version) >= 33;
 
-  const portraitSize = isTablet ? 550 : 300;
+  const portraitSize = isTablet ? 550 : isVerySmallScreen ? 200 : 300;
 
   // Larger on phones in landscape; clamp by width so it doesn't overflow horizontally
   const baseShort = Math.min(width, height);
@@ -288,7 +298,7 @@ const createStyles = ({
       alignItems: "center",
       justifyContent: isLandscape ? "space-evenly" : "center",
       width: "100%",
-      marginBottom: Spacing.massive,
+      marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.massive,
     },
     textBlock: {
       flex: isLandscape ? 1 : undefined,
@@ -301,10 +311,12 @@ const createStyles = ({
       fontFamily: Typography.fontFamily.primary,
       fontSize: isTablet
         ? Typography.fontSize.h1Tablet * 1.2
-        : Typography.fontSize.h1Phone,
+        : isVerySmallScreen
+          ? Typography.fontSize.h2
+          : Typography.fontSize.h1Phone,
       color: Colors.primary,
       textAlign: "center",
-      marginBottom: Spacing.huge,
+      marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.huge,
       textShadowColor: "rgba(0,0,0,0.3)",
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
@@ -313,7 +325,7 @@ const createStyles = ({
     imagePortrait: {
       width: portraitSize,
       height: portraitSize,
-      marginBottom: Spacing.xxl,
+      marginBottom: isVerySmallScreen ? Spacing.lg : Spacing.xxl,
       alignSelf: "center",
       ...commonImageFrame,
     },
@@ -343,16 +355,20 @@ const createStyles = ({
       zIndex: 1,
     },
     detailsLine: {
-      fontSize: Typography.fontSize.medium,
+      fontSize: isVerySmallScreen
+        ? Typography.fontSize.small
+        : Typography.fontSize.medium,
       color: Colors.text,
-      marginBottom: Spacing.huge,
+      marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.huge,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },
     detailsLineBelowImage: {
-      fontSize: Typography.fontSize.medium,
+      fontSize: isVerySmallScreen
+        ? Typography.fontSize.small
+        : Typography.fontSize.medium,
       color: Colors.text,
-      marginTop: Spacing.lg,
+      marginTop: isVerySmallScreen ? Spacing.md : Spacing.lg,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },

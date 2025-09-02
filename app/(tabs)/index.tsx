@@ -40,8 +40,11 @@ const { width, height } = Dimensions.get("window");
 const isTablet = width >= 768;
 const isPhoneMiddle = width < 430; // iPhone 14/15, Pixel 7
 const isPhoneSmall = width < 380; // iPhone SE / 13 mini
+const isVerySmallScreen = height < 650;
 const GAP = isTablet ? 20 : 16;
-const emptyTop = Math.round(height * (isTablet ? 0.25 : 0.18));
+const emptyTop = Math.round(
+  height * (isTablet ? 0.25 : isVerySmallScreen ? 0.12 : 0.18)
+);
 
 /* --------------------------------------------------------------------- */
 
@@ -307,10 +310,10 @@ function EmptyState() {
         title="Create story"
         onPress={() => router.push("/create")}
         variant="primary"
-        size="large"
+        size={isVerySmallScreen ? "medium" : "large"}
         style={{
-          paddingHorizontal: 36,
-          paddingVertical: 14,
+          paddingHorizontal: isVerySmallScreen ? 24 : 36,
+          paddingVertical: isVerySmallScreen ? 10 : 14,
           borderRadius: 999,
         }}
       />
@@ -406,16 +409,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingBottom: 80,
+    paddingBottom: isVerySmallScreen ? 40 : 80,
   },
-  emptyBear: { width: 140, height: 140, marginBottom: 24, opacity: 0.95 },
+  emptyBear: {
+    width: isVerySmallScreen ? 100 : 140,
+    height: isVerySmallScreen ? 100 : 140,
+    marginBottom: isVerySmallScreen ? 16 : 24,
+    opacity: 0.95,
+  },
   emptyBrand: {
-    fontSize: 48,
+    fontSize: isVerySmallScreen ? 32 : 48,
     fontFamily: "PlayfairDisplay-Regular",
     color: "#FCD34D",
-    marginBottom: 6,
+    marginBottom: isVerySmallScreen ? 4 : 6,
   },
-  emptyText: { fontSize: 20, color: "#fff", marginBottom: 32 },
+  emptyText: {
+    fontSize: isVerySmallScreen ? 16 : 20,
+    color: "#fff",
+    marginBottom: isVerySmallScreen ? 20 : 32,
+  },
   emptyButterfly: {
     position: "absolute",
     top: 30,

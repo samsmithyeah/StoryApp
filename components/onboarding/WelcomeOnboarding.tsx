@@ -29,8 +29,9 @@ import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { Button } from "../ui/Button";
 import { IconSymbol } from "../ui/IconSymbol";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const isTablet = width >= 768;
+const isVerySmallScreen = height < 650;
 
 const STEPS = [
   {
@@ -319,7 +320,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.success,
   },
   iconContainer: {
-    marginBottom: isTablet ? Spacing.huge : Spacing.xxxl,
+    marginBottom: isTablet
+      ? Spacing.huge
+      : isVerySmallScreen
+        ? Spacing.xl
+        : Spacing.xxxl,
   },
   iconGlow: {
     padding: Spacing.xl,
@@ -337,23 +342,31 @@ const styles = StyleSheet.create({
     ...CommonStyles.brandTitle,
     fontSize: isTablet
       ? Typography.fontSize.h1Tablet
-      : Typography.fontSize.h1Phone,
+      : isVerySmallScreen
+        ? Typography.fontSize.h3
+        : Typography.fontSize.h1Phone,
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: isTablet ? Typography.fontSize.h4 : Typography.fontSize.large,
+    fontSize: isTablet
+      ? Typography.fontSize.h4
+      : isVerySmallScreen
+        ? Typography.fontSize.medium
+        : Typography.fontSize.large,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.xxl,
-    lineHeight: isTablet ? 28 : 24,
+    marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.xxl,
+    lineHeight: isTablet ? 28 : isVerySmallScreen ? 20 : 24,
   },
   description: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: isTablet ? 28 : 22,
-    maxWidth: isTablet ? 480 : 320,
+    lineHeight: isTablet ? 28 : isVerySmallScreen ? 20 : 22,
+    maxWidth: isTablet ? 480 : isVerySmallScreen ? 280 : 320,
     opacity: 0.9,
   },
   existingChildrenNote: {

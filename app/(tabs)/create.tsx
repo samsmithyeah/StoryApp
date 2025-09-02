@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Dimensions,
   Platform,
   StatusBar as RNStatusBar,
   SafeAreaView,
@@ -66,7 +67,7 @@ export default function CreateScreen() {
             {
               paddingTop:
                 insets.top +
-                60 +
+                (isVerySmallScreen ? 40 : 60) +
                 (Platform.select({
                   android: RNStatusBar.currentHeight || 0,
                   ios: 0,
@@ -90,13 +91,13 @@ export default function CreateScreen() {
               title="Start"
               onPress={handleCreateStory}
               variant="primary"
-              size="large"
+              size={isVerySmallScreen ? "medium" : "large"}
               disabled={creditsLoading}
               style={{
-                paddingHorizontal: 48,
-                paddingVertical: 16,
+                paddingHorizontal: isVerySmallScreen ? 32 : 48,
+                paddingVertical: isVerySmallScreen ? 12 : 16,
                 borderRadius: 25,
-                marginBottom: 48,
+                marginBottom: isVerySmallScreen ? 24 : 48,
               }}
             />
 
@@ -140,6 +141,9 @@ export default function CreateScreen() {
   );
 }
 
+const { height } = Dimensions.get("window");
+const isVerySmallScreen = height < 650;
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.screenPadding,
+    paddingVertical: isVerySmallScreen ? Spacing.md : Spacing.screenPadding,
     alignItems: "center",
   },
   content: {
@@ -158,21 +162,26 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   headerSection: {
-    marginBottom: Spacing.xxxl,
+    marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.xxxl,
   },
 
   // Header
   title: {
     ...CommonStyles.brandTitle,
+    fontSize: isVerySmallScreen
+      ? Typography.fontSize.h2
+      : Typography.fontSize.h1,
     marginBottom: Spacing.sm,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: Typography.fontSize.large,
+    fontSize: isVerySmallScreen
+      ? Typography.fontSize.medium
+      : Typography.fontSize.large,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: Spacing.huge,
-    lineHeight: 26,
+    marginBottom: isVerySmallScreen ? Spacing.xl : Spacing.huge,
+    lineHeight: isVerySmallScreen ? 22 : 26,
   },
 
   // Features section
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: Spacing.lg,
+    marginBottom: isVerySmallScreen ? Spacing.md : Spacing.lg,
   },
   bullet: {
     color: Colors.primary,
@@ -192,9 +201,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   featureText: {
-    fontSize: Typography.fontSize.medium,
+    fontSize: isVerySmallScreen
+      ? Typography.fontSize.small
+      : Typography.fontSize.medium,
     color: Colors.text,
     flex: 1,
-    lineHeight: 22,
+    lineHeight: isVerySmallScreen ? 20 : 22,
   },
 });
