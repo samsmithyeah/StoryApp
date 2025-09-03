@@ -1,4 +1,10 @@
-import analytics from "@react-native-firebase/analytics";
+import {
+  getAnalytics,
+  logEvent,
+  setUserProperties,
+  setUserId,
+  logScreenView,
+} from "@react-native-firebase/analytics";
 import { logger } from "./logger";
 
 /**
@@ -10,7 +16,7 @@ export class Analytics {
    */
   static async logEvent(eventName: string, parameters?: Record<string, any>) {
     try {
-      await analytics().logEvent(eventName, parameters);
+      await logEvent(getAnalytics(), eventName, parameters);
       logger.debug(`Analytics event logged: ${eventName}`, parameters);
     } catch (error) {
       logger.error(`Failed to log analytics event: ${eventName}`, error);
@@ -22,7 +28,7 @@ export class Analytics {
    */
   static async setUserProperties(properties: Record<string, string>) {
     try {
-      await analytics().setUserProperties(properties);
+      await setUserProperties(getAnalytics(), properties);
       logger.debug("Analytics user properties set", properties);
     } catch (error) {
       logger.error("Failed to set analytics user properties", error);
@@ -34,7 +40,7 @@ export class Analytics {
    */
   static async setUserId(userId: string) {
     try {
-      await analytics().setUserId(userId);
+      await setUserId(getAnalytics(), userId);
       logger.debug(`Analytics user ID set: ${userId}`);
     } catch (error) {
       logger.error("Failed to set analytics user ID", error);
@@ -46,7 +52,7 @@ export class Analytics {
    */
   static async logScreenView(screenName: string, screenClass?: string) {
     try {
-      await analytics().logScreenView({
+      await logScreenView(getAnalytics(), {
         screen_name: screenName,
         screen_class: screenClass || screenName,
       });
