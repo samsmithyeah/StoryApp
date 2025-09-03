@@ -73,6 +73,18 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const hasTrackedWizardStart = useRef(false);
   const lastTrackedStep = useRef<WizardStep | null>(null);
 
+  // Helper function to track wizard completion
+  const trackWizardCompleted = useCallback(() => {
+    if (wizardStartTime.current) {
+      const completionTime = Date.now() - wizardStartTime.current;
+      Analytics.logWizardCompleted({
+        total_steps: WIZARD_STEPS.length,
+        completion_time_ms: completionTime,
+        final_config: wizardData,
+      });
+    }
+  }, [wizardData]);
+
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
@@ -143,14 +155,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
           setIsGenerating(false);
 
           // Track wizard completion
-          if (wizardStartTime.current) {
-            const completionTime = Date.now() - wizardStartTime.current;
-            Analytics.logWizardCompleted({
-              total_steps: WIZARD_STEPS.length,
-              completion_time_ms: completionTime,
-              final_config: wizardData,
-            });
-          }
+          trackWizardCompleted();
 
           onComplete({
             ...(wizardData as StoryConfiguration),
@@ -167,6 +172,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     isStoryFullyComplete,
     onComplete,
     wizardData,
+    trackWizardCompleted,
   ]);
 
   const goToNextStep = () => {
@@ -409,14 +415,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             onNavigateToStory={() => {
               if (generatedStoryId) {
                 // Track wizard completion (manual navigation)
-                if (wizardStartTime.current) {
-                  const completionTime = Date.now() - wizardStartTime.current;
-                  Analytics.logWizardCompleted({
-                    total_steps: WIZARD_STEPS.length,
-                    completion_time_ms: completionTime,
-                    final_config: wizardData,
-                  });
-                }
+                trackWizardCompleted();
 
                 onComplete({
                   ...(wizardData as StoryConfiguration),

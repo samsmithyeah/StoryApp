@@ -66,6 +66,9 @@ export default function CreditsScreen({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const previousBalance = useRef<number>(0);
 
+  // Track if screen view has been logged
+  const screenViewLogged = useRef(false);
+
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {
     // Pulse animation - scale up and down with glow effect
@@ -239,13 +242,18 @@ export default function CreditsScreen({
 
   useEffect(() => {
     loadCreditsAndOfferings();
+  }, [loadCreditsAndOfferings]);
 
-    // Track credits screen view
-    Analytics.logCreditsScreenViewed({
-      current_balance: userCredits?.balance || 0,
-      entry_point: _isModal ? "insufficient_credits_modal" : "credits_tab",
-    });
-  }, [loadCreditsAndOfferings, userCredits?.balance, _isModal]);
+  useEffect(() => {
+    if (userCredits && !screenViewLogged.current) {
+      // Track credits screen view
+      Analytics.logCreditsScreenViewed({
+        current_balance: userCredits.balance,
+        entry_point: _isModal ? "insufficient_credits_modal" : "credits_tab",
+      });
+      screenViewLogged.current = true;
+    }
+  }, [userCredits, _isModal]);
 
   // Initialize previous balance when userCredits first loads
   useEffect(() => {

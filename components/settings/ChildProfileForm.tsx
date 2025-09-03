@@ -191,7 +191,7 @@ export const ChildProfileForm = forwardRef<
         appearanceDetails: appearanceDetails.trim(),
       }),
       createdAt: child?.createdAt || new Date(),
-      ...(child?.updatedAt && { updatedAt: new Date() }),
+      ...(child && { updatedAt: new Date() }),
     };
 
     try {

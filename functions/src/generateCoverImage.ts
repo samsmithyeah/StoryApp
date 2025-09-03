@@ -57,6 +57,11 @@ export const generateCoverImage = onMessagePublished(
     let modelFallbackUsed = false;
     let styleFallbacksUsed = 0;
 
+    // Variables needed for error tracking
+    let modelsToTry: string[] = [];
+    let artStyleDescriptions: string[] = [];
+    let lastError: any = null;
+
     const logAnalytics = async (eventName: string, params: any) => {
       try {
         logger.info(`Analytics: ${eventName}`, { userId, storyId, ...params });
@@ -67,7 +72,7 @@ export const generateCoverImage = onMessagePublished(
 
     try {
       // Get art style descriptions in order of preference
-      const artStyleDescriptions = [artStyle];
+      artStyleDescriptions = [artStyle];
       if (artStyleBackup1) artStyleDescriptions.push(artStyleBackup1);
       if (artStyleBackup2) artStyleDescriptions.push(artStyleBackup2);
 
@@ -76,14 +81,13 @@ export const generateCoverImage = onMessagePublished(
       const fallbackModel =
         FALLBACK_MODELS.COVER_IMAGE[coverImageModel] || null;
 
-      const modelsToTry = fallbackModel
+      modelsToTry = fallbackModel
         ? [primaryModel, fallbackModel]
         : [primaryModel];
 
       let coverImageGenerated = false;
       let coverImageUrl = "";
       let finalCoverPrompt = "";
-      let lastError: any = null;
 
       // Track cover generation started
       await logAnalytics("cover_image_generation_started", {

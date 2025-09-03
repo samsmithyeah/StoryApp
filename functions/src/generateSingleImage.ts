@@ -56,7 +56,6 @@ export const generateSingleImage = onMessagePublished(
     const storyRef = db.collection("stories").doc(storyId);
 
     // Analytics tracking setup
-    const pageImageGenStartTime = Date.now();
     let pageAttempts = 0;
     let pageModelFallbackUsed = false;
     let pageStyleFallbacksUsed = 0;
@@ -362,6 +361,13 @@ REQUIREMENTS:
         }
       }
     } catch (error) {
+      // Track page image generation failure
+      await logAnalytics("page_image_generation_failed", {
+        total_attempts: pageAttempts,
+        style_fallbacks_used: pageStyleFallbacksUsed,
+        error_message: error instanceof Error ? error.message : "unknown",
+      });
+
       logger.error("Failed to process page", error, {
         pageIndex: pageIndex + 1,
         storyId,

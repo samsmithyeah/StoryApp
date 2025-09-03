@@ -60,6 +60,17 @@ export default function LoginScreen() {
     return <Redirect href="/" />;
   }
 
+  const trackSignInError = (method: "google" | "apple", error: unknown) => {
+    const errorCode = (error as any)?.code || "unknown_error";
+    const errorMessage = (error as any)?.message;
+
+    Analytics.logSignInError({
+      method,
+      error_type: errorCode,
+      error_message: errorMessage,
+    });
+  };
+
   const handleGoogleSignIn = async () => {
     // Clear any existing errors before attempting sign in
     const { setError } = useAuthStore.getState();
@@ -73,14 +84,7 @@ export default function LoginScreen() {
       // Success tracking will be handled in the auth hook
     } catch (error: unknown) {
       // Track sign in error
-      const errorCode = (error as any)?.code || "unknown_error";
-      const errorMessage = (error as any)?.message;
-
-      Analytics.logSignInError({
-        method: "google",
-        error_type: errorCode,
-        error_message: errorMessage,
-      });
+      trackSignInError("google", error);
 
       Toast.show({
         type: "error",
@@ -104,14 +108,7 @@ export default function LoginScreen() {
       // Success tracking will be handled in the auth hook
     } catch (error: unknown) {
       // Track sign in error
-      const errorCode = (error as any)?.code || "unknown_error";
-      const errorMessage = (error as any)?.message;
-
-      Analytics.logSignInError({
-        method: "apple",
-        error_type: errorCode,
-        error_message: errorMessage,
-      });
+      trackSignInError("apple", error);
 
       Toast.show({
         type: "error",

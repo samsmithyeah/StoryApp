@@ -54,7 +54,9 @@ const initializeAnalytics = async () => {
 };
 
 // Initialize analytics on app start
-initializeAnalytics();
+initializeAnalytics().catch((err) => {
+  logger.error("Failed to initialize Analytics at root", err);
+});
 
 function RootLayout() {
   const colorScheme = useColorScheme();

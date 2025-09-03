@@ -247,22 +247,6 @@ export class Analytics {
 
   // === STORY INTERACTION ===
 
-  static async logStoryReadingStarted(data: {
-    story_id: string;
-    total_pages: number;
-  }) {
-    await this.logEvent("story_reading_started", data);
-  }
-
-  static async logStoryReadingCompleted(data: {
-    story_id: string;
-    pages_read: number;
-    time_spent_ms: number;
-    completion_rate: number;
-  }) {
-    await this.logEvent("story_reading_completed", data);
-  }
-
   static async logStoryReadingAbandoned(data: {
     story_id: string;
     pages_read: number;
@@ -270,57 +254,6 @@ export class Analytics {
     time_spent_ms: number;
   }) {
     await this.logEvent("story_reading_abandoned", data);
-  }
-
-  static async logStoryPageTurned(data: {
-    story_id: string;
-    page_number: number;
-    total_pages: number;
-  }) {
-    await this.logEvent("story_page_turned", data);
-  }
-
-  // === SAVED CHARACTERS ===
-  static async logSavedCharacterCreated(data: {
-    character_type: "custom" | "template";
-    has_description: boolean;
-    has_appearance: boolean;
-    total_characters?: number;
-  }) {
-    await this.logEvent("saved_character_created", data);
-  }
-
-  static async logSavedCharacterUsed(data: {
-    character_id: string;
-    reuse_count?: number;
-    story_context: string;
-  }) {
-    await this.logEvent("saved_character_used", data);
-  }
-
-  static async logCharacterSelectionMethod(data: {
-    method: "saved" | "create_new" | "ai_suggested";
-    characters_selected: number;
-    saved_characters_available: number;
-  }) {
-    await this.logEvent("character_selection_method", data);
-  }
-
-  // === CHILD PROFILE MANAGEMENT (PRIVACY-SAFE) ===
-  static async logChildProfileCreated(ageGroup: string, totalProfiles: number) {
-    await this.logEvent("child_profile_created", {
-      age_group: ageGroup, // Range only: "3-5", "6-8", etc.
-      total_profiles: totalProfiles,
-    });
-  }
-
-  static async logChildProfileEvent(
-    eventType: "edited" | "deleted",
-    profileCount: number
-  ) {
-    await this.logEvent(`child_profile_${eventType}`, {
-      total_profiles: profileCount,
-    });
   }
 
   // === PERFORMANCE METRICS ===
