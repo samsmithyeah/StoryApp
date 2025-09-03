@@ -1,7 +1,7 @@
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, usePathname } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,9 +22,7 @@ import { Story } from "../../types/story.types";
 import { logger } from "../../utils/logger";
 
 export default function StoryScreen() {
-  const pathname = usePathname();
-  // Extract ID from pathname like "/story/abc123"
-  const id = pathname.split("/").pop() || "";
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +124,7 @@ export default function StoryScreen() {
   );
 
   useEffect(() => {
-    if (!id) {
+    if (!id || typeof id !== "string" || id.trim().length === 0) {
       router.replace("/(tabs)");
       return;
     }
