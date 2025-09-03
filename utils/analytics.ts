@@ -547,7 +547,10 @@ export class Analytics {
     await this.logEvent("settings_menu_navigation", data);
   }
 
-  static async logInviteFriendsScreenOpened(data: { entry_point: string }) {
+  static async logInviteFriendsScreenOpened(data: {
+    entry_point: string;
+    has_existing_referrals: boolean;
+  }) {
     await this.logEvent("invite_friends_screen_opened", data);
   }
 

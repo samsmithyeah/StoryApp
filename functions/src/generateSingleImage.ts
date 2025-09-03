@@ -59,17 +59,19 @@ export const generateSingleImage = onMessagePublished(
     let pageAttempts = 0;
     let pageModelFallbackUsed = false;
     let pageStyleFallbacksUsed = 0;
+    let modelsToTry: string[] = [];
+    let artStyleOptions: (string | undefined)[] = [];
 
-    const logAnalytics = async (eventName: string, params: any) => {
+    const logMetric = async (eventName: string, params: any) => {
       try {
-        logger.info(`Analytics: ${eventName}`, {
+        logger.info(`Metric: ${eventName}`, {
           userId,
           storyId,
           pageIndex,
           ...params,
         });
       } catch (error) {
-        logger.error("Analytics logging failed", error);
+        logger.error("Metric logging failed", error);
       }
     };
 
@@ -100,7 +102,7 @@ REQUIREMENTS:
       const primaryModel = imageProvider;
       const fallbackModel = FALLBACK_MODELS.PAGE_IMAGE[imageProvider] || null;
 
-      const modelsToTry = fallbackModel
+      modelsToTry = fallbackModel
         ? [primaryModel, fallbackModel]
         : [primaryModel];
 
@@ -110,7 +112,7 @@ REQUIREMENTS:
       let lastError: any = null;
 
       // Track page image generation started
-      await logAnalytics("page_image_generation_started", {
+      await logMetric("page_image_generation_started", {
         primary_model: primaryModel,
         fallback_model: fallbackModel || "none",
         art_styles_available: [
@@ -133,7 +135,7 @@ REQUIREMENTS:
 
         if (isUsingFallbackModel && !pageModelFallbackUsed) {
           pageModelFallbackUsed = true;
-          await logAnalytics("page_image_model_fallback_attempt", {
+          await logMetric("page_image_model_fallback_attempt", {
             primary_model: primaryModel,
             fallback_model: currentModel,
             primary_failure_reason: lastError?.message || "unknown",
@@ -141,11 +143,7 @@ REQUIREMENTS:
         }
 
         // Prepare art style descriptions in fallback order
-        const artStyleOptions: (string | undefined)[] = [
-          artStyle,
-          artStyleBackup1,
-          artStyleBackup2,
-        ];
+        artStyleOptions = [artStyle, artStyleBackup1, artStyleBackup2];
         let currentStyleIndex = 0;
 
         // Try each art style description for this model
@@ -157,7 +155,7 @@ REQUIREMENTS:
 
           if (isUsingStyleFallback) {
             pageStyleFallbacksUsed++;
-            await logAnalytics("page_image_style_fallback_attempt", {
+            await logMetric("page_image_style_fallback_attempt", {
               model: currentModel,
               style_fallback_index: currentStyleIndex,
               previous_failure_reason: lastError?.message || "safety_filter",
@@ -362,9 +360,11 @@ REQUIREMENTS:
       }
     } catch (error) {
       // Track page image generation failure
-      await logAnalytics("page_image_generation_failed", {
+      await logMetric("page_image_generation_failed", {
         total_attempts: pageAttempts,
         style_fallbacks_used: pageStyleFallbacksUsed,
+        models_tried: modelsToTry,
+        art_styles_tried: artStyleOptions.filter(Boolean).length,
         error_message: error instanceof Error ? error.message : "unknown",
       });
 

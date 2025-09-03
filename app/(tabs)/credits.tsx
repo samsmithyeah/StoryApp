@@ -314,7 +314,7 @@ export default function CreditsScreen({
       item_type: isSubscription ? "subscription" : "credits",
       package_id: packageToPurchase.identifier,
       price: packageToPurchase.product.price,
-      currency: "USD", // Assuming USD, could be dynamic
+      currency: packageToPurchase.product.currencyCode || "USD",
     });
 
     // Check if this is a fake package for testing
@@ -407,7 +407,7 @@ export default function CreditsScreen({
           item_type: isSubscription ? "subscription" : "credits",
           package_id: packageToPurchase.identifier,
           price: packageToPurchase.product.price,
-          currency: "USD",
+          currency: packageToPurchase.product.currencyCode || "USD",
           credits_granted: isSubscription
             ? undefined
             : getProductInfo(

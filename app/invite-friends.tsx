@@ -3,6 +3,7 @@ import { HowItWorksSection } from "@/components/referrals/HowItWorksSection";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { toastConfig } from "@/components/ui/CustomToast";
 import { Colors, Spacing, Typography } from "@/constants/Theme";
+import { useReferrals } from "@/hooks/useReferrals";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { Analytics } from "@/utils/analytics";
@@ -17,11 +18,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function InviteFriendsScreen() {
+  const { totalReferred } = useReferrals();
+
   useEffect(() => {
     Analytics.logInviteFriendsScreenOpened({
       entry_point: "settings_menu",
+      has_existing_referrals: totalReferred > 0,
     });
-  }, []);
+  }, [totalReferred]);
 
   const handleClose = () => {
     router.back();

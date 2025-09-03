@@ -23,6 +23,7 @@ interface GenerationStepProps {
   storyData?: Story | null;
   onNavigateToStory?: () => void;
   onStartOver?: () => void;
+  currentBalance?: number;
   // For testing - overrides story data checks
   _debugForceStates?: {
     textReady?: boolean;
@@ -95,6 +96,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   storyData,
   onNavigateToStory,
   onStartOver,
+  currentBalance = 0,
   _debugForceStates,
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -292,11 +294,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
       Analytics.logInsufficientCredits({
         required_credits: creditsNeeded ? parseInt(creditsNeeded) : 1,
-        current_balance: 0, // Would need to get from credits context if available
+        current_balance: currentBalance,
         action_attempted: "story_generation",
       });
     }
-  }, [isInsufficientCreditsError, error]);
+  }, [isInsufficientCreditsError, error, currentBalance]);
 
   // Show error state if there's an error
   if (error && !isGenerating) {

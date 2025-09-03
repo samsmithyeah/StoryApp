@@ -63,18 +63,18 @@ export const generateStory = onCall(
     // Start timing for performance analytics
     const generationStartTime = Date.now();
 
-    // Analytics helper for server-side logging
-    const logAnalytics = async (eventName: string, params: any) => {
+    // Metric helper for server-side logging
+    const logMetric = async (eventName: string, params: any) => {
       try {
-        logger.info(`Analytics: ${eventName}`, { userId, ...params });
+        logger.info(`Metric: ${eventName}`, { userId, ...params });
         // In production, you might want to send these to a separate analytics service
       } catch (error) {
-        logger.error("Analytics logging failed", error);
+        logger.error("Metric logging failed", error);
       }
     };
 
     // Track story generation started
-    await logAnalytics("story_generation_server_started", {
+    await logMetric("story_generation_server_started", {
       page_count: data.pageCount,
       has_illustrations:
         !!data.illustrationStyle && data.illustrationStyle !== "none",
@@ -322,7 +322,7 @@ Return the story in this JSON format:
               jsonText,
             });
 
-            await logAnalytics("story_generation_failed", {
+            await logMetric("story_generation_failed", {
               error_type: "json_parse_failure",
               error_message:
                 error instanceof Error ? error.message : "JSON parse failed",
@@ -348,7 +348,7 @@ Return the story in this JSON format:
               "Gemini safety filter blocked content, falling back to GPT-4o"
             );
 
-            await logAnalytics("story_generation_safety_blocked", {
+            await logMetric("story_generation_safety_blocked", {
               model_blocked: "gemini",
               attempting_fallback: "gpt4o",
               content_type: "story_text",
@@ -380,7 +380,7 @@ Return the story in this JSON format:
 
               logger.info("Successfully generated story using GPT-4o fallback");
             } catch (fallbackError: any) {
-              await logAnalytics("story_generation_fallback_failed", {
+              await logMetric("story_generation_fallback_failed", {
                 primary_model: "gemini",
                 fallback_model: "gpt4o",
                 error_type: fallbackError.name,
@@ -533,7 +533,7 @@ Return the story in this JSON format:
       // 9. Return the story ID to the client
       const generationTimeMs = Date.now() - generationStartTime;
 
-      await logAnalytics("story_generation_completed", {
+      await logMetric("story_generation_completed", {
         story_id: storyId,
         generation_time_ms: generationTimeMs,
         generation_time_seconds: Math.round(generationTimeMs / 1000),
@@ -551,7 +551,7 @@ Return the story in this JSON format:
       logger.error("Error in generateStory orchestrator", error);
 
       // Track the error for analytics
-      await logAnalytics("story_generation_failed", {
+      await logMetric("story_generation_failed", {
         error_type:
           error instanceof HttpsError ? error.code : error.name || "unknown",
         error_message: error.message || "Unknown error",

@@ -62,11 +62,11 @@ export const generateCoverImage = onMessagePublished(
     let artStyleDescriptions: string[] = [];
     let lastError: any = null;
 
-    const logAnalytics = async (eventName: string, params: any) => {
+    const logMetric = async (eventName: string, params: any) => {
       try {
-        logger.info(`Analytics: ${eventName}`, { userId, storyId, ...params });
+        logger.info(`Metric: ${eventName}`, { userId, storyId, ...params });
       } catch (error) {
-        logger.error("Analytics logging failed", error);
+        logger.error("Metric logging failed", error);
       }
     };
 
@@ -90,7 +90,7 @@ export const generateCoverImage = onMessagePublished(
       let finalCoverPrompt = "";
 
       // Track cover generation started
-      await logAnalytics("cover_image_generation_started", {
+      await logMetric("cover_image_generation_started", {
         primary_model: primaryModel,
         fallback_model: fallbackModel || "none",
         art_styles_available: artStyleDescriptions.length,
@@ -103,7 +103,7 @@ export const generateCoverImage = onMessagePublished(
 
         if (isUsingFallbackModel && !modelFallbackUsed) {
           modelFallbackUsed = true;
-          await logAnalytics("cover_image_model_fallback_attempt", {
+          await logMetric("cover_image_model_fallback_attempt", {
             primary_model: primaryModel,
             fallback_model: currentModel,
             primary_failure_reason: lastError?.message || "unknown",
@@ -124,7 +124,7 @@ export const generateCoverImage = onMessagePublished(
 
           if (isUsingStyleFallback) {
             styleFallbacksUsed++;
-            await logAnalytics("cover_image_style_fallback_attempt", {
+            await logMetric("cover_image_style_fallback_attempt", {
               model: currentModel,
               primary_style_index: 0,
               fallback_style_index: currentStyleIndex,
@@ -194,7 +194,7 @@ export const generateCoverImage = onMessagePublished(
             }
 
             if (coverImageGenerated) {
-              await logAnalytics("cover_image_generation_success", {
+              await logMetric("cover_image_generation_success", {
                 model_used: currentModel,
                 required_model_fallback: isUsingFallbackModel,
                 style_index_used: currentStyleIndex,
@@ -215,7 +215,7 @@ export const generateCoverImage = onMessagePublished(
           } catch (error: any) {
             lastError = error;
 
-            await logAnalytics("cover_image_generation_attempt_failed", {
+            await logMetric("cover_image_generation_attempt_failed", {
               model: currentModel,
               style_index: currentStyleIndex,
               attempt_number: totalAttempts,
@@ -332,7 +332,7 @@ export const generateCoverImage = onMessagePublished(
         });
       }
     } catch (error: any) {
-      await logAnalytics("cover_image_generation_final_failure", {
+      await logMetric("cover_image_generation_final_failure", {
         models_attempted: modelsToTry,
         styles_attempted: artStyleDescriptions.length,
         total_attempts: totalAttempts,

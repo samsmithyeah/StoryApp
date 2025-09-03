@@ -1,4 +1,5 @@
 import { useChildren } from "@/hooks/useChildren";
+import { useCredits } from "@/hooks/useCredits";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { db } from "@/services/firebase/config";
 import { generateStory } from "@/services/firebase/stories";
@@ -49,6 +50,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 }) => {
   const { children } = useChildren();
   const { preferences } = useUserPreferences();
+  const { credits } = useCredits();
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
@@ -412,6 +414,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             isGenerating={_isGenerating}
             error={generationError}
             storyData={storyData}
+            currentBalance={credits?.balance || 0}
             onNavigateToStory={() => {
               if (generatedStoryId) {
                 // Track wizard completion (manual navigation)
