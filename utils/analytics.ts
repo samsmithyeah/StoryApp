@@ -443,13 +443,6 @@ export class Analytics {
     await this.logEvent("referral_code_error", data);
   }
 
-  static async logInviteFriendsOpened(data: {
-    entry_point: string;
-    has_existing_referrals: boolean;
-  }) {
-    await this.logEvent("invite_friends_opened", data);
-  }
-
   static async logReferralLinkShared(data: {
     share_method: "native" | "copy" | "social";
     platform?: string;
@@ -465,38 +458,6 @@ export class Analytics {
     time_spent_ms: number;
   }) {
     await this.logEvent("wizard_step_action", data);
-  }
-
-  static async logThemeSelection(data: {
-    theme_type: "preset" | "custom";
-    theme_name?: string;
-    custom_description?: boolean;
-  }) {
-    await this.logEvent("theme_selection", data);
-  }
-
-  static async logMoodSelection(data: {
-    mood_type: "preset" | "custom";
-    mood_name?: string;
-    custom_description?: boolean;
-  }) {
-    await this.logEvent("mood_selection", data);
-  }
-
-  static async logStoryDetailsSelection(data: {
-    story_length: "short" | "medium" | "long";
-    rhyme_preference: "rhyming" | "non_rhyming";
-    has_custom_preferences: boolean;
-  }) {
-    await this.logEvent("story_details_selection", data);
-  }
-
-  static async logIllustrationStyleSelection(data: {
-    style_type: "preset" | "custom";
-    style_name?: string;
-    has_custom_description: boolean;
-  }) {
-    await this.logEvent("illustration_style_selection", data);
   }
 
   // === ERROR TRACKING ===
@@ -523,14 +484,6 @@ export class Analytics {
     has_existing_referrals: boolean;
   }) {
     await this.logEvent("invite_friends_screen_opened", data);
-  }
-
-  static async logReferralCodeEntry(data: {
-    referral_code: string;
-    success: boolean;
-    error_type: string | null;
-  }) {
-    await this.logEvent("referral_code_entry", data);
   }
 
   static async logWizardThemeSelected(data: {

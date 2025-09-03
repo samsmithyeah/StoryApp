@@ -43,6 +43,158 @@ interface CreditsScreenProps {
   onPurchaseSuccess?: () => void;
 }
 
+// Helper function to get product information
+const getProductInfo = (
+  productId: string,
+  pkg?: PurchasesPackage
+): ProductInfo => {
+  // Always prefer the title from RevenueCat if available
+  let productName = pkg?.product?.title;
+  if (productName) {
+    // Clean up app name suffixes like "(DreamWeaver)" or "(AppName)"
+    productName = productName.replace(/\s*\([^)]+\)$/, "").trim();
+  }
+
+  // Fallback to hardcoded names only if no RevenueCat title
+  const hardcodedProducts: Record<
+    string,
+    {
+      name: string;
+      credits: number;
+      type: "subscription" | "pack";
+      period: "month" | "year" | null;
+      popular?: boolean;
+      bestValue?: boolean;
+    }
+  > = {
+    // Subscriptions
+    [PRODUCT_IDS.MONTHLY_BASIC]: {
+      name: "Monthly Storyteller",
+      credits: 30,
+      type: "subscription",
+      period: "month",
+    },
+    [PRODUCT_IDS.MONTHLY_PRO]: {
+      name: "Monthly Story Master",
+      credits: 100,
+      type: "subscription",
+      period: "month",
+      popular: true,
+    },
+    [PRODUCT_IDS.ANNUAL_BASIC]: {
+      name: "Annual Storyteller",
+      credits: 360,
+      type: "subscription",
+      period: "year",
+    },
+    [PRODUCT_IDS.ANNUAL_PRO]: {
+      name: "Annual Story Master",
+      credits: 1200,
+      type: "subscription",
+      period: "year",
+      bestValue: true,
+    },
+    // Credit packs
+    [PRODUCT_IDS.CREDITS_10]: {
+      name: "Starter Pack",
+      credits: 10,
+      type: "pack",
+      period: null,
+    },
+    [PRODUCT_IDS.CREDITS_25]: {
+      name: "Story Bundle",
+      credits: 25,
+      type: "pack",
+      period: null,
+    },
+    [PRODUCT_IDS.CREDITS_50]: {
+      name: "Family Pack",
+      credits: 50,
+      type: "pack",
+      period: null,
+      popular: true,
+    },
+    [PRODUCT_IDS.CREDITS_100]: {
+      name: "Story Master",
+      credits: 100,
+      type: "pack",
+      period: null,
+    },
+  };
+
+  const hardcodedProduct = hardcodedProducts[productId];
+
+  // Use RevenueCat title if available, otherwise fallback to hardcoded name
+  const finalName = productName || hardcodedProduct?.name || "Unknown Product";
+  const finalDisplayName = finalName.replace(/\s+/g, "\n");
+
+  // Determine product characteristics
+  const isSubscription =
+    productId.includes("subscription") ||
+    hardcodedProduct?.type === "subscription";
+  const isAnnual =
+    productId.includes("annual") || hardcodedProduct?.period === "year";
+  const isMonthly =
+    productId.includes("monthly") || hardcodedProduct?.period === "month";
+
+  // Determine credits - use hardcoded if available, otherwise try to infer
+  let credits = hardcodedProduct?.credits || 0;
+  if (!credits) {
+    if (isSubscription) {
+      if (productId.includes("basic")) {
+        credits = isAnnual ? 360 : 30;
+      } else if (productId.includes("pro")) {
+        credits = isAnnual ? 1200 : 100;
+      }
+    } else {
+      // Credit pack - try to extract number from product ID
+      const creditMatch = productId.match(/(\d+)/);
+      if (creditMatch) {
+        credits = parseInt(creditMatch[1], 10);
+      }
+    }
+  }
+
+  // Determine badges - use hardcoded if available, otherwise infer from product characteristics
+  let popular = hardcodedProduct?.popular;
+  let bestValue = hardcodedProduct?.bestValue;
+
+  // If no hardcoded badges, infer them based on product patterns
+  if (popular === undefined && bestValue === undefined) {
+    if (isSubscription) {
+      // Monthly Pro is typically popular, Annual Pro is best value
+      if (productId.includes("pro")) {
+        if (isAnnual) {
+          bestValue = true;
+        } else if (isMonthly) {
+          popular = true;
+        }
+      }
+    } else {
+      // For credit packs, 50-credit pack is typically popular
+      if (credits === 50 || productId.includes("50")) {
+        popular = true;
+      }
+    }
+  }
+
+  return {
+    credits,
+    type: isSubscription ? ("subscription" as const) : ("pack" as const),
+    name: finalName,
+    period: isSubscription
+      ? isAnnual
+        ? "year"
+        : isMonthly
+          ? "month"
+          : null
+      : null,
+    displayName: finalDisplayName,
+    popular,
+    bestValue,
+  };
+};
+
 export default function CreditsScreen({
   isModal: _isModal = false,
   onPurchaseSuccess,
@@ -306,8 +458,11 @@ export default function CreditsScreen({
   }, [selectedTab]);
 
   const handlePurchase = async (packageToPurchase: PurchasesPackage) => {
-    const isSubscription =
-      packageToPurchase.product.identifier.includes("subscription");
+    const productInfo = getProductInfo(
+      packageToPurchase.product.identifier,
+      packageToPurchase
+    );
+    const isSubscription = productInfo.type === "subscription";
 
     // Track purchase initiated
     Analytics.logPurchaseInitiated({
@@ -408,12 +563,7 @@ export default function CreditsScreen({
           package_id: packageToPurchase.identifier,
           price: packageToPurchase.product.price,
           currency: packageToPurchase.product.currencyCode || "USD",
-          credits_granted: isSubscription
-            ? undefined
-            : getProductInfo(
-                packageToPurchase.product.identifier,
-                packageToPurchase
-              ).credits,
+          credits_granted: isSubscription ? undefined : productInfo.credits,
         });
 
         if (isSubscription) {
@@ -480,158 +630,6 @@ export default function CreditsScreen({
     } finally {
       setPurchasing(false);
     }
-  };
-
-  const getProductInfo = (
-    productId: string,
-    pkg?: PurchasesPackage
-  ): ProductInfo => {
-    // Always prefer the title from RevenueCat if available
-    let productName = pkg?.product?.title;
-    if (productName) {
-      // Clean up app name suffixes like "(DreamWeaver)" or "(AppName)"
-      productName = productName.replace(/\s*\([^)]+\)$/, "").trim();
-    }
-
-    // Fallback to hardcoded names only if no RevenueCat title
-    const hardcodedProducts: Record<
-      string,
-      {
-        name: string;
-        credits: number;
-        type: "subscription" | "pack";
-        period: "month" | "year" | null;
-        popular?: boolean;
-        bestValue?: boolean;
-      }
-    > = {
-      // Subscriptions
-      [PRODUCT_IDS.MONTHLY_BASIC]: {
-        name: "Monthly Storyteller",
-        credits: 30,
-        type: "subscription",
-        period: "month",
-      },
-      [PRODUCT_IDS.MONTHLY_PRO]: {
-        name: "Monthly Story Master",
-        credits: 100,
-        type: "subscription",
-        period: "month",
-        popular: true,
-      },
-      [PRODUCT_IDS.ANNUAL_BASIC]: {
-        name: "Annual Storyteller",
-        credits: 360,
-        type: "subscription",
-        period: "year",
-      },
-      [PRODUCT_IDS.ANNUAL_PRO]: {
-        name: "Annual Story Master",
-        credits: 1200,
-        type: "subscription",
-        period: "year",
-        bestValue: true,
-      },
-      // Credit packs
-      [PRODUCT_IDS.CREDITS_10]: {
-        name: "Starter Pack",
-        credits: 10,
-        type: "pack",
-        period: null,
-      },
-      [PRODUCT_IDS.CREDITS_25]: {
-        name: "Story Bundle",
-        credits: 25,
-        type: "pack",
-        period: null,
-      },
-      [PRODUCT_IDS.CREDITS_50]: {
-        name: "Family Pack",
-        credits: 50,
-        type: "pack",
-        period: null,
-        popular: true,
-      },
-      [PRODUCT_IDS.CREDITS_100]: {
-        name: "Story Master",
-        credits: 100,
-        type: "pack",
-        period: null,
-      },
-    };
-
-    const hardcodedProduct = hardcodedProducts[productId];
-
-    // Use RevenueCat title if available, otherwise fallback to hardcoded name
-    const finalName =
-      productName || hardcodedProduct?.name || "Unknown Product";
-    const finalDisplayName = finalName.replace(/\s+/g, "\n");
-
-    // Determine product characteristics
-    const isSubscription =
-      productId.includes("subscription") ||
-      hardcodedProduct?.type === "subscription";
-    const isAnnual =
-      productId.includes("annual") || hardcodedProduct?.period === "year";
-    const isMonthly =
-      productId.includes("monthly") || hardcodedProduct?.period === "month";
-
-    // Determine credits - use hardcoded if available, otherwise try to infer
-    let credits = hardcodedProduct?.credits || 0;
-    if (!credits) {
-      if (isSubscription) {
-        if (productId.includes("basic")) {
-          credits = isAnnual ? 360 : 30;
-        } else if (productId.includes("pro")) {
-          credits = isAnnual ? 1200 : 100;
-        }
-      } else {
-        // Credit pack - try to extract number from product ID
-        const creditMatch = productId.match(/(\d+)/);
-        if (creditMatch) {
-          credits = parseInt(creditMatch[1], 10);
-        }
-      }
-    }
-
-    // Determine badges - use hardcoded if available, otherwise infer from product characteristics
-    let popular = hardcodedProduct?.popular;
-    let bestValue = hardcodedProduct?.bestValue;
-
-    // If no hardcoded badges, infer them based on product patterns
-    if (popular === undefined && bestValue === undefined) {
-      if (isSubscription) {
-        // Monthly Pro is typically popular, Annual Pro is best value
-        if (productId.includes("pro")) {
-          if (isAnnual) {
-            bestValue = true;
-          } else if (isMonthly) {
-            popular = true;
-          }
-        }
-      } else {
-        // For credit packs, 50-credit pack is typically popular
-        if (credits === 50 || productId.includes("50")) {
-          popular = true;
-        }
-      }
-    }
-
-    return {
-      credits,
-      type: isSubscription ? ("subscription" as const) : ("pack" as const),
-      name: finalName,
-      period: isSubscription
-        ? isAnnual
-          ? "year"
-          : isMonthly
-            ? "month"
-            : null
-        : null,
-      displayName: finalDisplayName,
-      popular,
-      bestValue,
-    };
   };
 
   const isSubscriptionActive = (productId: string) => {
