@@ -212,18 +212,25 @@ export const generateCoverImage = onMessagePublished(
               });
               break; // Break out of style loop
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             lastError = error;
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            const errorStatus =
+              typeof error === "object" && error !== null && "status" in error
+                ? (error as { status: unknown }).status
+                : undefined;
+            const errorName = error instanceof Error ? error.name : "unknown";
 
             await logMetric("cover_image_generation_attempt_failed", {
               model: currentModel,
               style_index: currentStyleIndex,
               attempt_number: totalAttempts,
               error_type:
-                error.status === 400 && error.message?.includes("safety system")
+                errorStatus === 400 && errorMessage.includes("safety system")
                   ? "safety_filter"
-                  : error.name || "unknown",
-              error_message: error.message,
+                  : errorName,
+              error_message: errorMessage,
               will_try_next_style:
                 currentStyleIndex < artStyleDescriptions.length - 1,
               will_try_fallback_model:
@@ -234,13 +241,13 @@ export const generateCoverImage = onMessagePublished(
               storyId,
               model: currentModel,
               styleIndex: currentStyleIndex,
-              error: error.message,
+              error: errorMessage,
             });
 
             // Check if it's a safety system rejection from OpenAI - try next style
             if (
-              error.status === 400 &&
-              error.message?.includes("safety system") &&
+              errorStatus === 400 &&
+              errorMessage.includes("safety system") &&
               currentStyleIndex < artStyleDescriptions.length - 1
             ) {
               logger.debug("Safety system rejection, trying next style", {

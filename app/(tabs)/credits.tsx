@@ -589,19 +589,36 @@ export default function CreditsScreen({
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Purchase error", error);
 
+      let userCancelled = false;
+      let errorCode = "unknown_error";
+      let errorMessage = "Something went wrong";
+
+      if (typeof error === "object" && error !== null) {
+        userCancelled =
+          (error as { userCancelled?: boolean }).userCancelled ?? false;
+        errorCode = String(
+          (error as { code?: unknown }).code ?? "unknown_error"
+        );
+        errorMessage = String(
+          (error as { message?: unknown }).message ?? "Something went wrong"
+        );
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
       // Track purchase error (but not if user cancelled)
-      if (!error.userCancelled) {
+      if (!userCancelled) {
         Analytics.logPurchaseError({
           item_type: isSubscription ? "subscription" : "credits",
           package_id: packageToPurchase.identifier,
-          error_type: error.code || "unknown_error",
-          error_message: error.message,
+          error_type: errorCode,
+          error_message: errorMessage,
         });
 
-        Alert.alert("Purchase failed", error.message || "Something went wrong");
+        Alert.alert("Purchase failed", errorMessage);
       }
     } finally {
       setPurchasing(false);

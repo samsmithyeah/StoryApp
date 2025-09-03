@@ -547,14 +547,16 @@ Return the story in this JSON format:
 
       logger.info("Process complete", { storyId });
       return { success: true, storyId };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error in generateStory orchestrator", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : "unknown";
 
       // Track the error for analytics
       await logMetric("story_generation_failed", {
-        error_type:
-          error instanceof HttpsError ? error.code : error.name || "unknown",
-        error_message: error.message || "Unknown error",
+        error_type: error instanceof HttpsError ? error.code : errorName,
+        error_message: errorMessage,
         generation_time_ms: Date.now() - generationStartTime,
         model_attempted: DEFAULT_MODELS.TEXT,
         story_config: {
@@ -571,7 +573,7 @@ Return the story in this JSON format:
       }
 
       // Handle Gemini safety filter errors (fallback should have handled this, but just in case)
-      if (error.message && error.message.includes("safety filter")) {
+      if (errorMessage.includes("safety filter")) {
         logger.error(
           "Gemini safety filter error reached global handler - fallback may have failed"
         );
@@ -582,8 +584,17 @@ Return the story in this JSON format:
       }
 
       // Handle specific OpenAI API errors
-      if (error.name === "BadRequestError" || error.status === 400) {
-        if (error.message && error.message.includes("safety system")) {
+      const errorStatus =
+        typeof error === "object" && error !== null && "status" in error
+          ? (error as { status: unknown }).status
+          : undefined;
+      const errorCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? (error as { code: unknown }).code
+          : undefined;
+
+      if (errorName === "BadRequestError" || errorStatus === 400) {
+        if (errorMessage.includes("safety system")) {
           throw new HttpsError(
             "invalid-argument",
             "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
@@ -592,7 +603,7 @@ Return the story in this JSON format:
       }
 
       // Handle rate limiting
-      if (error.status === 429) {
+      if (errorStatus === 429) {
         throw new HttpsError(
           "resource-exhausted",
           "The AI service is currently busy. Please try again in a few minutes."
@@ -600,7 +611,7 @@ Return the story in this JSON format:
       }
 
       // Handle authentication errors
-      if (error.status === 401 || error.status === 403) {
+      if (errorStatus === 401 || errorStatus === 403) {
         throw new HttpsError(
           "permission-denied",
           "There was an issue with the AI service. Please try again later."
@@ -609,9 +620,9 @@ Return the story in this JSON format:
 
       // Handle network/timeout errors
       if (
-        error.code === "ECONNRESET" ||
-        error.code === "ETIMEDOUT" ||
-        error.message?.includes("timeout")
+        errorCode === "ECONNRESET" ||
+        errorCode === "ETIMEDOUT" ||
+        errorMessage.includes("timeout")
       ) {
         throw new HttpsError(
           "deadline-exceeded",
