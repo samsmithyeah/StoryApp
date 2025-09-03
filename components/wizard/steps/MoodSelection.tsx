@@ -109,10 +109,10 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   const handleMoodSelect = (moodId: string) => {
     // Track mood selection
     Analytics.logWizardMoodSelected({
-      mood_type: 'preset',
-      mood_value: moodId
+      mood_type: "preset",
+      mood_value: moodId,
     });
-    
+
     onSelect(moodId);
     setCustomMood(""); // Clear custom text when selecting a predefined mood
   };
@@ -120,10 +120,10 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   const handleCustomMoodSelect = () => {
     // Track custom mood selection
     Analytics.logWizardMoodSelected({
-      mood_type: 'custom',
-      mood_value: customMood.trim() || 'empty'
+      mood_type: "custom",
+      mood_value: customMood.trim() || "empty",
     });
-    
+
     // When the "Custom Mood" card is tapped, activate it.
     // Set the mood to the current input text, or "custom" if it's empty.
     onSelect(customMood.trim() || "custom");

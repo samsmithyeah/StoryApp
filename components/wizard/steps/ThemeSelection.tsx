@@ -113,10 +113,10 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   const handleThemeSelect = (themeId: string) => {
     // Track theme selection
     Analytics.logWizardThemeSelected({
-      theme_type: 'preset',
-      theme_value: themeId
+      theme_type: "preset",
+      theme_value: themeId,
     });
-    
+
     onSelect(themeId);
     setCustomTheme(""); // Clear custom text when selecting a predefined theme
   };
@@ -124,10 +124,10 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
   const handleCustomThemeSelect = () => {
     // Track custom theme selection
     Analytics.logWizardThemeSelected({
-      theme_type: 'custom',
-      theme_value: customTheme.trim() || 'empty'
+      theme_type: "custom",
+      theme_value: customTheme.trim() || "empty",
     });
-    
+
     // When the "Custom Theme" card is tapped, activate it.
     onSelect(customTheme.trim() || " ");
   };

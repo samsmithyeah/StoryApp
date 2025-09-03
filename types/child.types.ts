@@ -8,6 +8,8 @@ export interface Child {
   skinColor?: string;
   hairStyle?: string;
   appearanceDetails?: string;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface ChildrenState {

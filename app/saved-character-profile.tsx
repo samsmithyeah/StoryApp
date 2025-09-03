@@ -78,13 +78,13 @@ export default function SavedCharacterProfileScreen() {
         if (shouldSave) {
           // Save permanently and remove the temp character
           const newSavedChar = await addSavedCharacter(characterData);
-          
+
           // Track character created (converting temp to saved)
           Analytics.logCharacterCreated({
-            character_type: 'custom',
-            creation_method: 'wizard'
+            character_type: "custom",
+            creation_method: "wizard",
           });
-          
+
           removeOneOffCharacter(tempCharIndex);
           addSavedCharacterToSelection(newSavedChar);
         } else {
@@ -107,13 +107,13 @@ export default function SavedCharacterProfileScreen() {
         }
       } else if (shouldSave) {
         const newSavedChar = await addSavedCharacter(characterData);
-        
+
         // Track character created (new saved character)
         Analytics.logCharacterCreated({
-          character_type: 'custom',
-          creation_method: params.fromWizard === "true" ? 'wizard' : 'manual'
+          character_type: "custom",
+          creation_method: params.fromWizard === "true" ? "wizard" : "manual",
         });
-        
+
         if (params.fromWizard === "true") {
           addSavedCharacterToSelection(newSavedChar);
         }

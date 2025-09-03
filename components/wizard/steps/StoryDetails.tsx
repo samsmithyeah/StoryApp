@@ -52,7 +52,7 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
       // Track page count selection
       Analytics.logWizardStoryLengthSelected({
         page_count: newPageCount,
-        credits_required: newPageCount
+        credits_required: newPageCount,
       });
       onUpdate({ pageCount: newPageCount });
     },
@@ -62,7 +62,7 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
   const handleRhymeToggle = (value: boolean) => {
     // Track rhyme preference selection
     Analytics.logWizardRhymePreferenceSelected({
-      rhyme_enabled: value
+      rhyme_enabled: value,
     });
     onUpdate({ shouldRhyme: value });
   };

@@ -86,12 +86,12 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       stepStartTime.current = Date.now();
       hasTrackedWizardStart.current = true;
       lastTrackedStep.current = currentStep;
-      
+
       Analytics.logWizardStarted({
         total_children: children.length,
-        has_preferences: !!preferences
+        has_preferences: !!preferences,
       });
-      
+
       // Track first step entry
       Analytics.logWizardStepEntered(currentStep, 0);
     }
@@ -141,17 +141,17 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         if (isStoryFullyComplete(story) && _isGenerating) {
           // Story is fully complete - auto-redirect to story
           setIsGenerating(false);
-          
+
           // Track wizard completion
           if (wizardStartTime.current) {
             const completionTime = Date.now() - wizardStartTime.current;
             Analytics.logWizardCompleted({
               total_steps: WIZARD_STEPS.length,
               completion_time_ms: completionTime,
-              final_config: wizardData
+              final_config: wizardData,
             });
           }
-          
+
           onComplete({
             ...(wizardData as StoryConfiguration),
             storyId: generatedStoryId,
@@ -174,17 +174,24 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     if (nextIndex < WIZARD_STEPS.length) {
       const nextStep = WIZARD_STEPS[nextIndex];
       const prevStep = currentStep;
-      
+
       // Track step transition timing
-      const stepTimeSpent = stepStartTime.current ? Date.now() - stepStartTime.current : undefined;
-      
+      const stepTimeSpent = stepStartTime.current
+        ? Date.now() - stepStartTime.current
+        : undefined;
+
       setCurrentStep(nextStep);
-      
+
       // Track step entered analytics
-      Analytics.logWizardStepEntered(nextStep, nextIndex, prevStep, stepTimeSpent);
+      Analytics.logWizardStepEntered(
+        nextStep,
+        nextIndex,
+        prevStep,
+        stepTimeSpent
+      );
       stepStartTime.current = Date.now();
       lastTrackedStep.current = nextStep;
-      
+
       if (nextStep === "generation") {
         setIsGenerating(true);
         // Trigger story generation
@@ -198,14 +205,21 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     if (prevIndex >= 0) {
       const prevStep = WIZARD_STEPS[prevIndex];
       const currentStepName = currentStep;
-      
+
       // Track step transition timing
-      const stepTimeSpent = stepStartTime.current ? Date.now() - stepStartTime.current : undefined;
-      
+      const stepTimeSpent = stepStartTime.current
+        ? Date.now() - stepStartTime.current
+        : undefined;
+
       setCurrentStep(prevStep);
-      
+
       // Track step entered analytics (going backward)
-      Analytics.logWizardStepEntered(prevStep, prevIndex, currentStepName, stepTimeSpent);
+      Analytics.logWizardStepEntered(
+        prevStep,
+        prevIndex,
+        currentStepName,
+        stepTimeSpent
+      );
       stepStartTime.current = Date.now();
       lastTrackedStep.current = prevStep;
     }
@@ -232,8 +246,13 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const handleCancel = () => {
     // Track wizard abandonment
     if (wizardStartTime.current) {
-      const completionPercent = (currentStepIndex / (WIZARD_STEPS.length - 1)) * 100;
-      Analytics.logWizardAbandoned(currentStep, currentStepIndex, completionPercent);
+      const completionPercent =
+        (currentStepIndex / (WIZARD_STEPS.length - 1)) * 100;
+      Analytics.logWizardAbandoned(
+        currentStep,
+        currentStepIndex,
+        completionPercent
+      );
     }
 
     if (hasProgress()) {
@@ -395,10 +414,10 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
                   Analytics.logWizardCompleted({
                     total_steps: WIZARD_STEPS.length,
                     completion_time_ms: completionTime,
-                    final_config: wizardData
+                    final_config: wizardData,
                   });
                 }
-                
+
                 onComplete({
                   ...(wizardData as StoryConfiguration),
                   storyId: generatedStoryId,

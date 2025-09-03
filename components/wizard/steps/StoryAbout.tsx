@@ -33,8 +33,8 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     // Track story about selection
     Analytics.logWizardStoryAboutSelected({
       selection_type: mode,
-      has_custom_description: mode === 'custom' && text.trim().length > 0,
-      description_length: mode === 'custom' ? text.trim().length : 0
+      has_custom_description: mode === "custom" && text.trim().length > 0,
+      description_length: mode === "custom" ? text.trim().length : 0,
     });
 
     if (mode === "custom" && text.trim()) {

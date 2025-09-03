@@ -206,20 +206,26 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     if (isGenerating && !hasTrackedStart.current) {
       generationStartTime.current = Date.now();
       hasTrackedStart.current = true;
-      
-      Analytics.logEvent('story_generation_ui_started', {
-        timestamp: generationStartTime.current
+
+      Analytics.logEvent("story_generation_ui_started", {
+        timestamp: generationStartTime.current,
       });
     }
   }, [isGenerating]);
 
   // Track generation completion
   useEffect(() => {
-    if (!isGenerating && storyData && !error && !hasTrackedCompletion.current && generationStartTime.current) {
+    if (
+      !isGenerating &&
+      storyData &&
+      !error &&
+      !hasTrackedCompletion.current &&
+      generationStartTime.current
+    ) {
       const generationTime = Date.now() - generationStartTime.current;
       hasTrackedCompletion.current = true;
-      
-      Analytics.logEvent('story_generation_ui_completed', {
+
+      Analytics.logEvent("story_generation_ui_completed", {
         story_id: storyData.id,
         generation_time_ms: generationTime,
         generation_time_seconds: Math.round(generationTime / 1000),
@@ -228,28 +234,35 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
         images_ready: arePageImagesReady,
         has_image_failures: (storyData.imagesFailed || 0) > 0,
         images_generated: storyData.imagesGenerated || 0,
-        images_failed: storyData.imagesFailed || 0
+        images_failed: storyData.imagesFailed || 0,
       });
     }
-  }, [isGenerating, storyData, error, isStoryTextReady, isCoverImageReady, arePageImagesReady]);
+  }, [
+    isGenerating,
+    storyData,
+    error,
+    isStoryTextReady,
+    isCoverImageReady,
+    arePageImagesReady,
+  ]);
 
   // Track generation errors
   useEffect(() => {
     if (error && generationStartTime.current) {
       const generationTime = Date.now() - generationStartTime.current;
-      
+
       const getErrorType = (errorMessage: string) => {
-        if (errorMessage.includes('content guidelines')) return 'safety_filter';
-        if (errorMessage.includes('busy')) return 'rate_limit';
-        if (errorMessage.includes('timeout')) return 'timeout';
-        if (errorMessage.includes('credits')) return 'insufficient_credits';
-        return 'unknown';
+        if (errorMessage.includes("content guidelines")) return "safety_filter";
+        if (errorMessage.includes("busy")) return "rate_limit";
+        if (errorMessage.includes("timeout")) return "timeout";
+        if (errorMessage.includes("credits")) return "insufficient_credits";
+        return "unknown";
       };
 
-      Analytics.logEvent('story_generation_ui_error', {
+      Analytics.logEvent("story_generation_ui_error", {
         error_message: error,
         generation_time_ms: generationTime,
-        error_type: getErrorType(error)
+        error_type: getErrorType(error),
       });
     }
   }, [error]);
@@ -276,11 +289,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     if (isInsufficientCreditsError) {
       // Extract credit info from error message if possible
       const creditsNeeded = error?.match(/need (\d+) credits?/i)?.[1];
-      
+
       Analytics.logInsufficientCredits({
         required_credits: creditsNeeded ? parseInt(creditsNeeded) : 1,
         current_balance: 0, // Would need to get from credits context if available
-        action_attempted: 'story_generation'
+        action_attempted: "story_generation",
       });
     }
   }, [isInsufficientCreditsError, error]);

@@ -14,9 +14,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   disabled = false,
 }) => {
   const handlePress = () => {
-    Analytics.logEvent('auth_button_pressed', { 
-      method: 'google',
-      button_type: 'google_signin' 
+    Analytics.logEvent("auth_button_pressed", {
+      method: "google",
+      button_type: "google_signin",
     });
     onPress();
   };

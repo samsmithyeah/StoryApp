@@ -110,13 +110,13 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     // Track character usage (child profile)
     const childAge = new Date().getTime() - child.createdAt.getTime();
     const childAgeDays = Math.floor(childAge / (1000 * 60 * 60 * 24));
-    
+
     Analytics.logCharacterUsed({
-      character_type: 'child',
+      character_type: "child",
       character_age_days: childAgeDays,
-      usage_context: 'wizard'
+      usage_context: "wizard",
     });
-    
+
     toggleChildCharacter(child);
   };
 
@@ -124,13 +124,13 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
     // Track character usage (saved custom character)
     const characterAge = new Date().getTime() - savedChar.createdAt.getTime();
     const characterAgeDays = Math.floor(characterAge / (1000 * 60 * 60 * 24));
-    
+
     Analytics.logCharacterUsed({
-      character_type: 'custom',
+      character_type: "custom",
       character_age_days: characterAgeDays,
-      usage_context: 'wizard'
+      usage_context: "wizard",
     });
-    
+
     toggleSavedCharacter(savedChar);
   };
 

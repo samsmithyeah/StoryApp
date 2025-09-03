@@ -26,9 +26,9 @@ export const AppleSignInButton: React.FC<AppleSignInButtonProps> = ({
   }
 
   const handlePress = () => {
-    Analytics.logEvent('auth_button_pressed', { 
-      method: 'apple',
-      button_type: 'apple_signin' 
+    Analytics.logEvent("auth_button_pressed", {
+      method: "apple",
+      button_type: "apple_signin",
     });
     onPress();
   };

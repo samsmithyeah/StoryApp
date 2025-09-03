@@ -53,27 +53,27 @@ export const ReferralCodeInput = forwardRef<
         if (!result.isValid) {
           setValidationError("Invalid referral code");
           // Track referral failure
-          Analytics.logReferralCodeEntry({
-            referral_code: codeToValidate.trim().toUpperCase(),
-            success: false,
-            error_type: 'invalid_code'
+          Analytics.logReferralCodeError({
+            code_length: codeToValidate.trim().length,
+            error_type: "invalid",
+            entry_point: "signup",
           });
           return { isValid: false, isBackendError: true }; // This is a backend validation error
         }
         // Track referral success
-        Analytics.logReferralCodeEntry({
-          referral_code: codeToValidate.trim().toUpperCase(),
-          success: true,
-          error_type: null
+        Analytics.logReferralCodeSuccess({
+          code_length: codeToValidate.trim().length,
+          credits_earned: REFERRAL_CONFIG.REFEREE_CREDITS,
+          entry_point: "signup",
         });
         return { isValid: true, isBackendError: false };
       } catch (error) {
         setValidationError("Error validating code");
         // Track referral failure
-        Analytics.logReferralCodeEntry({
-          referral_code: codeToValidate.trim().toUpperCase(),
-          success: false,
-          error_type: 'validation_error'
+        Analytics.logReferralCodeError({
+          code_length: codeToValidate.trim().length,
+          error_type: "network_error",
+          entry_point: "signup",
         });
         return { isValid: false, isBackendError: true }; // This is also a backend error
       }

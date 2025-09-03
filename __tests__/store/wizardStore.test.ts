@@ -8,6 +8,7 @@ const mockChild: Child = {
   id: "child1",
   childName: "Alice",
   dateOfBirth: new Date("2018-01-01"),
+  createdAt: new Date("2023-01-01"),
 };
 
 const mockSavedCharacter: SavedCharacter = {

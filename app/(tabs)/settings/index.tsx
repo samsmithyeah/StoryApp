@@ -23,13 +23,47 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     Analytics.logSettingsScreenViewed({
-      screen_name: 'settings_main',
-      entry_point: 'tab_navigation'
+      screen_name: "settings_main",
+      entry_point: "tab_navigation",
     });
   }, []);
 
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
+
+  const handleNavigation = (menuItem: string, destination: string) => {
+    Analytics.logSettingsMenuNavigation({
+      menu_item: menuItem,
+      destination: destination,
+    });
+
+    // Handle specific routes
+    switch (destination) {
+      case "children":
+        router.push("/(tabs)/settings/children");
+        break;
+      case "characters":
+        router.push("/(tabs)/settings/characters");
+        break;
+      case "referrals":
+        router.push("/(tabs)/settings/referrals");
+        break;
+      case "advanced":
+        router.push("/(tabs)/settings/advanced");
+        break;
+      case "support":
+        router.push("/(tabs)/settings/support");
+        break;
+      case "debug":
+        router.push("/(tabs)/settings/debug");
+        break;
+      case "account":
+        router.push("/(tabs)/settings/account");
+        break;
+      default:
+        console.warn(`Unknown destination: ${destination}`);
+    }
+  };
 
   return (
     <BackgroundContainer showDecorations={false}>
@@ -58,39 +92,21 @@ export default function SettingsScreen() {
             title="Child profiles"
             subtitle="Manage your child profiles"
             iconName="people-outline"
-            onPress={() => {
-              Analytics.logSettingsMenuNavigation({
-                menu_item: 'child_profiles',
-                destination: 'children'
-              });
-              router.push("/(tabs)/settings/children");
-            }}
+            onPress={() => handleNavigation("child_profiles", "children")}
           />
 
           <SettingsMenuItem
             title="Saved characters"
             subtitle="Manage your story characters"
             iconName="bookmark-outline"
-            onPress={() => {
-              Analytics.logSettingsMenuNavigation({
-                menu_item: 'saved_characters',
-                destination: 'characters'
-              });
-              router.push("/(tabs)/settings/characters");
-            }}
+            onPress={() => handleNavigation("saved_characters", "characters")}
           />
 
           <SettingsMenuItem
             title="Invite friends"
             subtitle="Share your referral code and earn free credits"
             iconName="gift-outline"
-            onPress={() => {
-              Analytics.logSettingsMenuNavigation({
-                menu_item: 'invite_friends',
-                destination: 'referrals'
-              });
-              router.push("/(tabs)/settings/referrals");
-            }}
+            onPress={() => handleNavigation("invite_friends", "referrals")}
           />
 
           {isAdmin && (
@@ -98,13 +114,7 @@ export default function SettingsScreen() {
               title="Advanced settings"
               subtitle="Developer and admin options"
               iconName="settings-outline"
-              onPress={() => {
-                Analytics.logSettingsMenuNavigation({
-                  menu_item: 'advanced_settings',
-                  destination: 'advanced'
-                });
-                router.push("/(tabs)/settings/advanced");
-              }}
+              onPress={() => handleNavigation("advanced_settings", "advanced")}
             />
           )}
 
@@ -112,13 +122,7 @@ export default function SettingsScreen() {
             title="Support & legal"
             subtitle="Help, privacy, and terms"
             iconName="help-circle-outline"
-            onPress={() => {
-              Analytics.logSettingsMenuNavigation({
-                menu_item: 'support_legal',
-                destination: 'support'
-              });
-              router.push("/(tabs)/settings/support");
-            }}
+            onPress={() => handleNavigation("support_legal", "support")}
           />
 
           {isAdmin && (
@@ -126,28 +130,15 @@ export default function SettingsScreen() {
               title="Debug"
               subtitle="Development and testing tools"
               iconName="bug-outline"
-              onPress={() => {
-                Analytics.logSettingsMenuNavigation({
-                  menu_item: 'debug',
-                  destination: 'debug'
-                });
-                router.push("/(tabs)/settings/debug");
-              }}
+              onPress={() => handleNavigation("debug", "debug")}
             />
           )}
-
 
           <SettingsMenuItem
             title="Account"
             subtitle="Manage your account"
             iconName="person-outline"
-            onPress={() => {
-              Analytics.logSettingsMenuNavigation({
-                menu_item: 'account',
-                destination: 'account'
-              });
-              router.push("/(tabs)/settings/account");
-            }}
+            onPress={() => handleNavigation("account", "account")}
           />
         </ScrollView>
       </SafeAreaView>

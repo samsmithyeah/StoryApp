@@ -186,10 +186,10 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     if (selectedStyle === "custom") {
       // Track custom illustration style selection
       Analytics.logWizardIllustrationStyleSelected({
-        style_type: 'custom',
-        style_value: customStyle.trim() || 'empty'
+        style_type: "custom",
+        style_value: customStyle.trim() || "empty",
       });
-      
+
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
       onUpdate({
@@ -199,10 +199,10 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     } else {
       // Track preset illustration style selection
       Analytics.logWizardIllustrationStyleSelected({
-        style_type: 'preset',
-        style_value: selectedStyle
+        style_type: "preset",
+        style_value: selectedStyle,
       });
-      
+
       setIsCustomStyleSelected(false);
       setCustomStyle(""); // Clear custom style when selecting predefined
       const selectedStyleData = ILLUSTRATION_STYLES.find(

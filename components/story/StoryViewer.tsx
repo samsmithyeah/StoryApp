@@ -134,19 +134,42 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   // Track reading completion when user reaches the end screen
   useEffect(() => {
     const isOnEndScreen = currentPage === totalPages - 1;
-    
+
     if (isOnEndScreen && !hasTrackedCompletion && totalPages > 1) {
       setHasTrackedCompletion(true);
-      
+
       const readingTime = Date.now() - readingStartTime;
       Analytics.logReadingSessionCompleted({
         story_id: story.id,
         pages_read: story.storyContent.length,
         total_pages: story.storyContent.length,
-        reading_time_ms: readingTime
+        reading_time_ms: readingTime,
       });
     }
-  }, [currentPage, totalPages, hasTrackedCompletion, story.id, story.storyContent.length, readingStartTime]);
+
+    // Track reading abandonment if component unmounts before completion
+    return () => {
+      if (!hasTrackedCompletion && totalPages > 1) {
+        const readingTime = Date.now() - readingStartTime;
+        const pagesRead = Math.max(0, currentPage); // currentPage is 0-indexed
+        const abandonPoint = totalPages > 0 ? pagesRead / (totalPages - 1) : 0; // Exclude end screen from total
+
+        Analytics.logStoryReadingAbandoned({
+          story_id: story.id,
+          pages_read: pagesRead,
+          abandon_point: abandonPoint,
+          time_spent_ms: readingTime,
+        });
+      }
+    };
+  }, [
+    currentPage,
+    totalPages,
+    hasTrackedCompletion,
+    story.id,
+    story.storyContent.length,
+    readingStartTime,
+  ]);
 
   // keep correct offset after rotation / inset change
   useEffect(() => {

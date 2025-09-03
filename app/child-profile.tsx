@@ -38,12 +38,16 @@ export default function ChildProfileScreen() {
       if (childId && child) {
         await updateChild(childId, childData);
         // Track character updated (editing existing)
+        Analytics.logCharacterUpdated({
+          character_type: "child",
+          character_id: childId,
+        });
       } else {
         await addChild(childData);
         // Track character created (new child profile)
         Analytics.logCharacterCreated({
-          character_type: 'child',
-          creation_method: 'manual'
+          character_type: "child",
+          creation_method: "manual",
         });
       }
       router.back();

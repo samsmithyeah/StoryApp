@@ -63,9 +63,14 @@ export const generateSingleImage = onMessagePublished(
 
     const logAnalytics = async (eventName: string, params: any) => {
       try {
-        logger.info(`Analytics: ${eventName}`, { userId, storyId, pageIndex, ...params });
+        logger.info(`Analytics: ${eventName}`, {
+          userId,
+          storyId,
+          pageIndex,
+          ...params,
+        });
       } catch (error) {
-        logger.error('Analytics logging failed', error);
+        logger.error("Analytics logging failed", error);
       }
     };
 
@@ -106,10 +111,14 @@ REQUIREMENTS:
       let lastError: any = null;
 
       // Track page image generation started
-      await logAnalytics('page_image_generation_started', {
+      await logAnalytics("page_image_generation_started", {
         primary_model: primaryModel,
-        fallback_model: fallbackModel || 'none',
-        art_styles_available: [artStyle, artStyleBackup1, artStyleBackup2].filter(Boolean).length
+        fallback_model: fallbackModel || "none",
+        art_styles_available: [
+          artStyle,
+          artStyleBackup1,
+          artStyleBackup2,
+        ].filter(Boolean).length,
       });
       let finalPromptUsed = "";
 
@@ -122,16 +131,16 @@ REQUIREMENTS:
       // Try each model
       for (const currentModel of modelsToTry) {
         const isUsingFallbackModel = currentModel !== primaryModel;
-        
+
         if (isUsingFallbackModel && !pageModelFallbackUsed) {
           pageModelFallbackUsed = true;
-          await logAnalytics('page_image_model_fallback_attempt', {
+          await logAnalytics("page_image_model_fallback_attempt", {
             primary_model: primaryModel,
             fallback_model: currentModel,
-            primary_failure_reason: lastError?.message || 'unknown'
+            primary_failure_reason: lastError?.message || "unknown",
           });
         }
-        
+
         // Prepare art style descriptions in fallback order
         const artStyleOptions: (string | undefined)[] = [
           artStyle,
@@ -146,13 +155,13 @@ REQUIREMENTS:
           const currentStyle = artStyleOptions[currentStyleIndex];
           const currentPrompt = createPrompt(currentStyle);
           const isUsingStyleFallback = currentStyleIndex > 0;
-          
+
           if (isUsingStyleFallback) {
             pageStyleFallbacksUsed++;
-            await logAnalytics('page_image_style_fallback_attempt', {
+            await logAnalytics("page_image_style_fallback_attempt", {
               model: currentModel,
               style_fallback_index: currentStyleIndex,
-              previous_failure_reason: lastError?.message || 'safety_filter'
+              previous_failure_reason: lastError?.message || "safety_filter",
             });
           }
 

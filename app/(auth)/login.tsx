@@ -50,9 +50,9 @@ export default function LoginScreen() {
   useEffect(() => {
     const { setError } = useAuthStore.getState();
     setError(null);
-    
+
     // Track login screen view
-    Analytics.logScreenView('login_screen', 'LoginScreen');
+    Analytics.logScreenView("login_screen", "LoginScreen");
   }, []);
 
   // Redirect to main app if user is already authenticated
@@ -66,19 +66,22 @@ export default function LoginScreen() {
     setError(null);
 
     // Track sign in attempt
-    Analytics.logSignInAttempt({ method: 'google' });
+    Analytics.logSignInAttempt({ method: "google" });
 
     try {
       await googleSignIn();
       // Success tracking will be handled in the auth hook
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Track sign in error
+      const errorCode = (error as any)?.code || "unknown_error";
+      const errorMessage = (error as any)?.message;
+
       Analytics.logSignInError({
-        method: 'google',
-        error_type: error?.code || 'unknown_error',
-        error_message: error?.message
+        method: "google",
+        error_type: errorCode,
+        error_message: errorMessage,
       });
-      
+
       Toast.show({
         type: "error",
         text1: "Sign In Failed",
@@ -94,19 +97,22 @@ export default function LoginScreen() {
     setError(null);
 
     // Track sign in attempt
-    Analytics.logSignInAttempt({ method: 'apple' });
+    Analytics.logSignInAttempt({ method: "apple" });
 
     try {
       await appleSignIn();
       // Success tracking will be handled in the auth hook
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Track sign in error
+      const errorCode = (error as any)?.code || "unknown_error";
+      const errorMessage = (error as any)?.message;
+
       Analytics.logSignInError({
-        method: 'apple',
-        error_type: error?.code || 'unknown_error',
-        error_message: error?.message
+        method: "apple",
+        error_type: errorCode,
+        error_message: errorMessage,
       });
-      
+
       Toast.show({
         type: "error",
         text1: "Sign In Failed",

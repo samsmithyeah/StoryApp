@@ -61,7 +61,7 @@ export const generateCoverImage = onMessagePublished(
       try {
         logger.info(`Analytics: ${eventName}`, { userId, storyId, ...params });
       } catch (error) {
-        logger.error('Analytics logging failed', error);
+        logger.error("Analytics logging failed", error);
       }
     };
 
@@ -86,26 +86,26 @@ export const generateCoverImage = onMessagePublished(
       let lastError: any = null;
 
       // Track cover generation started
-      await logAnalytics('cover_image_generation_started', {
+      await logAnalytics("cover_image_generation_started", {
         primary_model: primaryModel,
-        fallback_model: fallbackModel || 'none',
+        fallback_model: fallbackModel || "none",
         art_styles_available: artStyleDescriptions.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Try each model
       for (const currentModel of modelsToTry) {
         const isUsingFallbackModel = currentModel !== primaryModel;
-        
+
         if (isUsingFallbackModel && !modelFallbackUsed) {
           modelFallbackUsed = true;
-          await logAnalytics('cover_image_model_fallback_attempt', {
+          await logAnalytics("cover_image_model_fallback_attempt", {
             primary_model: primaryModel,
             fallback_model: currentModel,
-            primary_failure_reason: lastError?.message || 'unknown'
+            primary_failure_reason: lastError?.message || "unknown",
           });
         }
-        
+
         let currentStyleIndex = 0;
 
         // Try each art style description for this model
@@ -117,17 +117,17 @@ export const generateCoverImage = onMessagePublished(
           const currentStyleDescription =
             artStyleDescriptions[currentStyleIndex];
           const isUsingStyleFallback = currentStyleIndex > 0;
-          
+
           if (isUsingStyleFallback) {
             styleFallbacksUsed++;
-            await logAnalytics('cover_image_style_fallback_attempt', {
+            await logAnalytics("cover_image_style_fallback_attempt", {
               model: currentModel,
               primary_style_index: 0,
               fallback_style_index: currentStyleIndex,
-              previous_failure_reason: lastError?.message || 'unknown'
+              previous_failure_reason: lastError?.message || "unknown",
             });
           }
-          
+
           finalCoverPrompt = `Aspect ratio: ${IMAGE_SETTINGS.COVER_ASPECT_RATIO}. ${coverImagePrompt}. Style: ${currentStyleDescription}. Create a well-composed children's book cover illustration in ${IMAGE_SETTINGS.COVER_ASPECT_RATIO} aspect ratio format. Add the book title "${title}" to the image. Do not add the name of the author or any other text to the image.`;
 
           try {
@@ -190,16 +190,16 @@ export const generateCoverImage = onMessagePublished(
             }
 
             if (coverImageGenerated) {
-              await logAnalytics('cover_image_generation_success', {
+              await logAnalytics("cover_image_generation_success", {
                 model_used: currentModel,
                 required_model_fallback: isUsingFallbackModel,
                 style_index_used: currentStyleIndex,
                 required_style_fallback: isUsingStyleFallback,
                 total_attempts: totalAttempts,
                 generation_time_ms: Date.now() - coverGenStartTime,
-                final_prompt_length: finalCoverPrompt.length
+                final_prompt_length: finalCoverPrompt.length,
               });
-              
+
               logger.info("Cover image generated successfully", {
                 storyId,
                 model: currentModel,
@@ -210,19 +210,22 @@ export const generateCoverImage = onMessagePublished(
             }
           } catch (error: any) {
             lastError = error;
-            
-            await logAnalytics('cover_image_generation_attempt_failed', {
+
+            await logAnalytics("cover_image_generation_attempt_failed", {
               model: currentModel,
               style_index: currentStyleIndex,
               attempt_number: totalAttempts,
-              error_type: error.status === 400 && error.message?.includes("safety system") 
-                ? 'safety_filter' 
-                : error.name || 'unknown',
+              error_type:
+                error.status === 400 && error.message?.includes("safety system")
+                  ? "safety_filter"
+                  : error.name || "unknown",
               error_message: error.message,
-              will_try_next_style: currentStyleIndex < artStyleDescriptions.length - 1,
-              will_try_fallback_model: currentModel === primaryModel && fallbackModel
+              will_try_next_style:
+                currentStyleIndex < artStyleDescriptions.length - 1,
+              will_try_fallback_model:
+                currentModel === primaryModel && fallbackModel,
             });
-            
+
             logger.warn("Cover image generation attempt failed", {
               storyId,
               model: currentModel,
@@ -325,16 +328,16 @@ export const generateCoverImage = onMessagePublished(
         });
       }
     } catch (error: any) {
-      await logAnalytics('cover_image_generation_final_failure', {
+      await logAnalytics("cover_image_generation_final_failure", {
         models_attempted: modelsToTry,
         styles_attempted: artStyleDescriptions.length,
         total_attempts: totalAttempts,
         used_model_fallback: modelFallbackUsed,
         style_fallbacks_used: styleFallbacksUsed,
         generation_time_ms: Date.now() - coverGenStartTime,
-        final_error: lastError?.message || error.message || 'unknown'
+        final_error: lastError?.message || error.message || "unknown",
       });
-      
+
       logger.error("Error generating cover image", error, { storyId, userId });
 
       // Update story document to indicate failure

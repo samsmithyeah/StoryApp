@@ -108,6 +108,15 @@ jest.mock("@react-native-firebase/storage", () => ({
   })),
 }));
 
+jest.mock("@react-native-firebase/analytics", () => ({
+  default: () => ({
+    logEvent: jest.fn(),
+    setUserId: jest.fn(),
+    setUserProperties: jest.fn(),
+    logScreenView: jest.fn(),
+  }),
+}));
+
 // Mock Sentry globally to prevent timer issues
 jest.mock("@sentry/react-native", () => ({
   addBreadcrumb: jest.fn(),

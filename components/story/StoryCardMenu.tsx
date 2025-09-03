@@ -91,17 +91,17 @@ export const StoryCardMenu: React.FC<StoryCardMenuProps> = ({
           onPress: async () => {
             try {
               setIsDeleting(true);
-              
+
               // Track story deletion
               const storyAge = new Date().getTime() - story.createdAt.getTime();
               const storyAgeDays = Math.floor(storyAge / (1000 * 60 * 60 * 24));
-              
+
               Analytics.logStoryDeleted({
                 story_id: story.id,
-                deletion_method: 'menu',
-                story_age_days: storyAgeDays
+                deletion_method: "menu",
+                story_age_days: storyAgeDays,
               });
-              
+
               await deleteStory(story.id);
               Toast.show({
                 type: "success",

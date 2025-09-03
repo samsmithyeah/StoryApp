@@ -19,7 +19,7 @@ import Toast from "react-native-toast-message";
 export default function InviteFriendsScreen() {
   useEffect(() => {
     Analytics.logInviteFriendsScreenOpened({
-      entry_point: 'settings_menu'
+      entry_point: "settings_menu",
     });
   }, []);
 

@@ -38,8 +38,7 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
 
       // Track referral link copy
       Analytics.logReferralLinkShared({
-        share_method: 'copy',
-        referral_code: referralCode
+        share_method: "copy",
       });
 
       Toast.show({
@@ -78,8 +77,7 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
       if (result.action === Share.sharedAction) {
         // Track referral link share
         Analytics.logReferralLinkShared({
-          share_method: 'share',
-          referral_code: referralCode
+          share_method: "native",
         });
         logger.debug("Referral code shared successfully");
       }

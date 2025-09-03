@@ -123,11 +123,11 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
       const startTime = Date.now();
       setOnboardingStartTime(startTime);
       setStepStartTime(startTime);
-      
+
       // Track onboarding started
       Analytics.logOnboardingStarted({
-        user_type: 'new',
-        entry_point: justAppliedReferral ? 'post_referral' : 'first_login'
+        user_type: "new",
+        entry_point: justAppliedReferral ? "post_referral" : "first_login",
       });
     }
   }, [visible, justAppliedReferral]);
@@ -135,14 +135,14 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   const handleNext = () => {
     const now = Date.now();
     const timeSpent = now - stepStartTime;
-    
+
     // Track current step completion
     Analytics.logOnboardingStepCompleted({
       step_name: STEPS[currentStep].title,
       step_index: currentStep,
-      time_spent_ms: timeSpent
+      time_spent_ms: timeSpent,
     });
-    
+
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((s) => s + 1);
       setStepStartTime(now);
@@ -150,7 +150,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
       // Track onboarding completion
       Analytics.logOnboardingCompleted({
         total_steps: STEPS.length,
-        completion_time_ms: now - onboardingStartTime
+        completion_time_ms: now - onboardingStartTime,
       });
       onComplete();
     }
@@ -169,7 +169,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
     Analytics.logOnboardingAbandoned({
       abandoned_at_step: STEPS[currentStep].title,
       step_index: currentStep,
-      time_spent_ms: Date.now() - onboardingStartTime
+      time_spent_ms: Date.now() - onboardingStartTime,
     });
     onComplete();
   }, [onComplete, currentStep, onboardingStartTime]);
