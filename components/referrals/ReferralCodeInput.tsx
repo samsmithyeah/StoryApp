@@ -8,6 +8,7 @@ import { ViewStyle } from "react-native";
 import { useReferrals } from "../../hooks/useReferrals";
 import { REFERRAL_CONFIG } from "../../types/referral.types";
 import { Input } from "../ui/Input";
+import { Analytics } from "../../utils/analytics";
 
 interface ReferralCodeInputProps {
   value: string;
@@ -51,11 +52,29 @@ export const ReferralCodeInput = forwardRef<
         );
         if (!result.isValid) {
           setValidationError("Invalid referral code");
+          // Track referral failure
+          Analytics.logReferralCodeEntry({
+            referral_code: codeToValidate.trim().toUpperCase(),
+            success: false,
+            error_type: 'invalid_code'
+          });
           return { isValid: false, isBackendError: true }; // This is a backend validation error
         }
+        // Track referral success
+        Analytics.logReferralCodeEntry({
+          referral_code: codeToValidate.trim().toUpperCase(),
+          success: true,
+          error_type: null
+        });
         return { isValid: true, isBackendError: false };
       } catch (error) {
         setValidationError("Error validating code");
+        // Track referral failure
+        Analytics.logReferralCodeEntry({
+          referral_code: codeToValidate.trim().toUpperCase(),
+          success: false,
+          error_type: 'validation_error'
+        });
         return { isValid: false, isBackendError: true }; // This is also a backend error
       }
     },

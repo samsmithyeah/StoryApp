@@ -27,6 +27,7 @@ import {
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../store/authStore";
+import { Analytics } from "../../utils/analytics";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -49,6 +50,9 @@ export default function LoginScreen() {
   useEffect(() => {
     const { setError } = useAuthStore.getState();
     setError(null);
+    
+    // Track login screen view
+    Analytics.logScreenView('login_screen', 'LoginScreen');
   }, []);
 
   // Redirect to main app if user is already authenticated
@@ -61,9 +65,20 @@ export default function LoginScreen() {
     const { setError } = useAuthStore.getState();
     setError(null);
 
+    // Track sign in attempt
+    Analytics.logSignInAttempt({ method: 'google' });
+
     try {
       await googleSignIn();
-    } catch (error) {
+      // Success tracking will be handled in the auth hook
+    } catch (error: any) {
+      // Track sign in error
+      Analytics.logSignInError({
+        method: 'google',
+        error_type: error?.code || 'unknown_error',
+        error_message: error?.message
+      });
+      
       Toast.show({
         type: "error",
         text1: "Sign In Failed",
@@ -78,9 +93,20 @@ export default function LoginScreen() {
     const { setError } = useAuthStore.getState();
     setError(null);
 
+    // Track sign in attempt
+    Analytics.logSignInAttempt({ method: 'apple' });
+
     try {
       await appleSignIn();
-    } catch (error) {
+      // Success tracking will be handled in the auth hook
+    } catch (error: any) {
+      // Track sign in error
+      Analytics.logSignInError({
+        method: 'apple',
+        error_type: error?.code || 'unknown_error',
+        error_message: error?.message
+      });
+      
       Toast.show({
         type: "error",
         text1: "Sign In Failed",

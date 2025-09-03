@@ -19,6 +19,7 @@ import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
 import { logger } from "@/utils/logger";
+import { Analytics } from "@/utils/analytics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -238,7 +239,13 @@ export default function CreditsScreen({
 
   useEffect(() => {
     loadCreditsAndOfferings();
-  }, [loadCreditsAndOfferings]);
+    
+    // Track credits screen view
+    Analytics.logCreditsScreenViewed({
+      current_balance: userCredits?.balance || 0,
+      entry_point: _isModal ? 'insufficient_credits_modal' : 'credits_tab'
+    });
+  }, [loadCreditsAndOfferings, userCredits?.balance, _isModal]);
 
   // Initialize previous balance when userCredits first loads
   useEffect(() => {
@@ -291,6 +298,16 @@ export default function CreditsScreen({
   }, [selectedTab]);
 
   const handlePurchase = async (packageToPurchase: PurchasesPackage) => {
+    const isSubscription = packageToPurchase.product.identifier.includes("subscription");
+    
+    // Track purchase initiated
+    Analytics.logPurchaseInitiated({
+      item_type: isSubscription ? 'subscription' : 'credits',
+      package_id: packageToPurchase.identifier,
+      price: packageToPurchase.product.price,
+      currency: 'USD' // Assuming USD, could be dynamic
+    });
+    
     // Check if this is a fake package for testing
     if (packageToPurchase.identifier.startsWith("fake_")) {
       Alert.alert(
@@ -376,6 +393,15 @@ export default function CreditsScreen({
         : await revenueCatService.purchaseCreditPack(packageToPurchase);
 
       if (success) {
+        // Track purchase completed
+        Analytics.logPurchaseCompleted({
+          item_type: isSubscription ? 'subscription' : 'credits',
+          package_id: packageToPurchase.identifier,
+          price: packageToPurchase.product.price,
+          currency: 'USD',
+          credits_granted: isSubscription ? undefined : getProductInfo(packageToPurchase.product.identifier, packageToPurchase).credits
+        });
+        
         if (isSubscription) {
           Toast.show({
             type: "success",
@@ -401,7 +427,16 @@ export default function CreditsScreen({
       }
     } catch (error: any) {
       logger.error("Purchase error", error);
+      
+      // Track purchase error (but not if user cancelled)
       if (!error.userCancelled) {
+        Analytics.logPurchaseError({
+          item_type: isSubscription ? 'subscription' : 'credits',
+          package_id: packageToPurchase.identifier,
+          error_type: error.code || 'unknown_error',
+          error_message: error.message
+        });
+        
         Alert.alert("Purchase failed", error.message || "Something went wrong");
       }
     } finally {

@@ -26,6 +26,7 @@ import { useAuthStore } from "../../store/authStore";
 import { Child } from "../../types/child.types";
 import { ChildProfileForm } from "../settings/ChildProfileForm";
 import { BackgroundContainer } from "../shared/BackgroundContainer";
+import { Analytics } from "../../utils/analytics";
 import { Button } from "../ui/Button";
 import { toastConfig } from "../ui/CustomToast";
 import { IconSymbol } from "../ui/IconSymbol";
@@ -67,6 +68,8 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   justAppliedReferral,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [onboardingStartTime, setOnboardingStartTime] = useState<number>(0);
+  const [stepStartTime, setStepStartTime] = useState<number>(0);
   const { addChild } = useChildren();
   const insets = useSafeAreaInsets();
   const setJustAppliedReferral = useAuthStore(
@@ -113,17 +116,42 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
     getChildName: () => string;
   }>(null);
 
-  // Reset to step 0 when component becomes visible
+  // Reset to step 0 when component becomes visible and track onboarding start
   React.useEffect(() => {
     if (visible) {
       setCurrentStep(0);
+      const startTime = Date.now();
+      setOnboardingStartTime(startTime);
+      setStepStartTime(startTime);
+      
+      // Track onboarding started
+      Analytics.logOnboardingStarted({
+        user_type: 'new',
+        entry_point: justAppliedReferral ? 'post_referral' : 'first_login'
+      });
     }
-  }, [visible]);
+  }, [visible, justAppliedReferral]);
 
   const handleNext = () => {
+    const now = Date.now();
+    const timeSpent = now - stepStartTime;
+    
+    // Track current step completion
+    Analytics.logOnboardingStepCompleted({
+      step_name: STEPS[currentStep].title,
+      step_index: currentStep,
+      time_spent_ms: timeSpent
+    });
+    
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((s) => s + 1);
+      setStepStartTime(now);
     } else {
+      // Track onboarding completion
+      Analytics.logOnboardingCompleted({
+        total_steps: STEPS.length,
+        completion_time_ms: now - onboardingStartTime
+      });
       onComplete();
     }
   };
@@ -137,8 +165,14 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({
   );
 
   const handleSkipChildProfile = React.useCallback(() => {
+    // Track onboarding abandonment
+    Analytics.logOnboardingAbandoned({
+      abandoned_at_step: STEPS[currentStep].title,
+      step_index: currentStep,
+      time_spent_ms: Date.now() - onboardingStartTime
+    });
     onComplete();
-  }, [onComplete]);
+  }, [onComplete, currentStep, onboardingStartTime]);
 
   const handleStepClick = (stepIndex: number) => {
     setCurrentStep(stepIndex);

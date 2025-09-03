@@ -7,6 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { IconSymbol } from "../ui/IconSymbol";
+import { Analytics } from "../../utils/analytics";
 
 interface AppleSignInButtonProps {
   onPress: () => void;
@@ -24,10 +25,18 @@ export const AppleSignInButton: React.FC<AppleSignInButtonProps> = ({
     return null;
   }
 
+  const handlePress = () => {
+    Analytics.logEvent('auth_button_pressed', { 
+      method: 'apple',
+      button_type: 'apple_signin' 
+    });
+    onPress();
+  };
+
   return (
     <TouchableOpacity
       style={[styles.button, (disabled || loading) && styles.disabled]}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       activeOpacity={0.8}
     >

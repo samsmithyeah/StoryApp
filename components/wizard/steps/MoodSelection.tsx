@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { Analytics } from "@/utils/analytics";
 import { CustomMoodSection } from "../shared/CustomMoodSection";
 import { MoodCard } from "../shared/MoodCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -106,11 +107,23 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
   );
 
   const handleMoodSelect = (moodId: string) => {
+    // Track mood selection
+    Analytics.logWizardMoodSelected({
+      mood_type: 'preset',
+      mood_value: moodId
+    });
+    
     onSelect(moodId);
     setCustomMood(""); // Clear custom text when selecting a predefined mood
   };
 
   const handleCustomMoodSelect = () => {
+    // Track custom mood selection
+    Analytics.logWizardMoodSelected({
+      mood_type: 'custom',
+      mood_value: customMood.trim() || 'empty'
+    });
+    
     // When the "Custom Mood" card is tapped, activate it.
     // Set the mood to the current input text, or "custom" if it's empty.
     onSelect(customMood.trim() || "custom");

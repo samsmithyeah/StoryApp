@@ -4,6 +4,7 @@ import { useWizardStore } from "@/store/wizardStore";
 import { Child } from "@/types/child.types";
 import { SavedCharacter } from "@/types/savedCharacter.types";
 import { StoryCharacter } from "@/types/story.types";
+import { Analytics } from "@/utils/analytics";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
@@ -106,10 +107,30 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
   }, [characters, selectedChildren, savedChildren, initializeCharacters]);
 
   const handleToggleChild = (child: Child) => {
+    // Track character usage (child profile)
+    const childAge = new Date().getTime() - child.createdAt.getTime();
+    const childAgeDays = Math.floor(childAge / (1000 * 60 * 60 * 24));
+    
+    Analytics.logCharacterUsed({
+      character_type: 'child',
+      character_age_days: childAgeDays,
+      usage_context: 'wizard'
+    });
+    
     toggleChildCharacter(child);
   };
 
   const handleToggleSavedCharacter = (savedChar: SavedCharacter) => {
+    // Track character usage (saved custom character)
+    const characterAge = new Date().getTime() - savedChar.createdAt.getTime();
+    const characterAgeDays = Math.floor(characterAge / (1000 * 60 * 60 * 24));
+    
+    Analytics.logCharacterUsed({
+      character_type: 'custom',
+      character_age_days: characterAgeDays,
+      usage_context: 'wizard'
+    });
+    
     toggleSavedCharacter(savedChar);
   };
 

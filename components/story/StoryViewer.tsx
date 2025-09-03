@@ -23,6 +23,7 @@ import {
 import { useStorageUrls } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { logger } from "../../utils/logger";
+import { Analytics } from "../../utils/analytics";
 import {
   BorderRadius,
   Colors,
@@ -65,6 +66,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
   const [imageErrors, setImageErrors] = useState<boolean[]>([]);
   const [retryingGeneration, setRetryingGeneration] = useState(false);
+  const [readingStartTime] = useState(Date.now());
+  const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -127,6 +130,23 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       }),
     ]).start();
   }, [story, fadeAnim, slideAnim, retryingGeneration]);
+
+  // Track reading completion when user reaches the end screen
+  useEffect(() => {
+    const isOnEndScreen = currentPage === totalPages - 1;
+    
+    if (isOnEndScreen && !hasTrackedCompletion && totalPages > 1) {
+      setHasTrackedCompletion(true);
+      
+      const readingTime = Date.now() - readingStartTime;
+      Analytics.logReadingSessionCompleted({
+        story_id: story.id,
+        pages_read: story.storyContent.length,
+        total_pages: story.storyContent.length,
+        reading_time_ms: readingTime
+      });
+    }
+  }, [currentPage, totalPages, hasTrackedCompletion, story.id, story.storyContent.length, readingStartTime]);
 
   // keep correct offset after rotation / inset change
   useEffect(() => {

@@ -55,6 +55,20 @@ export const generateSingleImage = onMessagePublished(
     const db = getFirestore();
     const storyRef = db.collection("stories").doc(storyId);
 
+    // Analytics tracking setup
+    const pageImageGenStartTime = Date.now();
+    let pageAttempts = 0;
+    let pageModelFallbackUsed = false;
+    let pageStyleFallbacksUsed = 0;
+
+    const logAnalytics = async (eventName: string, params: any) => {
+      try {
+        logger.info(`Analytics: ${eventName}`, { userId, storyId, pageIndex, ...params });
+      } catch (error) {
+        logger.error('Analytics logging failed', error);
+      }
+    };
+
     try {
       // Helper function to create prompt with specific art style
       const createPrompt = (styleDescription?: string) => {
@@ -90,6 +104,13 @@ REQUIREMENTS:
       let actualModelUsed = imageProvider;
       let imageGenerated = false;
       let lastError: any = null;
+
+      // Track page image generation started
+      await logAnalytics('page_image_generation_started', {
+        primary_model: primaryModel,
+        fallback_model: fallbackModel || 'none',
+        art_styles_available: [artStyle, artStyleBackup1, artStyleBackup2].filter(Boolean).length
+      });
       let finalPromptUsed = "";
 
       // Extract base64 data from the cover image (needed for both models)
@@ -100,6 +121,17 @@ REQUIREMENTS:
 
       // Try each model
       for (const currentModel of modelsToTry) {
+        const isUsingFallbackModel = currentModel !== primaryModel;
+        
+        if (isUsingFallbackModel && !pageModelFallbackUsed) {
+          pageModelFallbackUsed = true;
+          await logAnalytics('page_image_model_fallback_attempt', {
+            primary_model: primaryModel,
+            fallback_model: currentModel,
+            primary_failure_reason: lastError?.message || 'unknown'
+          });
+        }
+        
         // Prepare art style descriptions in fallback order
         const artStyleOptions: (string | undefined)[] = [
           artStyle,
@@ -110,8 +142,19 @@ REQUIREMENTS:
 
         // Try each art style description for this model
         while (!imageGenerated && currentStyleIndex < artStyleOptions.length) {
+          pageAttempts++;
           const currentStyle = artStyleOptions[currentStyleIndex];
           const currentPrompt = createPrompt(currentStyle);
+          const isUsingStyleFallback = currentStyleIndex > 0;
+          
+          if (isUsingStyleFallback) {
+            pageStyleFallbacksUsed++;
+            await logAnalytics('page_image_style_fallback_attempt', {
+              model: currentModel,
+              style_fallback_index: currentStyleIndex,
+              previous_failure_reason: lastError?.message || 'safety_filter'
+            });
+          }
 
           try {
             logger.debug("Attempting page image generation", {

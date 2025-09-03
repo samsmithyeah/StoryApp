@@ -7,6 +7,7 @@ import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { useReferrals } from "../../hooks/useReferrals";
 import { logger } from "../../utils/logger";
 import { Button } from "../ui/Button";
+import { Analytics } from "../../utils/analytics";
 
 interface ReferralCodeCardProps {
   showStats?: boolean;
@@ -34,6 +35,12 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
     try {
       setCopying(true);
       Clipboard.setString(referralCode);
+
+      // Track referral link copy
+      Analytics.logReferralLinkShared({
+        share_method: 'copy',
+        referral_code: referralCode
+      });
 
       Toast.show({
         type: "success",
@@ -69,6 +76,11 @@ export const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
       const result = await Share.share(content);
 
       if (result.action === Share.sharedAction) {
+        // Track referral link share
+        Analytics.logReferralLinkShared({
+          share_method: 'share',
+          referral_code: referralCode
+        });
         logger.debug("Referral code shared successfully");
       }
     } catch (error) {

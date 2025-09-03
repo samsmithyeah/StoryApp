@@ -8,6 +8,7 @@ import {
 } from "@/constants/Story";
 import { Colors } from "@/constants/Theme";
 import { useCredits } from "@/hooks/useCredits";
+import { Analytics } from "@/utils/analytics";
 import React, { useState } from "react";
 import {
   Dimensions,
@@ -47,12 +48,22 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
 
   const handlePageCountChange = React.useCallback(
     (value: number) => {
-      onUpdate({ pageCount: Math.round(value) });
+      const newPageCount = Math.round(value);
+      // Track page count selection
+      Analytics.logWizardStoryLengthSelected({
+        page_count: newPageCount,
+        credits_required: newPageCount
+      });
+      onUpdate({ pageCount: newPageCount });
     },
     [onUpdate]
   );
 
   const handleRhymeToggle = (value: boolean) => {
+    // Track rhyme preference selection
+    Analytics.logWizardRhymePreferenceSelected({
+      rhyme_enabled: value
+    });
     onUpdate({ shouldRhyme: value });
   };
 

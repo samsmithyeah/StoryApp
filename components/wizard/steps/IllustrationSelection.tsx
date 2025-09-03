@@ -1,6 +1,7 @@
 import { ContentLimits } from "@/constants/ContentLimits";
 import { Colors } from "@/constants/Theme";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { Analytics } from "@/utils/analytics";
 import React, { useState } from "react";
 import {
   Alert,
@@ -183,6 +184,12 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 
   const handleStyleSelect = (selectedStyle: string) => {
     if (selectedStyle === "custom") {
+      // Track custom illustration style selection
+      Analytics.logWizardIllustrationStyleSelected({
+        style_type: 'custom',
+        style_value: customStyle.trim() || 'empty'
+      });
+      
       setIsCustomStyleSelected(true);
       // If there's custom text, use it; otherwise use "custom" as placeholder
       onUpdate({
@@ -190,6 +197,12 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         illustrationAiDescription: customStyle.trim(),
       });
     } else {
+      // Track preset illustration style selection
+      Analytics.logWizardIllustrationStyleSelected({
+        style_type: 'preset',
+        style_value: selectedStyle
+      });
+      
       setIsCustomStyleSelected(false);
       setCustomStyle(""); // Clear custom style when selecting predefined
       const selectedStyleData = ILLUSTRATION_STYLES.find(
