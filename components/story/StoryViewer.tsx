@@ -67,7 +67,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [imageErrors, setImageErrors] = useState<boolean[]>([]);
   const [retryingGeneration, setRetryingGeneration] = useState(false);
   const [readingStartTime] = useState(Date.now());
-  const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
+  const hasTrackedCompletion = useRef(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -135,8 +135,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   useEffect(() => {
     const isOnEndScreen = currentPage === totalPages - 1;
 
-    if (isOnEndScreen && !hasTrackedCompletion && totalPages > 1) {
-      setHasTrackedCompletion(true);
+    if (isOnEndScreen && !hasTrackedCompletion.current && totalPages > 1) {
+      hasTrackedCompletion.current = true;
 
       const readingTime = Date.now() - readingStartTime;
       Analytics.logReadingSessionCompleted({
@@ -149,7 +149,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
 
     // Track reading abandonment if component unmounts before completion
     return () => {
-      if (!hasTrackedCompletion && totalPages > 1) {
+      if (!hasTrackedCompletion.current && totalPages > 1) {
         const readingTime = Date.now() - readingStartTime;
         const pagesRead = Math.max(0, currentPage); // currentPage is 0-indexed
         const abandonPoint = totalPages > 0 ? pagesRead / (totalPages - 1) : 0; // Exclude end screen from total
@@ -165,7 +165,6 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   }, [
     currentPage,
     totalPages,
-    hasTrackedCompletion,
     story.id,
     story.storyContent.length,
     readingStartTime,

@@ -37,31 +37,21 @@ export default function SettingsScreen() {
       destination: destination,
     });
 
-    // Handle specific routes
-    switch (destination) {
-      case "children":
-        router.push("/(tabs)/settings/children");
-        break;
-      case "characters":
-        router.push("/(tabs)/settings/characters");
-        break;
-      case "referrals":
-        router.push("/(tabs)/settings/referrals");
-        break;
-      case "advanced":
-        router.push("/(tabs)/settings/advanced");
-        break;
-      case "support":
-        router.push("/(tabs)/settings/support");
-        break;
-      case "debug":
-        router.push("/(tabs)/settings/debug");
-        break;
-      case "account":
-        router.push("/(tabs)/settings/account");
-        break;
-      default:
-        console.warn(`Unknown destination: ${destination}`);
+    const navigationMap: Record<string, string> = {
+      children: "/(tabs)/settings/children",
+      characters: "/(tabs)/settings/characters",
+      referrals: "/(tabs)/settings/referrals",
+      advanced: "/(tabs)/settings/advanced",
+      support: "/(tabs)/settings/support",
+      debug: "/(tabs)/settings/debug",
+      account: "/(tabs)/settings/account",
+    };
+
+    const route = navigationMap[destination];
+    if (route) {
+      router.push(route as any);
+    } else {
+      console.warn(`Unknown destination: ${destination}`);
     }
   };
 

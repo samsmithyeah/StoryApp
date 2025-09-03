@@ -56,35 +56,6 @@ export class Analytics {
     }
   }
 
-  // Story-specific events
-  static async logStoryGenerated(parameters: {
-    story_length?: string;
-    genre?: string;
-    character_count?: number;
-  }) {
-    await this.logEvent("story_generated", parameters);
-  }
-
-  static async logPurchase(parameters: {
-    currency: string;
-    value: number;
-    item_name: string;
-  }) {
-    await this.logEvent("purchase", parameters);
-  }
-
-  static async logLogin(parameters: {
-    method: string; // 'google', 'apple', 'email'
-  }) {
-    await this.logEvent("login", parameters);
-  }
-
-  static async logSignup(parameters: {
-    method: string; // 'google', 'apple', 'email'
-  }) {
-    await this.logEvent("sign_up", parameters);
-  }
-
   // === WIZARD TRACKING ===
   static async logWizardStarted(parameters: {
     total_children: number;
@@ -539,7 +510,7 @@ export class Analytics {
     await this.logEvent("app_error", error);
   }
 
-  // === MISSING METHODS FOR PHASE 3 ===
+  // === SETTINGS & NAVIGATION ===
   static async logSettingsMenuNavigation(data: {
     menu_item: string;
     destination: string;
