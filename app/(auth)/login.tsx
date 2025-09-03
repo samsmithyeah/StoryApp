@@ -61,8 +61,21 @@ export default function LoginScreen() {
   }
 
   const trackSignInError = (method: "google" | "apple", error: unknown) => {
-    const errorCode = (error as any)?.code || "unknown_error";
-    const errorMessage = (error as any)?.message;
+    let errorCode = "unknown_error";
+    let errorMessage: string | undefined;
+
+    if (typeof error === "object" && error !== null) {
+      errorCode =
+        "code" in error
+          ? String((error as { code?: unknown }).code)
+          : "unknown_error";
+      errorMessage =
+        "message" in error
+          ? String((error as { message?: unknown }).message)
+          : undefined;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
 
     Analytics.logSignInError({
       method,

@@ -75,6 +75,8 @@ export const generateSingleImage = onMessagePublished(
       }
     };
 
+    const generationStartTime = Date.now();
+
     try {
       // Helper function to create prompt with specific art style
       const createPrompt = (styleDescription?: string) => {
@@ -284,6 +286,21 @@ REQUIREMENTS:
           `Failed to generate image URL for page ${pageIndex + 1}`
         );
       }
+
+      // Track page image generation success
+      const generationTime = Date.now() - generationStartTime;
+      const styleIndexUsed = artStyleOptions.findIndex(
+        (style) => style && finalPromptUsed.includes(`"${style}"`)
+      );
+
+      await logMetric("page_image_generation_success", {
+        model_used: actualModelUsed,
+        required_model_fallback: actualModelUsed !== primaryModel,
+        style_index_used: styleIndexUsed >= 0 ? styleIndexUsed : 0,
+        required_style_fallback: pageStyleFallbacksUsed > 0,
+        total_attempts: pageAttempts,
+        generation_time_ms: generationTime,
+      });
 
       const storagePath = await uploadImageToStorage(
         finalImageUrl,
