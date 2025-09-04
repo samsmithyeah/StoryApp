@@ -9,7 +9,7 @@ import {
 import { Colors } from "@/constants/Theme";
 import { useCredits } from "@/hooks/useCredits";
 import { Analytics } from "@/utils/analytics";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -45,16 +45,34 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
   const { balance, hasEnoughCredits } = useCredits();
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
+  const analyticsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (analyticsTimeoutRef.current) {
+        clearTimeout(analyticsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePageCountChange = React.useCallback(
     (value: number) => {
       const newPageCount = Math.round(value);
-      // Track page count selection
-      Analytics.logWizardStoryLengthSelected({
-        page_count: newPageCount,
-        credits_required: newPageCount,
-      });
       onUpdate({ pageCount: newPageCount });
+
+      // Debounce analytics to prevent excessive events during slider drag
+      if (analyticsTimeoutRef.current) {
+        clearTimeout(analyticsTimeoutRef.current);
+      }
+      analyticsTimeoutRef.current = setTimeout(() => {
+        Analytics.logWizardStoryLengthSelected({
+          page_count: newPageCount,
+          credits_required: newPageCount,
+        });
+      }, 300);
     },
     [onUpdate]
   );

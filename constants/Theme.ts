@@ -55,7 +55,7 @@ export const Typography = {
   // Font sizes
   fontSize: {
     // Headings
-    h1: 56, // Brand title
+    h1: 55,
     h1Tablet: 64,
     h1Phone: 48,
 
