@@ -1,5 +1,6 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
+import { Analytics } from "../../utils/analytics";
 
 interface GoogleSignInButtonProps {
   onPress: () => void;
@@ -12,10 +13,18 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   loading = false,
   disabled = false,
 }) => {
+  const handlePress = () => {
+    Analytics.logEvent("auth_button_pressed", {
+      method: "google",
+      button_type: "google_signin",
+    });
+    onPress();
+  };
+
   return (
     <TouchableOpacity
       style={[styles.button, (disabled || loading) && styles.disabled]}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       activeOpacity={0.8}
     >

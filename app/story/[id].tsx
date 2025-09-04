@@ -2,7 +2,7 @@ import { doc, onSnapshot } from "@react-native-firebase/firestore";
 import { httpsCallable } from "@react-native-firebase/functions";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ImageBackground,
@@ -19,6 +19,7 @@ import { IconSymbol } from "../../components/ui/IconSymbol";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { db, functionsService } from "../../services/firebase/config";
 import { Story } from "../../types/story.types";
+import { Analytics } from "../../utils/analytics";
 import { logger } from "../../utils/logger";
 
 export default function StoryScreen() {
@@ -27,11 +28,20 @@ export default function StoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTitleScreen, setShowTitleScreen] = useState(true);
+  const hasTrackedStoryOpened = useRef(false);
 
   // Stable callback functions - must be defined before any early returns
   const handleStartReading = useCallback(() => {
     setShowTitleScreen(false);
-  }, []);
+
+    // Track reading session started
+    if (story) {
+      Analytics.logReadingSessionStarted({
+        story_id: story.id,
+        total_pages: story.storyContent.length,
+      });
+    }
+  }, [story]);
 
   const handleGoBack = useCallback(() => {
     router.replace("/(tabs)");
@@ -152,6 +162,28 @@ export default function StoryScreen() {
 
           setStory(updatedStory); // Set the new state directly
           setLoading(false); // Stop loading once we have the first batch of data
+
+          // Track story opened (only on first load)
+          if (!hasTrackedStoryOpened.current) {
+            const storyAge =
+              new Date().getTime() - updatedStory.createdAt.getTime();
+            const storyAgeDays = Math.floor(storyAge / (1000 * 60 * 60 * 24));
+
+            Analytics.logStoryOpened({
+              story_id: updatedStory.id,
+              story_length:
+                updatedStory.storyContent.length > 8
+                  ? "long"
+                  : updatedStory.storyContent.length > 4
+                    ? "medium"
+                    : "short",
+              has_illustrations: updatedStory.storyContent.some(
+                (page) => page.imageUrl
+              ),
+              story_age_days: storyAgeDays,
+            });
+            hasTrackedStoryOpened.current = true;
+          }
         } else {
           logger.error("Story document not found in Firestore");
           setError("The story you are looking for could not be found.");

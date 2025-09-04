@@ -27,6 +27,7 @@ import {
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../store/authStore";
+import { Analytics } from "../../utils/analytics";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -49,6 +50,9 @@ export default function LoginScreen() {
   useEffect(() => {
     const { setError } = useAuthStore.getState();
     setError(null);
+
+    // Track login screen view
+    Analytics.logScreenView("login_screen", "LoginScreen");
   }, []);
 
   // Redirect to main app if user is already authenticated
@@ -56,14 +60,45 @@ export default function LoginScreen() {
     return <Redirect href="/" />;
   }
 
+  const trackSignInError = (method: "google" | "apple", error: unknown) => {
+    let errorCode = "unknown_error";
+    let errorMessage: string | undefined;
+
+    if (typeof error === "object" && error !== null) {
+      errorCode =
+        "code" in error
+          ? String((error as { code?: unknown }).code)
+          : "unknown_error";
+      errorMessage =
+        "message" in error
+          ? String((error as { message?: unknown }).message)
+          : undefined;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
+
+    Analytics.logSignInError({
+      method,
+      error_type: errorCode,
+      error_message: errorMessage,
+    });
+  };
+
   const handleGoogleSignIn = async () => {
     // Clear any existing errors before attempting sign in
     const { setError } = useAuthStore.getState();
     setError(null);
 
+    // Track sign in attempt
+    Analytics.logSignInAttempt({ method: "google" });
+
     try {
       await googleSignIn();
-    } catch (error) {
+      // Success tracking will be handled in the auth hook
+    } catch (error: unknown) {
+      // Track sign in error
+      trackSignInError("google", error);
+
       Toast.show({
         type: "error",
         text1: "Sign In Failed",
@@ -78,9 +113,16 @@ export default function LoginScreen() {
     const { setError } = useAuthStore.getState();
     setError(null);
 
+    // Track sign in attempt
+    Analytics.logSignInAttempt({ method: "apple" });
+
     try {
       await appleSignIn();
-    } catch (error) {
+      // Success tracking will be handled in the auth hook
+    } catch (error: unknown) {
+      // Track sign in error
+      trackSignInError("apple", error);
+
       Toast.show({
         type: "error",
         text1: "Sign In Failed",

@@ -55,6 +55,28 @@ export const generateSingleImage = onMessagePublished(
     const db = getFirestore();
     const storyRef = db.collection("stories").doc(storyId);
 
+    // Analytics tracking setup
+    let pageAttempts = 0;
+    let pageModelFallbackUsed = false;
+    let pageStyleFallbacksUsed = 0;
+    let modelsToTry: string[] = [];
+    let artStyleOptions: (string | undefined)[] = [];
+
+    const logMetric = async (eventName: string, params: any) => {
+      try {
+        logger.info(`Metric: ${eventName}`, {
+          userId,
+          storyId,
+          pageIndex,
+          ...params,
+        });
+      } catch (error) {
+        logger.error("Metric logging failed", error);
+      }
+    };
+
+    const generationStartTime = Date.now();
+
     try {
       // Helper function to create prompt with specific art style
       const createPrompt = (styleDescription?: string) => {
@@ -82,7 +104,7 @@ REQUIREMENTS:
       const primaryModel = imageProvider;
       const fallbackModel = FALLBACK_MODELS.PAGE_IMAGE[imageProvider] || null;
 
-      const modelsToTry = fallbackModel
+      modelsToTry = fallbackModel
         ? [primaryModel, fallbackModel]
         : [primaryModel];
 
@@ -90,6 +112,17 @@ REQUIREMENTS:
       let actualModelUsed = imageProvider;
       let imageGenerated = false;
       let lastError: any = null;
+
+      // Track page image generation started
+      await logMetric("page_image_generation_started", {
+        primary_model: primaryModel,
+        fallback_model: fallbackModel || "none",
+        art_styles_available: [
+          artStyle,
+          artStyleBackup1,
+          artStyleBackup2,
+        ].filter(Boolean).length,
+      });
       let finalPromptUsed = "";
 
       // Extract base64 data from the cover image (needed for both models)
@@ -100,18 +133,36 @@ REQUIREMENTS:
 
       // Try each model
       for (const currentModel of modelsToTry) {
+        const isUsingFallbackModel = currentModel !== primaryModel;
+
+        if (isUsingFallbackModel && !pageModelFallbackUsed) {
+          pageModelFallbackUsed = true;
+          await logMetric("page_image_model_fallback_attempt", {
+            primary_model: primaryModel,
+            fallback_model: currentModel,
+            primary_failure_reason: lastError?.message || "unknown",
+          });
+        }
+
         // Prepare art style descriptions in fallback order
-        const artStyleOptions: (string | undefined)[] = [
-          artStyle,
-          artStyleBackup1,
-          artStyleBackup2,
-        ];
+        artStyleOptions = [artStyle, artStyleBackup1, artStyleBackup2];
         let currentStyleIndex = 0;
 
         // Try each art style description for this model
         while (!imageGenerated && currentStyleIndex < artStyleOptions.length) {
+          pageAttempts++;
           const currentStyle = artStyleOptions[currentStyleIndex];
           const currentPrompt = createPrompt(currentStyle);
+          const isUsingStyleFallback = currentStyleIndex > 0;
+
+          if (isUsingStyleFallback) {
+            pageStyleFallbacksUsed++;
+            await logMetric("page_image_style_fallback_attempt", {
+              model: currentModel,
+              style_fallback_index: currentStyleIndex,
+              previous_failure_reason: lastError?.message || "safety_filter",
+            });
+          }
 
           try {
             logger.debug("Attempting page image generation", {
@@ -236,6 +287,21 @@ REQUIREMENTS:
         );
       }
 
+      // Track page image generation success
+      const generationTime = Date.now() - generationStartTime;
+      const styleIndexUsed = artStyleOptions.findIndex(
+        (style) => style && finalPromptUsed.includes(`"${style}"`)
+      );
+
+      await logMetric("page_image_generation_success", {
+        model_used: actualModelUsed,
+        required_model_fallback: actualModelUsed !== primaryModel,
+        style_index_used: styleIndexUsed >= 0 ? styleIndexUsed : 0,
+        required_style_fallback: pageStyleFallbacksUsed > 0,
+        total_attempts: pageAttempts,
+        generation_time_ms: generationTime,
+      });
+
       const storagePath = await uploadImageToStorage(
         finalImageUrl,
         userId,
@@ -310,6 +376,15 @@ REQUIREMENTS:
         }
       }
     } catch (error) {
+      // Track page image generation failure
+      await logMetric("page_image_generation_failed", {
+        total_attempts: pageAttempts,
+        style_fallbacks_used: pageStyleFallbacksUsed,
+        models_tried: modelsToTry,
+        art_styles_tried: artStyleOptions.filter(Boolean).length,
+        error_message: error instanceof Error ? error.message : "unknown",
+      });
+
       logger.error("Failed to process page", error, {
         pageIndex: pageIndex + 1,
         storyId,

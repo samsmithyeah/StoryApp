@@ -41,7 +41,7 @@
       ],
       "@react-native-firebase/auth",
       [
-        "@react-native-google-signin/google-signin",
+        "@react-native-google-signin/google-signin/app.plugin.js",
         {
           "iosUrlScheme": "com.googleusercontent.apps.210183705276-25mvr7rl83brhvc9dck3ci3nlok08jtd"
         }

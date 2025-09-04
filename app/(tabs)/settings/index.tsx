@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import React from "react";
 import {
   Platform,
   SafeAreaView,
@@ -14,14 +13,47 @@ import { SettingsMenuItem } from "@/components/settings/SettingsMenuItem";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import { Spacing } from "@/constants/Theme";
 import { useAuth } from "@/hooks/useAuth";
+import { Analytics } from "@/utils/analytics";
+import React, { useEffect } from "react";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  useEffect(() => {
+    Analytics.logSettingsScreenViewed({
+      screen_name: "settings_main",
+      entry_point: "tab_navigation",
+    });
+  }, []);
+
   // Only show advanced settings for admin users
   const isAdmin = user?.isAdmin === true;
+
+  const handleNavigation = (menuItem: string, destination: string) => {
+    Analytics.logSettingsMenuNavigation({
+      menu_item: menuItem,
+      destination: destination,
+    });
+
+    const navigationMap: Record<string, string> = {
+      children: "/(tabs)/settings/children",
+      characters: "/(tabs)/settings/characters",
+      referrals: "/(tabs)/settings/referrals",
+      advanced: "/(tabs)/settings/advanced",
+      support: "/(tabs)/settings/support",
+      debug: "/(tabs)/settings/debug",
+      account: "/(tabs)/settings/account",
+    };
+
+    const route = navigationMap[destination];
+    if (route) {
+      router.push(route as any);
+    } else {
+      console.warn(`Unknown destination: ${destination}`);
+    }
+  };
 
   return (
     <BackgroundContainer showDecorations={false}>
@@ -50,21 +82,21 @@ export default function SettingsScreen() {
             title="Child profiles"
             subtitle="Manage your child profiles"
             iconName="people-outline"
-            onPress={() => router.push("/(tabs)/settings/children")}
+            onPress={() => handleNavigation("child_profiles", "children")}
           />
 
           <SettingsMenuItem
             title="Saved characters"
             subtitle="Manage your story characters"
             iconName="bookmark-outline"
-            onPress={() => router.push("/(tabs)/settings/characters")}
+            onPress={() => handleNavigation("saved_characters", "characters")}
           />
 
           <SettingsMenuItem
             title="Invite friends"
             subtitle="Share your referral code and earn free credits"
             iconName="gift-outline"
-            onPress={() => router.push("/(tabs)/settings/referrals")}
+            onPress={() => handleNavigation("invite_friends", "referrals")}
           />
 
           {isAdmin && (
@@ -72,7 +104,7 @@ export default function SettingsScreen() {
               title="Advanced settings"
               subtitle="Developer and admin options"
               iconName="settings-outline"
-              onPress={() => router.push("/(tabs)/settings/advanced")}
+              onPress={() => handleNavigation("advanced_settings", "advanced")}
             />
           )}
 
@@ -80,7 +112,7 @@ export default function SettingsScreen() {
             title="Support & legal"
             subtitle="Help, privacy, and terms"
             iconName="help-circle-outline"
-            onPress={() => router.push("/(tabs)/settings/support")}
+            onPress={() => handleNavigation("support_legal", "support")}
           />
 
           {isAdmin && (
@@ -88,7 +120,7 @@ export default function SettingsScreen() {
               title="Debug"
               subtitle="Development and testing tools"
               iconName="bug-outline"
-              onPress={() => router.push("/(tabs)/settings/debug")}
+              onPress={() => handleNavigation("debug", "debug")}
             />
           )}
 
@@ -96,7 +128,7 @@ export default function SettingsScreen() {
             title="Account"
             subtitle="Manage your account"
             iconName="person-outline"
-            onPress={() => router.push("/(tabs)/settings/account")}
+            onPress={() => handleNavigation("account", "account")}
           />
         </ScrollView>
       </SafeAreaView>

@@ -8,7 +8,8 @@ import {
 } from "@/constants/Story";
 import { Colors } from "@/constants/Theme";
 import { useCredits } from "@/hooks/useCredits";
-import React, { useState } from "react";
+import { Analytics } from "@/utils/analytics";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -44,15 +45,43 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
   const { balance, hasEnoughCredits } = useCredits();
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
+  const analyticsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (analyticsTimeoutRef.current) {
+        clearTimeout(analyticsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePageCountChange = React.useCallback(
     (value: number) => {
-      onUpdate({ pageCount: Math.round(value) });
+      const newPageCount = Math.round(value);
+      onUpdate({ pageCount: newPageCount });
+
+      // Debounce analytics to prevent excessive events during slider drag
+      if (analyticsTimeoutRef.current) {
+        clearTimeout(analyticsTimeoutRef.current);
+      }
+      analyticsTimeoutRef.current = setTimeout(() => {
+        Analytics.logWizardStoryLengthSelected({
+          page_count: newPageCount,
+          credits_required: newPageCount,
+        });
+      }, 300);
     },
     [onUpdate]
   );
 
   const handleRhymeToggle = (value: boolean) => {
+    // Track rhyme preference selection
+    Analytics.logWizardRhymePreferenceSelected({
+      rhyme_enabled: value,
+    });
     onUpdate({ shouldRhyme: value });
   };
 

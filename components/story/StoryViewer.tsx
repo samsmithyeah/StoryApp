@@ -23,6 +23,7 @@ import {
 import { useStorageUrls } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { logger } from "../../utils/logger";
+import { Analytics } from "../../utils/analytics";
 import {
   BorderRadius,
   Colors,
@@ -65,6 +66,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [imageLoading, setImageLoading] = useState<boolean[]>([]);
   const [imageErrors, setImageErrors] = useState<boolean[]>([]);
   const [retryingGeneration, setRetryingGeneration] = useState(false);
+  const [readingStartTime] = useState(Date.now());
+  const hasTrackedCompletion = useRef(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -127,6 +130,45 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       }),
     ]).start();
   }, [story, fadeAnim, slideAnim, retryingGeneration]);
+
+  // Track reading completion when user reaches the end screen
+  useEffect(() => {
+    const isOnEndScreen = currentPage === totalPages - 1;
+
+    if (isOnEndScreen && !hasTrackedCompletion.current && totalPages > 1) {
+      hasTrackedCompletion.current = true;
+
+      const readingTime = Date.now() - readingStartTime;
+      Analytics.logReadingSessionCompleted({
+        story_id: story.id,
+        pages_read: story.storyContent.length,
+        total_pages: story.storyContent.length,
+        reading_time_ms: readingTime,
+      });
+    }
+
+    // Track reading abandonment if component unmounts before completion
+    return () => {
+      if (!hasTrackedCompletion.current && totalPages > 1) {
+        const readingTime = Date.now() - readingStartTime;
+        const pagesRead = Math.max(0, currentPage); // currentPage is 0-indexed
+        const abandonPoint = totalPages > 0 ? pagesRead / (totalPages - 1) : 0; // Exclude end screen from total
+
+        Analytics.logStoryReadingAbandoned({
+          story_id: story.id,
+          pages_read: pagesRead,
+          abandon_point: abandonPoint,
+          time_spent_ms: readingTime,
+        });
+      }
+    };
+  }, [
+    currentPage,
+    totalPages,
+    story.id,
+    story.storyContent.length,
+    readingStartTime,
+  ]);
 
   // keep correct offset after rotation / inset change
   useEffect(() => {

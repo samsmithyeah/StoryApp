@@ -3,6 +3,7 @@ import { ContentLimits } from "@/constants/ContentLimits";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { Analytics } from "@/utils/analytics";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
@@ -29,6 +30,13 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const [text, setText] = useState(storyAbout);
 
   const handleNext = () => {
+    // Track story about selection
+    Analytics.logWizardStoryAboutSelected({
+      selection_type: mode,
+      has_custom_description: mode === "custom" && text.trim().length > 0,
+      description_length: mode === "custom" ? text.trim().length : 0,
+    });
+
     if (mode === "custom" && text.trim()) {
       const filterResult = filterContent(text);
       if (!filterResult.isAppropriate) {

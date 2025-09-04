@@ -60,6 +60,31 @@ export const generateStory = onCall(
     // request.data is now correctly typed as StoryGenerationRequest
     const data = request.data;
 
+    // Start timing for performance analytics
+    const generationStartTime = Date.now();
+
+    // Metric helper for server-side logging
+    const logMetric = async (eventName: string, params: any) => {
+      try {
+        logger.info(`Metric: ${eventName}`, { userId, ...params });
+        // In production, you might want to send these to a separate analytics service
+      } catch (error) {
+        logger.error("Metric logging failed", error);
+      }
+    };
+
+    // Track story generation started
+    await logMetric("story_generation_server_started", {
+      page_count: data.pageCount,
+      has_illustrations:
+        !!data.illustrationStyle && data.illustrationStyle !== "none",
+      character_count: data.characters?.length || 0,
+      model_primary: DEFAULT_MODELS.TEXT,
+      theme: data.theme,
+      mood: data.mood,
+      timestamp: new Date().toISOString(),
+    });
+
     try {
       // 2. Fetch user and children data for personalization
       const db = getFirestore();
@@ -296,6 +321,21 @@ Return the story in this JSON format:
             logger.error("Failed to parse Gemini response as JSON", {
               jsonText,
             });
+
+            await logMetric("story_generation_failed", {
+              error_type: "json_parse_failure",
+              error_message:
+                error instanceof Error ? error.message : "JSON parse failed",
+              model_attempted: "gemini",
+              generation_time_ms: Date.now() - generationStartTime,
+              story_config: {
+                page_count: data.pageCount,
+                theme: data.theme,
+                mood: data.mood,
+                character_count: data.characters?.length || 0,
+              },
+            });
+
             throw new HttpsError(
               "internal",
               "Invalid JSON response from Gemini"
@@ -307,6 +347,18 @@ Return the story in this JSON format:
             logger.info(
               "Gemini safety filter blocked content, falling back to GPT-4o"
             );
+
+            await logMetric("story_generation_safety_blocked", {
+              model_blocked: "gemini",
+              attempting_fallback: "gpt4o",
+              content_type: "story_text",
+              story_config: {
+                theme: data.theme,
+                mood: data.mood,
+                character_count: data.characters?.length || 0,
+                page_count: data.pageCount,
+              },
+            });
 
             // Fallback to GPT-4o (proven to work well for children's stories)
             try {
@@ -328,6 +380,17 @@ Return the story in this JSON format:
 
               logger.info("Successfully generated story using GPT-4o fallback");
             } catch (fallbackError: any) {
+              await logMetric("story_generation_fallback_failed", {
+                primary_model: "gemini",
+                fallback_model: "gpt4o",
+                error_type: fallbackError.name,
+                both_models_failed: true,
+                generation_time_ms: Date.now() - generationStartTime,
+                final_error: fallbackError.message?.includes("safety system")
+                  ? "safety_filter"
+                  : "other",
+              });
+
               // If GPT-4o also blocks content, show friendly error
               if (
                 fallbackError.name === "BadRequestError" &&
@@ -468,10 +531,41 @@ Return the story in this JSON format:
       // after the cover is successfully generated (to maintain consistency)
 
       // 9. Return the story ID to the client
+      const generationTimeMs = Date.now() - generationStartTime;
+
+      await logMetric("story_generation_completed", {
+        story_id: storyId,
+        generation_time_ms: generationTimeMs,
+        generation_time_seconds: Math.round(generationTimeMs / 1000),
+        page_count: data.pageCount,
+        has_illustrations:
+          !!data.illustrationStyle && data.illustrationStyle !== "none",
+        character_count: data.characters?.length || 0,
+        model_used: selectedTextModel,
+        required_fallback: selectedTextModel !== DEFAULT_MODELS.TEXT,
+      });
+
       logger.info("Process complete", { storyId });
       return { success: true, storyId };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error in generateStory orchestrator", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : "unknown";
+
+      // Track the error for analytics
+      await logMetric("story_generation_failed", {
+        error_type: error instanceof HttpsError ? error.code : errorName,
+        error_message: errorMessage,
+        generation_time_ms: Date.now() - generationStartTime,
+        model_attempted: DEFAULT_MODELS.TEXT,
+        story_config: {
+          page_count: data.pageCount,
+          theme: data.theme,
+          mood: data.mood,
+          character_count: data.characters?.length || 0,
+        },
+      });
 
       // If it's already an HttpsError, just re-throw it
       if (error instanceof HttpsError) {
@@ -479,7 +573,7 @@ Return the story in this JSON format:
       }
 
       // Handle Gemini safety filter errors (fallback should have handled this, but just in case)
-      if (error.message && error.message.includes("safety filter")) {
+      if (errorMessage.includes("safety filter")) {
         logger.error(
           "Gemini safety filter error reached global handler - fallback may have failed"
         );
@@ -490,8 +584,17 @@ Return the story in this JSON format:
       }
 
       // Handle specific OpenAI API errors
-      if (error.name === "BadRequestError" || error.status === 400) {
-        if (error.message && error.message.includes("safety system")) {
+      const errorStatus =
+        typeof error === "object" && error !== null && "status" in error
+          ? (error as { status: unknown }).status
+          : undefined;
+      const errorCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? (error as { code: unknown }).code
+          : undefined;
+
+      if (errorName === "BadRequestError" || errorStatus === 400) {
+        if (errorMessage.includes("safety system")) {
           throw new HttpsError(
             "invalid-argument",
             "Your story content doesn't meet our content guidelines. Please try a different theme, characters, or story concept that's more appropriate for children's stories, and/or doesn't infringe on any copyright.\n\nYour credits have not been used for this attempt. If you believe this filtering is in error, please contact support@dreamweaver-app.com"
@@ -500,7 +603,7 @@ Return the story in this JSON format:
       }
 
       // Handle rate limiting
-      if (error.status === 429) {
+      if (errorStatus === 429) {
         throw new HttpsError(
           "resource-exhausted",
           "The AI service is currently busy. Please try again in a few minutes."
@@ -508,7 +611,7 @@ Return the story in this JSON format:
       }
 
       // Handle authentication errors
-      if (error.status === 401 || error.status === 403) {
+      if (errorStatus === 401 || errorStatus === 403) {
         throw new HttpsError(
           "permission-denied",
           "There was an issue with the AI service. Please try again later."
@@ -517,9 +620,9 @@ Return the story in this JSON format:
 
       // Handle network/timeout errors
       if (
-        error.code === "ECONNRESET" ||
-        error.code === "ETIMEDOUT" ||
-        error.message?.includes("timeout")
+        errorCode === "ECONNRESET" ||
+        errorCode === "ETIMEDOUT" ||
+        errorMessage.includes("timeout")
       ) {
         throw new HttpsError(
           "deadline-exceeded",

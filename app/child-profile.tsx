@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef } from "react";
 import { logger } from "@/utils/logger";
+import { Analytics } from "@/utils/analytics";
 import {
   Alert,
   ImageBackground,
@@ -36,8 +37,18 @@ export default function ChildProfileScreen() {
     try {
       if (childId && child) {
         await updateChild(childId, childData);
+        // Track character updated (editing existing)
+        Analytics.logCharacterUpdated({
+          character_type: "child",
+          character_id: childId,
+        });
       } else {
         await addChild(childData);
+        // Track character created (new child profile)
+        Analytics.logCharacterCreated({
+          character_type: "child",
+          creation_method: "manual",
+        });
       }
       router.back();
     } catch (error) {

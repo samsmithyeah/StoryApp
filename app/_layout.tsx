@@ -18,6 +18,10 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { logger } from "@/utils/logger";
 import { Colors } from "@/constants/Theme";
 import * as Sentry from "@sentry/react-native";
+import {
+  getAnalytics,
+  setAnalyticsCollectionEnabled,
+} from "@react-native-firebase/analytics";
 
 // Initialize Sentry with validation and error handling
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
@@ -41,6 +45,21 @@ if (!SENTRY_DSN) {
     logger.error("Failed to initialize Sentry", error);
   }
 }
+
+// Initialize Firebase Analytics
+const initializeAnalytics = async () => {
+  try {
+    await setAnalyticsCollectionEnabled(getAnalytics(), true);
+    logger.debug("Firebase Analytics initialized successfully");
+  } catch (error) {
+    logger.error("Failed to initialize Firebase Analytics", error);
+  }
+};
+
+// Initialize analytics on app start
+initializeAnalytics().catch((err) => {
+  logger.error("Failed to initialize Analytics at root", err);
+});
 
 function RootLayout() {
   const colorScheme = useColorScheme();
