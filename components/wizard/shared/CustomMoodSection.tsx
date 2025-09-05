@@ -1,6 +1,7 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Shadows } from "@/constants/Theme";
 import { ContentLimits } from "@/constants/ContentLimits";
+import { LAYOUT } from "@/constants/Layout";
 import React from "react";
 import {
   Dimensions,
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
-    ...(isTablet && { width: (width - 48) * 0.98 + 12 }),
+    ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth() }),
   },
   selectedListCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#FFFFFF",
-    ...(isTablet && { width: (width - 48) * 0.98 + 12 }),
+    ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth() }),
   },
   helperText: {
     fontSize: 14,

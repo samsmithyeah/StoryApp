@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Shadows } from "@/constants/Theme";
+import { LAYOUT } from "@/constants/Layout";
 import React from "react";
 import {
   Dimensions,
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
-    width: "49%",
+    width: LAYOUT.CARD_WIDTH_PERCENTAGE,
   },
   selectedListCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",

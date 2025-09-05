@@ -1,5 +1,6 @@
 import { ContentLimits } from "@/constants/ContentLimits";
 import { Colors } from "@/constants/Theme";
+import { LAYOUT } from "@/constants/Layout";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
@@ -354,7 +355,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginHorizontal: -6,
   },
   styleListCard: {
     flexDirection: "row",
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
-    width: "49%",
+    width: LAYOUT.CARD_WIDTH_PERCENTAGE,
   },
   selectedCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",
@@ -427,6 +427,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minHeight: 80,
     textAlignVertical: "top",
-    ...(isTablet && { width: "101%", alignSelf: "center" }),
+    ...(isTablet && { width: "100%", alignSelf: "stretch" }),
   },
 });

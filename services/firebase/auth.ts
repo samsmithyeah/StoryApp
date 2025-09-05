@@ -38,6 +38,7 @@ import { FirestoreUserData } from "../../types/firestore.types";
 import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
+import { handleAuthStateMismatch } from "./utils";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
 import { referralService } from "./referrals";
@@ -897,35 +898,6 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
-// Helper function to handle auth state mismatch in auth operations
-const handleAuthStateMismatchInAuth = async (error: any, operation: string) => {
-  if (error.code === "firestore/permission-denied") {
-    logger.error(`Authentication state mismatch detected during ${operation}`, {
-      errorCode: error.code,
-      errorMessage: error.message,
-    });
-
-    // Import signOut dynamically to avoid circular dependency
-    try {
-      const { useAuthStore } = await import("../../store/authStore");
-      const { signOut } = useAuthStore.getState();
-      logger.warn(
-        `Forcing sign out due to auth state mismatch in ${operation}`
-      );
-      await signOut();
-    } catch (signOutError) {
-      logger.error(
-        "Failed to sign out during auth state mismatch recovery",
-        signOutError
-      );
-    }
-
-    // Re-throw with a more user-friendly message
-    throw new Error("Authentication session expired. Please sign in again.");
-  }
-  throw error;
-};
-
 // Service function to update user onboarding status
 export const updateUserOnboardingStatus = async (
   uid: string,
@@ -946,7 +918,7 @@ export const updateUserOnboardingStatus = async (
 
     await updateDoc(userRef, updateData);
   } catch (error) {
-    await handleAuthStateMismatchInAuth(error, "updateUserOnboardingStatus");
+    await handleAuthStateMismatch(error, "updateUserOnboardingStatus");
     throw error; // Re-throw after handling auth mismatch
   }
 };
