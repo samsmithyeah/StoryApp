@@ -22,6 +22,3 @@ export const LAYOUT = (() => {
       values.TABLET_WIDTH_OFFSET,
   } as const;
 })();
-
-// Export individual constants for backward compatibility
-export const CARD_WIDTH_PERCENTAGE = LAYOUT.CARD_WIDTH_PERCENTAGE;

@@ -29,15 +29,19 @@ export const getChildren = async (): Promise<Child[]> => {
 };
 
 // Add a new child
-export const addChild = async (child: Omit<Child, "id">): Promise<Child> => {
+export const addChild = async (
+  child: Omit<Child, "id" | "createdAt" | "updatedAt">
+): Promise<Child> => {
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
   try {
+    const now = new Date();
     const newChild: Child = {
       ...child,
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More robust ID generation
-      createdAt: child.createdAt || new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     const userDocRef = doc(db, "users", user.uid);
