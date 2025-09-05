@@ -8,7 +8,7 @@ import { logger } from "../../utils/logger";
 export const handleAuthStateMismatch = async (
   error: any,
   operation: string
-) => {
+): Promise<never> => {
   if (error.code === "firestore/permission-denied") {
     logger.error(`Authentication state mismatch detected during ${operation}`, {
       errorCode: error.code,

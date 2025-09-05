@@ -61,8 +61,9 @@ export const addSavedCharacter = async (
 
     return newCharacter;
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "addSavedCharacter");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };
 
@@ -91,8 +92,9 @@ export const updateSavedCharacter = async (
       savedCharacters: updatedCharacters,
     });
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "updateSavedCharacter");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };
 
@@ -117,7 +119,8 @@ export const deleteSavedCharacter = async (
       savedCharacters: filteredCharacters,
     });
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "deleteSavedCharacter");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };

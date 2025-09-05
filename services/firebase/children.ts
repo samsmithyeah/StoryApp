@@ -55,8 +55,9 @@ export const addChild = async (
 
     return newChild;
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "addChild");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };
 
@@ -84,8 +85,9 @@ export const updateChild = async (
       children: updatedChildren,
     });
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "updateChild");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };
 
@@ -108,7 +110,8 @@ export const deleteChild = async (childId: string): Promise<void> => {
       children: filteredChildren,
     });
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "deleteChild");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };

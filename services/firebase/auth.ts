@@ -918,8 +918,9 @@ export const updateUserOnboardingStatus = async (
 
     await updateDoc(userRef, updateData);
   } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
     await handleAuthStateMismatch(error, "updateUserOnboardingStatus");
-    throw error; // Re-throw after handling auth mismatch
+    throw error; // This line is never reached but satisfies TypeScript
   }
 };
 
