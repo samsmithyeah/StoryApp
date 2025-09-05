@@ -8,7 +8,7 @@ export interface Child {
   skinColor?: string;
   hairStyle?: string;
   appearanceDetails?: string;
-  createdAt: Date;
+  createdAt?: Date;
   updatedAt?: Date;
 }
 

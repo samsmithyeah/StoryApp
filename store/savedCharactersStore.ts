@@ -76,7 +76,12 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
         const newCharacter = await addSavedCharacterService(character);
         const currentCharacters = get().characters;
         const updatedCharacters = [newCharacter, ...currentCharacters].sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+          (a, b) => {
+            if (!a.createdAt && !b.createdAt) return 0;
+            if (!a.createdAt) return 1;
+            if (!b.createdAt) return -1;
+            return b.createdAt.getTime() - a.createdAt.getTime();
+          }
         );
         set({
           characters: updatedCharacters,
@@ -106,7 +111,12 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
               ? { ...character, ...updates, updatedAt: new Date() }
               : character
           )
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          .sort((a, b) => {
+            if (!a.createdAt && !b.createdAt) return 0;
+            if (!a.createdAt) return 1;
+            if (!b.createdAt) return -1;
+            return b.createdAt.getTime() - a.createdAt.getTime();
+          });
         set({
           characters: updatedCharacters,
           loading: false,

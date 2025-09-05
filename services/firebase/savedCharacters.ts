@@ -23,17 +23,19 @@ export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
           ? character.createdAt.toDate
             ? character.createdAt.toDate()
             : new Date(character.createdAt)
-          : new Date(),
+          : undefined,
         updatedAt: character.updatedAt
           ? character.updatedAt.toDate
             ? character.updatedAt.toDate()
             : new Date(character.updatedAt)
-          : new Date(),
+          : undefined,
       }))
-      .sort(
-        (a: SavedCharacter, b: SavedCharacter) =>
-          b.createdAt.getTime() - a.createdAt.getTime()
-      );
+      .sort((a: SavedCharacter, b: SavedCharacter) => {
+        if (!a.createdAt && !b.createdAt) return 0;
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
   } catch (error) {
     await handleAuthStateMismatch(error, "getSavedCharacters");
     return []; // This line will never be reached due to the throw above, but keeps TypeScript happy
@@ -51,7 +53,7 @@ export const addSavedCharacter = async (
     const now = new Date();
     const newCharacter: SavedCharacter = {
       ...character,
-      id: Date.now().toString(), // Simple ID generation
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More robust ID generation
       createdAt: now,
       updatedAt: now,
     };

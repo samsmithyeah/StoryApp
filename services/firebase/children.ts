@@ -27,7 +27,7 @@ export const getChildren = async (): Promise<Child[]> => {
         ? child.createdAt.toDate
           ? child.createdAt.toDate()
           : new Date(child.createdAt)
-        : new Date(),
+        : undefined,
       updatedAt: child.updatedAt
         ? child.updatedAt.toDate
           ? child.updatedAt.toDate()
@@ -48,7 +48,7 @@ export const addChild = async (child: Omit<Child, "id">): Promise<Child> => {
   try {
     const newChild: Child = {
       ...child,
-      id: Date.now().toString(), // Simple ID generation
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More robust ID generation
       createdAt: child.createdAt || new Date(),
     };
 
