@@ -1,22 +1,27 @@
 // Layout constants to avoid magic numbers
-export const LAYOUT = {
-  // Card dimensions
-  CARD_WIDTH_PERCENTAGE: "49%" as const,
+export const LAYOUT = (() => {
+  const values = {
+    // Card dimensions
+    CARD_WIDTH_PERCENTAGE: "49%" as const,
 
-  // Spacing
-  CARD_MARGIN_HORIZONTAL: 6,
-  CONTAINER_HORIZONTAL_PADDING: 48,
+    // Spacing
+    CARD_MARGIN_HORIZONTAL: 6,
+    CONTAINER_HORIZONTAL_PADDING: 48,
 
-  // Tablet-specific calculations
-  TABLET_WIDTH_MULTIPLIER: 0.98,
-  TABLET_WIDTH_OFFSET: 12,
+    // Tablet-specific calculations
+    TABLET_WIDTH_MULTIPLIER: 0.98,
+    TABLET_WIDTH_OFFSET: 12,
+  };
 
-  // Dynamic tablet width calculation function
-  getTabletCustomItemWidth: (screenWidth: number) =>
-    (screenWidth - LAYOUT.CONTAINER_HORIZONTAL_PADDING) *
-      LAYOUT.TABLET_WIDTH_MULTIPLIER +
-    LAYOUT.TABLET_WIDTH_OFFSET,
-} as const;
+  return {
+    ...values,
+    // Dynamic tablet width calculation function
+    getTabletCustomItemWidth: (screenWidth: number) =>
+      (screenWidth - values.CONTAINER_HORIZONTAL_PADDING) *
+        values.TABLET_WIDTH_MULTIPLIER +
+      values.TABLET_WIDTH_OFFSET,
+  } as const;
+})();
 
 // Export individual constants for backward compatibility
 export const CARD_WIDTH_PERCENTAGE = LAYOUT.CARD_WIDTH_PERCENTAGE;

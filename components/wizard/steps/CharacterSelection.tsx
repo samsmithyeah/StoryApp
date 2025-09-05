@@ -108,8 +108,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
 
   const handleToggleChild = (child: Child) => {
     // Track character usage (child profile)
-    const childCreatedAt = child.createdAt || new Date();
-    const childAge = new Date().getTime() - childCreatedAt.getTime();
+    const childAge = new Date().getTime() - child.createdAt.getTime();
     const childAgeDays = Math.floor(childAge / (1000 * 60 * 60 * 24));
 
     Analytics.logCharacterUsed({
@@ -123,8 +122,7 @@ export const CharacterSelection: React.FC<CharacterSelectionProps> = ({
 
   const handleToggleSavedCharacter = (savedChar: SavedCharacter) => {
     // Track character usage (saved custom character)
-    const characterCreatedAt = savedChar.createdAt || new Date();
-    const characterAge = new Date().getTime() - characterCreatedAt.getTime();
+    const characterAge = new Date().getTime() - savedChar.createdAt.getTime();
     const characterAgeDays = Math.floor(characterAge / (1000 * 60 * 60 * 24));
 
     Analytics.logCharacterUsed({

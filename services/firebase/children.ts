@@ -23,12 +23,16 @@ export const getChildren = async (): Promise<Child[]> => {
           ? child.dateOfBirth.toDate()
           : new Date(child.dateOfBirth)
         : undefined,
-      createdAt: child.createdAt?.toDate
-        ? child.createdAt.toDate()
-        : child.createdAt || new Date(),
-      updatedAt: child.updatedAt?.toDate
-        ? child.updatedAt.toDate()
-        : child.updatedAt,
+      createdAt: child.createdAt
+        ? child.createdAt.toDate
+          ? child.createdAt.toDate()
+          : new Date(child.createdAt)
+        : new Date(),
+      updatedAt: child.updatedAt
+        ? child.updatedAt.toDate
+          ? child.updatedAt.toDate()
+          : new Date(child.updatedAt)
+        : undefined,
     }));
   } catch (error) {
     await handleAuthStateMismatch(error, "getChildren");
