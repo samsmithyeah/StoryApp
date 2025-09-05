@@ -1,6 +1,7 @@
 import { useChildren } from "@/hooks/useChildren";
 import { useCredits } from "@/hooks/useCredits";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useWizardStore } from "@/store/wizardStore";
 import { db } from "@/services/firebase/config";
 import { generateStory } from "@/services/firebase/stories";
 import { Story, StoryConfiguration } from "@/types/story.types";
@@ -51,6 +52,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const { children } = useChildren();
   const { preferences } = useUserPreferences();
   const { credits } = useCredits();
+  const { reset: resetWizardStore } = useWizardStore();
   const [currentStep, setCurrentStep] = useState<WizardStep>("child");
   const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
     selectedChildren: [],
@@ -93,9 +95,12 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     setWizardData((prev) => ({ ...prev, ...data }));
   };
 
-  // Track wizard start
+  // Reset wizard store and track wizard start
   useEffect(() => {
     if (!hasTrackedWizardStart.current) {
+      // Reset wizard store to clear any previous session data
+      resetWizardStore();
+      
       wizardStartTime.current = Date.now();
       stepStartTime.current = Date.now();
       hasTrackedWizardStart.current = true;
@@ -109,7 +114,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       // Track first step entry
       Analytics.logWizardStepEntered(currentStep, 0);
     }
-  }, [children.length, preferences, currentStep]);
+  }, [children.length, preferences, currentStep, resetWizardStore]);
 
   // Auto-select single child if there's exactly one child profile (only once)
   useEffect(() => {

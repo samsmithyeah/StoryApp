@@ -19,6 +19,12 @@ export const getChildren = async (): Promise<Child[]> => {
     dateOfBirth: child.dateOfBirth?.toDate
       ? child.dateOfBirth.toDate()
       : new Date(child.dateOfBirth),
+    createdAt: child.createdAt?.toDate
+      ? child.createdAt.toDate()
+      : child.createdAt || new Date(),
+    updatedAt: child.updatedAt?.toDate
+      ? child.updatedAt.toDate()
+      : child.updatedAt,
   }));
 };
 
