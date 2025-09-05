@@ -4,16 +4,13 @@ import { ContentLimits } from "@/constants/ContentLimits";
 import { LAYOUT } from "@/constants/Layout";
 import React from "react";
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
-
-const { width } = Dimensions.get("window");
-const isTablet = width >= 768;
 
 interface CustomThemeSectionProps {
   customTheme: string;
@@ -28,6 +25,131 @@ export const CustomThemeSection: React.FC<CustomThemeSectionProps> = ({
   onCustomThemeSelect,
   onCustomThemeChange,
 }) => {
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+
+  const styles = StyleSheet.create({
+    customSection: {
+      marginBottom: 32,
+    },
+    sectionTitle: {
+      fontSize: isTablet ? 20 : 18,
+      fontWeight: "600",
+      color: "#D4AF37",
+      marginBottom: 12,
+      textAlign: "left",
+    },
+    themeListCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: "transparent",
+      ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth(width) }),
+    },
+    selectedListCard: {
+      backgroundColor: "rgba(212, 175, 55, 0.2)",
+      borderColor: "#D4AF37",
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: "#D4AF37",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 16,
+    },
+    selectedIconContainer: {
+      backgroundColor: "#D4AF37",
+      ...Shadows.glow,
+    },
+    unselectedIconContainer: {
+      opacity: 0.6,
+    },
+    themeInfo: {
+      flex: 1,
+    },
+    themeName: {
+      fontSize: isTablet ? 18 : 16,
+      fontWeight: "600",
+      color: "#FFFFFF",
+      marginBottom: 4,
+    },
+    themeDescription: {
+      fontSize: isTablet ? 14 : 12,
+      color: "#9CA3AF",
+      lineHeight: 16,
+    },
+    selectedText: {
+      color: "#D4AF37",
+    },
+    selectedDescription: {
+      color: "#D4AF37",
+    },
+    checkmark: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: "#10B981",
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: 12,
+    },
+    checkmarkText: {
+      color: "#FFFFFF",
+      fontSize: 14,
+      fontWeight: "bold",
+    },
+    themeText: {
+      fontSize: isTablet ? 18 : 16,
+      fontWeight: "500",
+      color: "#FFFFFF",
+      flex: 1,
+    },
+    customInput: {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.2)",
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: "#FFFFFF",
+      minHeight: 80,
+      textAlignVertical: "top",
+      ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth(width) }),
+    },
+    customInputContainer: {
+      marginTop: 12,
+    },
+    placeholderContainer: {
+      marginTop: 12,
+    },
+    placeholderText: {
+      fontSize: 14,
+      color: "#9CA3AF",
+      fontStyle: "italic",
+    },
+    helperText: {
+      fontSize: 14,
+      color: "#9CA3AF",
+      flex: 1,
+    },
+    helperContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 8,
+    },
+    characterCount: {
+      fontSize: 12,
+      color: "#9CA3AF",
+    },
+  });
+
   return (
     <View style={styles.customSection}>
       <Text style={styles.sectionTitle}>Custom theme</Text>
@@ -93,100 +215,3 @@ export const CustomThemeSection: React.FC<CustomThemeSectionProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  customSection: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: isTablet ? 20 : 18,
-    fontWeight: "600",
-    color: "#D4AF37",
-    marginBottom: 12,
-    textAlign: "left",
-  },
-  themeListCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-    ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth() }),
-  },
-  selectedListCard: {
-    backgroundColor: "rgba(212, 175, 55, 0.2)",
-    borderColor: "#D4AF37",
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#D4AF37",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  selectedIconContainer: {
-    backgroundColor: "#D4AF37",
-    ...Shadows.glow,
-  },
-  unselectedIconContainer: {
-    opacity: 0.6,
-  },
-  themeInfo: {
-    flex: 1,
-  },
-  themeName: {
-    fontSize: isTablet ? 18 : 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  themeDescription: {
-    fontSize: isTablet ? 14 : 12,
-    color: "#9CA3AF",
-    lineHeight: 16,
-  },
-  selectedText: {
-    color: "#D4AF37",
-  },
-  selectedDescription: {
-    color: "#D4AF37",
-  },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#10B981",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 12,
-  },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  customInputContainer: {
-    marginTop: 12,
-  },
-  customInput: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#FFFFFF",
-    ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth() }),
-  },
-  helperText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#9CA3AF",
-    textAlign: "right",
-  },
-});

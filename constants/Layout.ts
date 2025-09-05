@@ -1,7 +1,3 @@
-import { Dimensions } from "react-native";
-
-const { width: screenWidth } = Dimensions.get("window");
-
 // Layout constants to avoid magic numbers
 export const LAYOUT = {
   // Card dimensions
@@ -15,8 +11,8 @@ export const LAYOUT = {
   TABLET_WIDTH_MULTIPLIER: 0.98,
   TABLET_WIDTH_OFFSET: 12,
 
-  // Calculated tablet widths
-  getTabletCustomItemWidth: () =>
+  // Dynamic tablet width calculation function
+  getTabletCustomItemWidth: (screenWidth: number) =>
     (screenWidth - LAYOUT.CONTAINER_HORIZONTAL_PADDING) *
       LAYOUT.TABLET_WIDTH_MULTIPLIER +
     LAYOUT.TABLET_WIDTH_OFFSET,
@@ -24,4 +20,3 @@ export const LAYOUT = {
 
 // Export individual constants for backward compatibility
 export const CARD_WIDTH_PERCENTAGE = LAYOUT.CARD_WIDTH_PERCENTAGE;
-export const TABLET_CUSTOM_ITEM_WIDTH = LAYOUT.getTabletCustomItemWidth();
