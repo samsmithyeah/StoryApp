@@ -1,7 +1,7 @@
 import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import { authService, db } from "./config";
-import { handleAuthStateMismatch } from "./utils";
+import { handleAuthStateMismatch, convertFirestoreTimestamp } from "./utils";
 
 // Get saved characters for the current user
 export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
@@ -19,16 +19,8 @@ export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
     return savedCharacters
       .map((character: any) => ({
         ...character,
-        createdAt: character.createdAt
-          ? character.createdAt.toDate
-            ? character.createdAt.toDate()
-            : new Date(character.createdAt)
-          : undefined,
-        updatedAt: character.updatedAt
-          ? character.updatedAt.toDate
-            ? character.updatedAt.toDate()
-            : new Date(character.updatedAt)
-          : undefined,
+        createdAt: convertFirestoreTimestamp(character.createdAt),
+        updatedAt: convertFirestoreTimestamp(character.updatedAt),
       }))
       .sort((a: SavedCharacter, b: SavedCharacter) => {
         if (!a.createdAt && !b.createdAt) return 0;

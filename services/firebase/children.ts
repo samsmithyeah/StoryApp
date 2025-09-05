@@ -1,7 +1,7 @@
 import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { Child } from "../../types/child.types";
 import { authService, db } from "./config";
-import { handleAuthStateMismatch } from "./utils";
+import { handleAuthStateMismatch, convertFirestoreTimestamp } from "./utils";
 
 // Get children for the current user
 export const getChildren = async (): Promise<Child[]> => {
@@ -18,21 +18,9 @@ export const getChildren = async (): Promise<Child[]> => {
     // Convert Firestore timestamps back to Date objects
     return children.map((child: any) => ({
       ...child,
-      dateOfBirth: child.dateOfBirth
-        ? child.dateOfBirth.toDate
-          ? child.dateOfBirth.toDate()
-          : new Date(child.dateOfBirth)
-        : undefined,
-      createdAt: child.createdAt
-        ? child.createdAt.toDate
-          ? child.createdAt.toDate()
-          : new Date(child.createdAt)
-        : undefined,
-      updatedAt: child.updatedAt
-        ? child.updatedAt.toDate
-          ? child.updatedAt.toDate()
-          : new Date(child.updatedAt)
-        : undefined,
+      dateOfBirth: convertFirestoreTimestamp(child.dateOfBirth),
+      createdAt: convertFirestoreTimestamp(child.createdAt),
+      updatedAt: convertFirestoreTimestamp(child.updatedAt),
     }));
   } catch (error) {
     await handleAuthStateMismatch(error, "getChildren");

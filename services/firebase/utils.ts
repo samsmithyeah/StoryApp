@@ -35,3 +35,12 @@ export const handleAuthStateMismatch = async (
   }
   throw error;
 };
+
+/**
+ * Convert Firestore timestamps back to Date objects
+ * Handles both Firestore Timestamps and string/number dates
+ */
+export const convertFirestoreTimestamp = (timestamp: any): Date | undefined => {
+  if (!timestamp) return undefined;
+  return timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+};
