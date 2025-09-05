@@ -18,9 +18,11 @@ export const getChildren = async (): Promise<Child[]> => {
     // Convert Firestore timestamps back to Date objects
     return children.map((child: any) => ({
       ...child,
-      dateOfBirth: child.dateOfBirth?.toDate
-        ? child.dateOfBirth.toDate()
-        : new Date(child.dateOfBirth),
+      dateOfBirth: child.dateOfBirth
+        ? child.dateOfBirth.toDate
+          ? child.dateOfBirth.toDate()
+          : new Date(child.dateOfBirth)
+        : undefined,
       createdAt: child.createdAt?.toDate
         ? child.createdAt.toDate()
         : child.createdAt || new Date(),
@@ -43,6 +45,7 @@ export const addChild = async (child: Omit<Child, "id">): Promise<Child> => {
     const newChild: Child = {
       ...child,
       id: Date.now().toString(), // Simple ID generation
+      createdAt: child.createdAt || new Date(),
     };
 
     const userDocRef = doc(db, "users", user.uid);
@@ -76,7 +79,9 @@ export const updateChild = async (
     const currentChildren = userData?.children || [];
 
     const updatedChildren = currentChildren.map((child: Child) =>
-      child.id === childId ? { ...child, ...updates } : child
+      child.id === childId
+        ? { ...child, ...updates, updatedAt: new Date() }
+        : child
     );
 
     await updateDoc(userDocRef, {

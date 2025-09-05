@@ -19,12 +19,16 @@ export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
     return savedCharacters
       .map((character: any) => ({
         ...character,
-        createdAt: character.createdAt?.toDate
-          ? character.createdAt.toDate()
-          : new Date(character.createdAt),
-        updatedAt: character.updatedAt?.toDate
-          ? character.updatedAt.toDate()
-          : new Date(character.updatedAt),
+        createdAt: character.createdAt
+          ? character.createdAt.toDate
+            ? character.createdAt.toDate()
+            : new Date(character.createdAt)
+          : new Date(),
+        updatedAt: character.updatedAt
+          ? character.updatedAt.toDate
+            ? character.updatedAt.toDate()
+            : new Date(character.updatedAt)
+          : new Date(),
       }))
       .sort(
         (a: SavedCharacter, b: SavedCharacter) =>
