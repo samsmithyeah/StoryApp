@@ -100,7 +100,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     if (!hasTrackedWizardStart.current) {
       // Reset wizard store to clear any previous session data
       resetWizardStore();
-      
+
       wizardStartTime.current = Date.now();
       stepStartTime.current = Date.now();
       hasTrackedWizardStart.current = true;

@@ -1,7 +1,7 @@
 import { ContentLimits } from "@/constants/ContentLimits";
 import { Colors } from "@/constants/Theme";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { Analytics } from "@/utils/analytics";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import {
   Alert,
@@ -373,8 +373,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
-    width: "48%",
-    marginHorizontal: 6,
+    width: "49%",
   },
   selectedCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",
@@ -428,5 +427,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minHeight: 80,
     textAlignVertical: "top",
+    ...(isTablet && { width: "101%", alignSelf: "center" }),
   },
 });

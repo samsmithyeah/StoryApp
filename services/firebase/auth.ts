@@ -897,6 +897,35 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
+// Helper function to handle auth state mismatch in auth operations
+const handleAuthStateMismatchInAuth = async (error: any, operation: string) => {
+  if (error.code === "firestore/permission-denied") {
+    logger.error(`Authentication state mismatch detected during ${operation}`, {
+      errorCode: error.code,
+      errorMessage: error.message,
+    });
+
+    // Import signOut dynamically to avoid circular dependency
+    try {
+      const { useAuthStore } = await import("../../store/authStore");
+      const { signOut } = useAuthStore.getState();
+      logger.warn(
+        `Forcing sign out due to auth state mismatch in ${operation}`
+      );
+      await signOut();
+    } catch (signOutError) {
+      logger.error(
+        "Failed to sign out during auth state mismatch recovery",
+        signOutError
+      );
+    }
+
+    // Re-throw with a more user-friendly message
+    throw new Error("Authentication session expired. Please sign in again.");
+  }
+  throw error;
+};
+
 // Service function to update user onboarding status
 export const updateUserOnboardingStatus = async (
   uid: string,
@@ -904,17 +933,22 @@ export const updateUserOnboardingStatus = async (
 ): Promise<void> => {
   logger.debug("Updating user onboarding status", { uid, completed });
 
-  const userRef = doc(db, "users", uid);
-  const updateData: Partial<FirestoreUserData> = {
-    hasCompletedOnboarding: completed,
-  };
+  try {
+    const userRef = doc(db, "users", uid);
+    const updateData: Partial<FirestoreUserData> = {
+      hasCompletedOnboarding: completed,
+    };
 
-  // Only set completion timestamp if marking as completed
-  if (completed) {
-    updateData.onboardingCompletedAt = new Date();
+    // Only set completion timestamp if marking as completed
+    if (completed) {
+      updateData.onboardingCompletedAt = new Date();
+    }
+
+    await updateDoc(userRef, updateData);
+  } catch (error) {
+    await handleAuthStateMismatchInAuth(error, "updateUserOnboardingStatus");
+    throw error; // Re-throw after handling auth mismatch
   }
-
-  await updateDoc(userRef, updateData);
 };
 
 // Debounce mechanism for auth state changes

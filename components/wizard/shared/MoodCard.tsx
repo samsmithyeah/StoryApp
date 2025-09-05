@@ -1,13 +1,13 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Shadows } from "@/constants/Theme";
 import React from "react";
 import {
+  Dimensions,
+  StyleSheet,
+  Text,
   TouchableOpacity,
   View,
-  Text,
-  StyleSheet,
-  Dimensions,
 } from "react-native";
-import { Shadows } from "@/constants/Theme";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -88,8 +88,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
-    width: "48%",
-    marginHorizontal: 6,
+    width: "49%",
   },
   selectedListCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",

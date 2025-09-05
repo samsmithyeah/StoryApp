@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: "transparent",
+    ...(isTablet && { width: (width - 48) * 0.98 + 12 }),
   },
   selectedListCard: {
     backgroundColor: "rgba(212, 175, 55, 0.2)",
@@ -179,6 +180,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#FFFFFF",
+    ...(isTablet && { width: (width - 48) * 0.98 + 12 }),
   },
   helperText: {
     marginTop: 8,
