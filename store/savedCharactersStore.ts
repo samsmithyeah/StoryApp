@@ -9,6 +9,7 @@ import {
   SavedCharacter,
   SavedCharactersState,
 } from "../types/savedCharacter.types";
+import { sortByCreatedAtDesc } from "../utils/sorting";
 import { StoryCharacter } from "../types/story.types";
 
 interface TemporaryCharacterPayload {
@@ -76,7 +77,7 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
         const newCharacter = await addSavedCharacterService(character);
         const currentCharacters = get().characters;
         const updatedCharacters = [newCharacter, ...currentCharacters].sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+          sortByCreatedAtDesc
         );
         set({
           characters: updatedCharacters,
@@ -106,7 +107,7 @@ export const useSavedCharactersStore = create<SavedCharactersStore>(
               ? { ...character, ...updates, updatedAt: new Date() }
               : character
           )
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          .sort(sortByCreatedAtDesc);
         set({
           characters: updatedCharacters,
           loading: false,

@@ -38,6 +38,7 @@ import { FirestoreUserData } from "../../types/firestore.types";
 import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 import { FCMService } from "../fcm";
 import { AuthCacheService } from "../auth/authCacheService";
+import { handleAuthStateMismatch } from "./utils";
 import { authService, db, functionsService } from "./config";
 import { creditsService } from "./credits";
 import { referralService } from "./referrals";
@@ -904,17 +905,23 @@ export const updateUserOnboardingStatus = async (
 ): Promise<void> => {
   logger.debug("Updating user onboarding status", { uid, completed });
 
-  const userRef = doc(db, "users", uid);
-  const updateData: Partial<FirestoreUserData> = {
-    hasCompletedOnboarding: completed,
-  };
+  try {
+    const userRef = doc(db, "users", uid);
+    const updateData: Partial<FirestoreUserData> = {
+      hasCompletedOnboarding: completed,
+    };
 
-  // Only set completion timestamp if marking as completed
-  if (completed) {
-    updateData.onboardingCompletedAt = new Date();
+    // Only set completion timestamp if marking as completed
+    if (completed) {
+      updateData.onboardingCompletedAt = new Date();
+    }
+
+    await updateDoc(userRef, updateData);
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "updateUserOnboardingStatus");
+    throw error; // This line is never reached but satisfies TypeScript
   }
-
-  await updateDoc(userRef, updateData);
 };
 
 // Debounce mechanism for auth state changes

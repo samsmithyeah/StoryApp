@@ -3,8 +3,8 @@ export interface SavedCharacter {
   name: string;
   description?: string;
   appearance?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface SavedCharactersState {
