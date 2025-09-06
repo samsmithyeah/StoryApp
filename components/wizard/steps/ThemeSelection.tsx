@@ -1,8 +1,8 @@
 // import { useChildren } from "@/hooks/useChildren";
 // import { ThemeSuggestion } from "@/services/firebase/stories";
 import { Colors } from "@/constants/Theme";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import { Analytics } from "@/utils/analytics";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import {
   Alert,
@@ -294,6 +294,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginHorizontal: -6,
   },
 });

@@ -1,47 +1,64 @@
 import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
-import { authService, db } from "./config";
 import { Child } from "../../types/child.types";
+import { authService, db } from "./config";
+import { handleAuthStateMismatch, convertFirestoreTimestamp } from "./utils";
 
 // Get children for the current user
 export const getChildren = async (): Promise<Child[]> => {
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
 
-  const children = userData?.children || [];
+    const children = userData?.children || [];
 
-  // Convert Firestore timestamps back to Date objects
-  return children.map((child: any) => ({
-    ...child,
-    dateOfBirth: child.dateOfBirth?.toDate
-      ? child.dateOfBirth.toDate()
-      : new Date(child.dateOfBirth),
-  }));
+    // Convert Firestore timestamps back to Date objects
+    return children.map((child: any) => ({
+      ...child,
+      dateOfBirth: convertFirestoreTimestamp(child.dateOfBirth),
+      createdAt: convertFirestoreTimestamp(child.createdAt),
+      updatedAt: convertFirestoreTimestamp(child.updatedAt),
+    }));
+  } catch (error) {
+    await handleAuthStateMismatch(error, "getChildren");
+    return []; // This line will never be reached due to the throw above, but keeps TypeScript happy
+  }
 };
 
 // Add a new child
-export const addChild = async (child: Omit<Child, "id">): Promise<Child> => {
+export const addChild = async (
+  child: Omit<Child, "id" | "createdAt" | "updatedAt">
+): Promise<Child> => {
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const newChild: Child = {
-    ...child,
-    id: Date.now().toString(), // Simple ID generation
-  };
+  try {
+    const now = new Date();
+    const newChild: Child = {
+      ...child,
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More robust ID generation
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentChildren = userData?.children || [];
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentChildren = userData?.children || [];
 
-  await updateDoc(userDocRef, {
-    children: [...currentChildren, newChild],
-  });
+    await updateDoc(userDocRef, {
+      children: [...currentChildren, newChild],
+    });
 
-  return newChild;
+    return newChild;
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "addChild");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };
 
 // Update an existing child
@@ -52,18 +69,26 @@ export const updateChild = async (
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentChildren = userData?.children || [];
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentChildren = userData?.children || [];
 
-  const updatedChildren = currentChildren.map((child: Child) =>
-    child.id === childId ? { ...child, ...updates } : child
-  );
+    const updatedChildren = currentChildren.map((child: Child) =>
+      child.id === childId
+        ? { ...child, ...updates, updatedAt: new Date() }
+        : child
+    );
 
-  await updateDoc(userDocRef, {
-    children: updatedChildren,
-  });
+    await updateDoc(userDocRef, {
+      children: updatedChildren,
+    });
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "updateChild");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };
 
 // Delete a child
@@ -71,16 +96,22 @@ export const deleteChild = async (childId: string): Promise<void> => {
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentChildren = userData?.children || [];
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentChildren = userData?.children || [];
 
-  const filteredChildren = currentChildren.filter(
-    (child: Child) => child.id !== childId
-  );
+    const filteredChildren = currentChildren.filter(
+      (child: Child) => child.id !== childId
+    );
 
-  await updateDoc(userDocRef, {
-    children: filteredChildren,
-  });
+    await updateDoc(userDocRef, {
+      children: filteredChildren,
+    });
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "deleteChild");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };

@@ -1,33 +1,33 @@
 import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
-import { authService, db } from "./config";
 import { SavedCharacter } from "../../types/savedCharacter.types";
+import { authService, db } from "./config";
+import { handleAuthStateMismatch, convertFirestoreTimestamp } from "./utils";
+import { sortByCreatedAtDesc } from "../../utils/sorting";
 
 // Get saved characters for the current user
 export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
 
-  const savedCharacters = userData?.savedCharacters || [];
+    const savedCharacters = userData?.savedCharacters || [];
 
-  // Convert Firestore timestamps back to Date objects and sort by createdAt desc
-  return savedCharacters
-    .map((character: any) => ({
-      ...character,
-      createdAt: character.createdAt?.toDate
-        ? character.createdAt.toDate()
-        : new Date(character.createdAt),
-      updatedAt: character.updatedAt?.toDate
-        ? character.updatedAt.toDate()
-        : new Date(character.updatedAt),
-    }))
-    .sort(
-      (a: SavedCharacter, b: SavedCharacter) =>
-        b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    // Convert Firestore timestamps back to Date objects and sort by createdAt desc
+    return savedCharacters
+      .map((character: any) => ({
+        ...character,
+        createdAt: convertFirestoreTimestamp(character.createdAt),
+        updatedAt: convertFirestoreTimestamp(character.updatedAt),
+      }))
+      .sort(sortByCreatedAtDesc);
+  } catch (error) {
+    await handleAuthStateMismatch(error, "getSavedCharacters");
+    return []; // This line will never be reached due to the throw above, but keeps TypeScript happy
+  }
 };
 
 // Add a new saved character
@@ -37,24 +37,30 @@ export const addSavedCharacter = async (
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const now = new Date();
-  const newCharacter: SavedCharacter = {
-    ...character,
-    id: Date.now().toString(), // Simple ID generation
-    createdAt: now,
-    updatedAt: now,
-  };
+  try {
+    const now = new Date();
+    const newCharacter: SavedCharacter = {
+      ...character,
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More robust ID generation
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentCharacters = userData?.savedCharacters || [];
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentCharacters = userData?.savedCharacters || [];
 
-  await updateDoc(userDocRef, {
-    savedCharacters: [...currentCharacters, newCharacter],
-  });
+    await updateDoc(userDocRef, {
+      savedCharacters: [...currentCharacters, newCharacter],
+    });
 
-  return newCharacter;
+    return newCharacter;
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "addSavedCharacter");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };
 
 // Update an existing saved character
@@ -65,21 +71,27 @@ export const updateSavedCharacter = async (
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentCharacters = userData?.savedCharacters || [];
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentCharacters = userData?.savedCharacters || [];
 
-  const updatedCharacters = currentCharacters.map(
-    (character: SavedCharacter) =>
-      character.id === characterId
-        ? { ...character, ...updates, updatedAt: new Date() }
-        : character
-  );
+    const updatedCharacters = currentCharacters.map(
+      (character: SavedCharacter) =>
+        character.id === characterId
+          ? { ...character, ...updates, updatedAt: new Date() }
+          : character
+    );
 
-  await updateDoc(userDocRef, {
-    savedCharacters: updatedCharacters,
-  });
+    await updateDoc(userDocRef, {
+      savedCharacters: updatedCharacters,
+    });
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "updateSavedCharacter");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };
 
 // Delete a saved character
@@ -89,16 +101,22 @@ export const deleteSavedCharacter = async (
   const user = authService.currentUser;
   if (!user) throw new Error("User not authenticated");
 
-  const userDocRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userDocRef);
-  const userData = userDoc.data();
-  const currentCharacters = userData?.savedCharacters || [];
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    const userData = userDoc.data();
+    const currentCharacters = userData?.savedCharacters || [];
 
-  const filteredCharacters = currentCharacters.filter(
-    (character: SavedCharacter) => character.id !== characterId
-  );
+    const filteredCharacters = currentCharacters.filter(
+      (character: SavedCharacter) => character.id !== characterId
+    );
 
-  await updateDoc(userDocRef, {
-    savedCharacters: filteredCharacters,
-  });
+    await updateDoc(userDocRef, {
+      savedCharacters: filteredCharacters,
+    });
+  } catch (error) {
+    // handleAuthStateMismatch always throws, but TypeScript can't infer this
+    await handleAuthStateMismatch(error, "deleteSavedCharacter");
+    throw error; // This line is never reached but satisfies TypeScript
+  }
 };

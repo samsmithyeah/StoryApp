@@ -1,4 +1,6 @@
 import { Colors } from "@/constants/Theme";
+import { Analytics } from "@/utils/analytics";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import {
   Alert,
@@ -8,8 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import { Analytics } from "@/utils/analytics";
 import { CustomMoodSection } from "../shared/CustomMoodSection";
 import { MoodCard } from "../shared/MoodCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -224,6 +224,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginHorizontal: -6,
   },
 });
