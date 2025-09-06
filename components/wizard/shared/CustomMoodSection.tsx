@@ -1,7 +1,7 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Shadows } from "@/constants/Theme";
 import { ContentLimits } from "@/constants/ContentLimits";
 import { LAYOUT } from "@/constants/Layout";
+import { Shadows } from "@/constants/Theme";
 import React, { useMemo } from "react";
 import {
   StyleSheet,
@@ -120,8 +120,6 @@ export const CustomMoodSection: React.FC<CustomMoodSectionProps> = ({
           paddingVertical: 12,
           fontSize: 16,
           color: "#FFFFFF",
-          minHeight: 80,
-          textAlignVertical: "top",
           ...(isTablet && { width: LAYOUT.getTabletCustomItemWidth(width) }),
         },
         customInputContainer: {
