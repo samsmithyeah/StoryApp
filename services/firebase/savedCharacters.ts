@@ -2,6 +2,7 @@ import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import { SavedCharacter } from "../../types/savedCharacter.types";
 import { authService, db } from "./config";
 import { handleAuthStateMismatch, convertFirestoreTimestamp } from "./utils";
+import { sortByCreatedAtDesc } from "../../utils/sorting";
 
 // Get saved characters for the current user
 export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
@@ -22,12 +23,7 @@ export const getSavedCharacters = async (): Promise<SavedCharacter[]> => {
         createdAt: convertFirestoreTimestamp(character.createdAt),
         updatedAt: convertFirestoreTimestamp(character.updatedAt),
       }))
-      .sort((a: SavedCharacter, b: SavedCharacter) => {
-        if (!a.createdAt && !b.createdAt) return 0;
-        if (!a.createdAt) return 1;
-        if (!b.createdAt) return -1;
-        return b.createdAt.getTime() - a.createdAt.getTime();
-      });
+      .sort(sortByCreatedAtDesc);
   } catch (error) {
     await handleAuthStateMismatch(error, "getSavedCharacters");
     return []; // This line will never be reached due to the throw above, but keeps TypeScript happy

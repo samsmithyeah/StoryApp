@@ -5,7 +5,6 @@ export const LAYOUT = (() => {
     CARD_WIDTH_PERCENTAGE: "49%" as const,
 
     // Spacing
-    CARD_MARGIN_HORIZONTAL: 6,
     CONTAINER_HORIZONTAL_PADDING: 48,
 
     // Tablet-specific calculations
