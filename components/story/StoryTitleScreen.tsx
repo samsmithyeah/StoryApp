@@ -87,8 +87,9 @@ export const StoryTitleScreen: React.FC<StoryTitleScreenProps> = React.memo(
           height,
           isTablet,
           isLandscape,
+          title: story.title,
         }),
-      [width, height, isTablet, isLandscape]
+      [width, height, isTablet, isLandscape, story.title]
     );
 
     return (
@@ -227,6 +228,7 @@ type StyleParams = {
   height: number;
   isTablet: boolean;
   isLandscape: boolean;
+  title: string;
 };
 
 const createStyles = ({
@@ -234,9 +236,38 @@ const createStyles = ({
   height,
   isTablet,
   isLandscape,
+  title,
 }: StyleParams) => {
   const supportsGap =
     Platform.OS !== "android" || Number(Platform.Version) >= 33;
+
+  // Calculate font size based on title length and available space
+  const baseFontSize = isTablet
+    ? Typography.fontSize.h1Tablet * 1.2
+    : isVerySmallScreen()
+      ? Typography.fontSize.h2
+      : Typography.fontSize.h1Phone;
+
+  // Simple heuristic: reduce font size for long titles
+  // Based on title character length and screen characteristics
+  const shouldReduceFontSize = (() => {
+    const titleLength = title.length;
+
+    if (isTablet) {
+      // Tablets can handle longer titles
+      return titleLength > 60;
+    } else if (isVerySmallScreen()) {
+      // Small screens need earlier reduction
+      return titleLength > 25;
+    } else {
+      // Regular phone screens
+      return titleLength > 35;
+    }
+  })();
+
+  const titleFontSize = shouldReduceFontSize
+    ? baseFontSize * 0.85 // Reduce by 15% for long titles
+    : baseFontSize;
 
   const portraitSize = isTablet ? 550 : isVerySmallScreen() ? 200 : 300;
 
@@ -312,11 +343,7 @@ const createStyles = ({
     },
     title: {
       fontFamily: Typography.fontFamily.primary,
-      fontSize: isTablet
-        ? Typography.fontSize.h1Tablet * 1.2
-        : isVerySmallScreen()
-          ? Typography.fontSize.h2
-          : Typography.fontSize.h1Phone,
+      fontSize: titleFontSize,
       color: Colors.primary,
       textAlign: "center",
       marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
