@@ -42,5 +42,13 @@ export const handleAuthStateMismatch = async (
  */
 export const convertFirestoreTimestamp = (timestamp: any): Date | undefined => {
   if (!timestamp) return undefined;
-  return timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  if (typeof timestamp.toDate === "function") {
+    return timestamp.toDate();
+  }
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    logger.warn("Encountered an invalid timestamp value", { timestamp });
+    return undefined;
+  }
+  return date;
 };
