@@ -35,7 +35,11 @@ export function SettingsMenuItem({
         {iconName ? (
           <Ionicons name={iconName} size={24} color={Colors.primary} />
         ) : (
-          <IconSymbol name={icon!} size={24} color={Colors.primary} />
+          <IconSymbol
+            name={icon ?? "questionmark.circle"}
+            size={24}
+            color={Colors.primary}
+          />
         )}
       </View>
 

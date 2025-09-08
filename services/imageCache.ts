@@ -149,6 +149,41 @@ class ImageCacheService {
     await this.saveCacheIndex();
   }
 
+  private async deleteCacheFile(
+    entry: CacheEntry,
+    context?: { storyId?: string; storagePath?: string }
+  ): Promise<void> {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
+      if (fileInfo.exists) {
+        await FileSystem.deleteAsync(entry.filePath);
+      }
+    } catch (error) {
+      // Silently handle file deletion errors
+      if (
+        error instanceof Error &&
+        !error.message?.includes("does not exist") &&
+        !error.message?.includes("could not be deleted")
+      ) {
+        const logContext: any = {
+          filePath: entry.filePath,
+          error,
+        };
+
+        if (context?.storyId) logContext.storyId = context.storyId;
+        if (context?.storagePath) logContext.storagePath = context.storagePath;
+
+        const message = context?.storyId
+          ? "Failed to delete story cache file"
+          : context?.storagePath
+            ? "Failed to delete orphaned cache file"
+            : "Failed to delete cache file";
+
+        logger.warn(message, logContext);
+      }
+    }
+  }
+
   private generateCacheFilePath(storagePath: string): string {
     // Create a unique, safe filename using a simple hash approach
     let hash = 0;
@@ -331,25 +366,7 @@ class ImageCacheService {
         entriesToDelete.push(storagePath);
 
         // Delete the cached file
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(entry.filePath);
-          }
-        } catch (error) {
-          // Silently handle file deletion errors
-          if (
-            error instanceof Error &&
-            !error.message?.includes("does not exist") &&
-            !error.message?.includes("could not be deleted")
-          ) {
-            logger.warn("Failed to delete story cache file", {
-              filePath: entry.filePath,
-              storyId,
-              error,
-            });
-          }
-        }
+        await this.deleteCacheFile(entry, { storyId });
       }
     }
 
@@ -392,25 +409,7 @@ class ImageCacheService {
             entriesToDelete.push(storagePath);
 
             // Delete the cached file
-            try {
-              const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
-              if (fileInfo.exists) {
-                await FileSystem.deleteAsync(entry.filePath);
-              }
-            } catch (error) {
-              // Silently handle file deletion errors
-              if (
-                error instanceof Error &&
-                !error.message?.includes("does not exist") &&
-                !error.message?.includes("could not be deleted")
-              ) {
-                logger.warn("Failed to delete orphaned cache file", {
-                  filePath: entry.filePath,
-                  storagePath,
-                  error,
-                });
-              }
-            }
+            await this.deleteCacheFile(entry, { storagePath });
           }
         }
       }
