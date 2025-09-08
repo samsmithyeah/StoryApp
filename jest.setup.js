@@ -113,8 +113,11 @@ jest.mock("@react-native-firebase/analytics", () => ({
     logEvent: jest.fn(),
     setUserId: jest.fn(),
     setUserProperties: jest.fn(),
-    logScreenView: jest.fn(),
   }),
+  getAnalytics: jest.fn(),
+  logEvent: jest.fn(),
+  setUserId: jest.fn(),
+  setUserProperties: jest.fn(),
 }));
 
 // Mock Sentry globally to prevent timer issues
