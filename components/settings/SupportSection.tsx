@@ -1,29 +1,29 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Colors, Spacing, Typography } from "../../constants/Theme";
-import { SettingsLinkItem } from "../ui/SettingsLinkItem";
+import { SettingsMenuItem } from "./SettingsMenuItem";
 import type { SupportSectionProps } from "./types";
 
 export function SupportSection({ onNavigate }: SupportSectionProps) {
   return (
     <View style={styles.section}>
-      <SettingsLinkItem
+      <SettingsMenuItem
         title="Privacy policy"
-        description="How we handle your data"
+        subtitle="How we handle your data"
         icon="shield"
         onPress={() => onNavigate("/(tabs)/settings/privacy-policy")}
       />
 
-      <SettingsLinkItem
+      <SettingsMenuItem
         title="Terms of service"
-        description="Terms and conditions"
+        subtitle="Terms and conditions"
         icon="doc.text"
         onPress={() => onNavigate("/(tabs)/settings/terms-of-service")}
       />
 
-      <SettingsLinkItem
+      <SettingsMenuItem
         title="Help & support"
-        description="Get help or contact us"
+        subtitle="Get help or contact us"
         icon="questionmark.circle"
         onPress={() => onNavigate("/(tabs)/settings/help")}
       />

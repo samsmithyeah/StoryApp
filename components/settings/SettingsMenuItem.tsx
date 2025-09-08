@@ -1,33 +1,42 @@
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import React, { ReactNode } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
+  BorderRadius,
   Colors,
+  Shadows,
   Spacing,
   Typography,
-  Shadows,
-  BorderRadius,
 } from "../../constants/Theme";
+import { IconSymbol } from "../ui/IconSymbol";
 
 export interface SettingsMenuItemProps {
   title: string;
   subtitle?: string;
-  iconName: keyof typeof Ionicons.glyphMap;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  icon?: string;
   onPress: () => void;
   showChevron?: boolean;
+  rightContent?: ReactNode;
 }
 
 export function SettingsMenuItem({
   title,
   subtitle,
   iconName,
+  icon,
   onPress,
   showChevron = true,
+  rightContent,
 }: SettingsMenuItemProps) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.iconContainer}>
-        <Ionicons name={iconName} size={24} color={Colors.primary} />
+        {iconName ? (
+          <Ionicons name={iconName} size={24} color={Colors.primary} />
+        ) : (
+          <IconSymbol name={icon!} size={24} color={Colors.primary} />
+        )}
       </View>
 
       <View style={styles.textContainer}>
@@ -35,13 +44,26 @@ export function SettingsMenuItem({
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 
-      {showChevron && (
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color={Colors.textSecondary}
-        />
-      )}
+      <View style={styles.rightSection}>
+        {rightContent}
+        {showChevron && (
+          <>
+            {iconName ? (
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={Colors.textSecondary}
+              />
+            ) : (
+              <IconSymbol
+                name="chevron.right"
+                size={20}
+                color={Colors.textSecondary}
+              />
+            )}
+          </>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -50,13 +72,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 80, // Fixed height for consistency
+    minHeight: 80,
     paddingHorizontal: Spacing.xl,
     backgroundColor: Colors.cardBackground,
     borderRadius: BorderRadius.xl,
-    borderWidth: 2,
-    borderColor: Colors.cardBorder,
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.cardSectionBorder,
+    marginBottom: Spacing.sm,
     ...Shadows.glow,
   },
   iconContainer: {
@@ -72,6 +94,11 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
   title: {
     fontSize: Typography.fontSize.large,
