@@ -3,6 +3,7 @@ import { httpsCallable } from "@react-native-firebase/functions";
 import { authService, functionsService } from "./config";
 import { creditsService } from "./credits";
 import { logger } from "../../utils/logger";
+import { imageCache } from "../imageCache";
 
 export const generateStory = async (config: StoryConfiguration) => {
   try {
@@ -152,6 +153,11 @@ export const reportStory = async (
 
 export const deleteStory = async (storyId: string): Promise<void> => {
   try {
+    const userId = authService.currentUser?.uid;
+    if (!userId) {
+      throw new Error("User must be authenticated");
+    }
+
     const deleteStoryFn = httpsCallable(functionsService, "deleteStory");
     const result = await deleteStoryFn({
       storyId,
@@ -159,6 +165,17 @@ export const deleteStory = async (storyId: string): Promise<void> => {
 
     if (!(result.data as any).success) {
       throw new Error("Failed to delete story");
+    }
+
+    // Clear cached images for this story after successful deletion
+    try {
+      await imageCache.clearStoryCache(userId, storyId);
+    } catch (cacheError) {
+      // Don't fail the deletion if cache clearing fails
+      logger.warn("Failed to clear story cache after deletion", {
+        storyId,
+        error: cacheError,
+      });
     }
   } catch (error) {
     logger.error("Error calling deleteStory function", error);

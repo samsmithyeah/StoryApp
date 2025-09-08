@@ -3,7 +3,6 @@ import {
   logEvent,
   setUserProperties,
   setUserId,
-  logScreenView,
 } from "@react-native-firebase/analytics";
 import { logger } from "./logger";
 
@@ -52,7 +51,8 @@ export class Analytics {
    */
   static async logScreenView(screenName: string, screenClass?: string) {
     try {
-      await logScreenView(getAnalytics(), {
+      // Use the generic logEvent with 'screen_view' as a custom event name
+      await this.logEvent("screen_view", {
         screen_name: screenName,
         screen_class: screenClass || screenName,
       });

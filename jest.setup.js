@@ -113,8 +113,11 @@ jest.mock("@react-native-firebase/analytics", () => ({
     logEvent: jest.fn(),
     setUserId: jest.fn(),
     setUserProperties: jest.fn(),
-    logScreenView: jest.fn(),
   }),
+  getAnalytics: jest.fn(),
+  logEvent: jest.fn(),
+  setUserId: jest.fn(),
+  setUserProperties: jest.fn(),
 }));
 
 // Mock Sentry globally to prevent timer issues
@@ -132,4 +135,27 @@ jest.mock("@sentry/react-native", () => ({
   setExtra: jest.fn(),
   setExtras: jest.fn(),
   setLevel: jest.fn(),
+}));
+
+// Mock AsyncStorage
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  default: {
+    getItem: jest.fn(() => Promise.resolve(null)),
+    setItem: jest.fn(() => Promise.resolve()),
+    removeItem: jest.fn(() => Promise.resolve()),
+    clear: jest.fn(() => Promise.resolve()),
+    getAllKeys: jest.fn(() => Promise.resolve([])),
+    multiGet: jest.fn(() => Promise.resolve([])),
+    multiSet: jest.fn(() => Promise.resolve()),
+    multiRemove: jest.fn(() => Promise.resolve()),
+  },
+}));
+
+// Mock expo-file-system
+jest.mock("expo-file-system", () => ({
+  documentDirectory: "/mock/document/directory/",
+  getInfoAsync: jest.fn(() => Promise.resolve({ exists: false })),
+  makeDirectoryAsync: jest.fn(() => Promise.resolve()),
+  deleteAsync: jest.fn(() => Promise.resolve()),
+  downloadAsync: jest.fn(() => Promise.resolve({ status: 200 })),
 }));
