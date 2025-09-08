@@ -12,12 +12,12 @@ export const PrivacyPolicyContent: React.FC = () => {
     {
       title: "Information we collect",
       content:
-        "A. Personal Data You Provide:\n• Account Information: Name, email address, and password when you create an account. If you register using Google or Apple, we receive information from that service as permitted by your privacy settings.\n• Child Profile Information: Name, date of birth (month and year), interests/preferences, and physical appearance details (e.g., hair color, eye color). This information is highly sensitive and should only be provided with full consent.\n• User-Generated Content: Story prompts, themes, moods, custom character descriptions, and story concepts.\n\nB. Data Collected Automatically:\nWe do not currently collect usage data or device information automatically, but reserve the right to do so in the future to improve our service.",
+        "A. Personal Data You Provide:\n• Account Information: Name, email address, and password when you create an account. If you register using Google or Apple, we receive information from that service as permitted by your privacy settings.\n• Child Profile Information: Name, date of birth (month and year), interests/preferences, and physical appearance details (e.g., hair color, eye color). This information is highly sensitive and should only be provided with full consent.\n• User-Generated Content: Story prompts, themes, moods, custom character descriptions, and story concepts.\n\nB. Data Collected Automatically:\n• Analytics Data: We use Firebase Analytics to collect usage patterns, app performance data, and feature usage statistics to improve our service. This may include device information, app version, operating system, and anonymous usage metrics.\n• Advertising ID: On Android devices, we collect advertising identifiers for analytics attribution and to understand user acquisition sources.",
     },
     {
       title: "How we use information",
       content:
-        "We use collected information to:\n\n• Create and manage your account\n• Generate personalized stories and illustrations based on provided information\n• Email you regarding your account (such as verification)\n• Improve the efficiency and operation of the app\n• Monitor usage trends to enhance your experience\n• Provide customer support",
+        "We use collected information to:\n\n• Create and manage your account\n• Generate personalized stories and illustrations based on provided information\n• Email you regarding your account (such as verification)\n• Improve the efficiency and operation of the app\n• Monitor usage trends to enhance your experience\n• Analyze app performance and user engagement through Firebase Analytics\n• Understand user acquisition sources and campaign effectiveness\n• Provide customer support",
     },
     {
       title: "Data storage and security",
@@ -32,7 +32,7 @@ export const PrivacyPolicyContent: React.FC = () => {
     {
       title: "Data sharing",
       content:
-        "We do not sell your personal information. We may share information in certain situations:\n\nA. By Law or to Protect Rights:\nWe may share information when necessary to respond to legal process, investigate policy violations, or protect rights, property, and safety.\n\nB. Third-Party Service Providers:\nWe share information with service providers that perform services for us:\n• Backend Hosting: Your data is stored on Google Firebase servers\n• AI Model Providers: To generate stories and illustrations, we send your prompts (including child information and custom text) to AI text generation services (such as OpenAI GPT models) and AI image generation services. These providers have their own privacy policies, and we only send the minimum information required for generation.",
+        "We do not sell your personal information. We may share information in certain situations:\n\nA. By Law or to Protect Rights:\nWe may share information when necessary to respond to legal process, investigate policy violations, or protect rights, property, and safety.\n\nB. Third-Party Service Providers:\nWe share information with service providers that perform services for us:\n• Backend Hosting: Your data is stored on Google Firebase servers\n• Analytics: Firebase Analytics processes usage data to provide insights and analytics services\n• AI Model Providers: To generate stories and illustrations, we send your prompts (including child information and custom text) to AI text generation services (such as OpenAI GPT models) and AI image generation services. These providers have their own privacy policies, and we only send the minimum information required for generation.",
     },
     {
       title: "Your rights",
