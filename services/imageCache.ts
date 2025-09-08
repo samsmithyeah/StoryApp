@@ -313,6 +313,122 @@ class ImageCacheService {
       fileCount: entries.length,
     };
   }
+
+  /**
+   * Clear cache entries for a specific story
+   * @param userId - The user ID
+   * @param storyId - The story ID to clear cache for
+   */
+  async clearStoryCache(userId: string, storyId: string): Promise<void> {
+    await this.init();
+
+    const storyPathPrefix = `stories/${userId}/${storyId}/`;
+    const entriesToDelete: string[] = [];
+
+    // Find all cache entries for this story
+    for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
+      if (storagePath.startsWith(storyPathPrefix)) {
+        entriesToDelete.push(storagePath);
+
+        // Delete the cached file
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
+          if (fileInfo.exists) {
+            await FileSystem.deleteAsync(entry.filePath);
+          }
+        } catch (error) {
+          // Silently handle file deletion errors
+          if (
+            error instanceof Error &&
+            !error.message?.includes("does not exist") &&
+            !error.message?.includes("could not be deleted")
+          ) {
+            logger.warn("Failed to delete story cache file", {
+              filePath: entry.filePath,
+              storyId,
+              error,
+            });
+          }
+        }
+      }
+    }
+
+    // Remove entries from index
+    for (const path of entriesToDelete) {
+      delete this.cacheIndex[path];
+    }
+
+    if (entriesToDelete.length > 0) {
+      await this.saveCacheIndex();
+      logger.debug("Cleared story cache", {
+        storyId,
+        entriesCleared: entriesToDelete.length,
+      });
+    }
+  }
+
+  /**
+   * Clear cache entries for non-existent stories (handles multi-device sync issues)
+   * @param existingStoryIds - Array of story IDs that still exist
+   * @param userId - The user ID
+   */
+  async clearOrphanedStoryCache(
+    existingStoryIds: string[],
+    userId: string
+  ): Promise<void> {
+    await this.init();
+
+    const userStoriesPrefix = `stories/${userId}/`;
+    const entriesToDelete: string[] = [];
+
+    // Find cache entries for stories that no longer exist
+    for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
+      if (storagePath.startsWith(userStoriesPrefix)) {
+        // Extract story ID from path: stories/{userId}/{storyId}/{imageName}
+        const pathParts = storagePath.split("/");
+        if (pathParts.length >= 3) {
+          const storyId = pathParts[2];
+          if (!existingStoryIds.includes(storyId)) {
+            entriesToDelete.push(storagePath);
+
+            // Delete the cached file
+            try {
+              const fileInfo = await FileSystem.getInfoAsync(entry.filePath);
+              if (fileInfo.exists) {
+                await FileSystem.deleteAsync(entry.filePath);
+              }
+            } catch (error) {
+              // Silently handle file deletion errors
+              if (
+                error instanceof Error &&
+                !error.message?.includes("does not exist") &&
+                !error.message?.includes("could not be deleted")
+              ) {
+                logger.warn("Failed to delete orphaned cache file", {
+                  filePath: entry.filePath,
+                  storagePath,
+                  error,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Remove entries from index
+    for (const path of entriesToDelete) {
+      delete this.cacheIndex[path];
+    }
+
+    if (entriesToDelete.length > 0) {
+      await this.saveCacheIndex();
+      logger.debug("Cleared orphaned story cache", {
+        userId,
+        entriesCleared: entriesToDelete.length,
+      });
+    }
+  }
 }
 
 export const imageCache = new ImageCacheService();

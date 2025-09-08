@@ -35,6 +35,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
+import { imageCache } from "../../services/imageCache";
 
 import {
   isTablet,
@@ -83,6 +84,17 @@ export default function LibraryScreen() {
       ) as Story[];
       setStories(list);
       setLoading(false);
+
+      // Clear orphaned cache entries for stories that no longer exist (handles multi-device sync)
+      if (list.length > 0) {
+        const existingStoryIds = list.map((story) => story.id);
+        imageCache
+          .clearOrphanedStoryCache(existingStoryIds, user.uid)
+          .catch((error) => {
+            // Silently handle cache cleanup errors - don't affect UI
+            console.warn("Failed to clear orphaned cache", error);
+          });
+      }
     });
     return unsub;
   }, [user]);
