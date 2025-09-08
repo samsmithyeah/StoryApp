@@ -358,30 +358,32 @@ class ImageCacheService {
     await this.init();
 
     const storyPathPrefix = `stories/${userId}/${storyId}/`;
-    const entriesToDelete: string[] = [];
+    const pathsToDelete = Object.keys(this.cacheIndex).filter((path) =>
+      path.startsWith(storyPathPrefix)
+    );
 
-    // Find all cache entries for this story
-    for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
-      if (storagePath.startsWith(storyPathPrefix)) {
-        entriesToDelete.push(storagePath);
-
-        // Delete the cached file
-        await this.deleteCacheFile(entry, { storyId });
-      }
+    if (pathsToDelete.length === 0) {
+      return;
     }
 
-    // Remove entries from index
-    for (const path of entriesToDelete) {
+    // Delete files in parallel for better performance
+    await Promise.all(
+      pathsToDelete.map((path) => {
+        const entry = this.cacheIndex[path];
+        return this.deleteCacheFile(entry, { storyId });
+      })
+    );
+
+    // Remove entries from the index
+    for (const path of pathsToDelete) {
       delete this.cacheIndex[path];
     }
 
-    if (entriesToDelete.length > 0) {
-      await this.saveCacheIndex();
-      logger.debug("Cleared story cache", {
-        storyId,
-        entriesCleared: entriesToDelete.length,
-      });
-    }
+    await this.saveCacheIndex();
+    logger.debug("Cleared story cache", {
+      storyId,
+      entriesCleared: pathsToDelete.length,
+    });
   }
 
   /**
@@ -396,40 +398,43 @@ class ImageCacheService {
     await this.init();
 
     const userStoriesPrefix = `stories/${userId}/`;
-    const entriesToDelete: string[] = [];
-
-    // For efficient lookups, convert the array of existing story IDs to a Set
     const existingStoryIdsSet = new Set(existingStoryIds);
 
-    // Find cache entries for stories that no longer exist
-    for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
-      if (storagePath.startsWith(userStoriesPrefix)) {
-        // Extract story ID from path: stories/{userId}/{storyId}/{imageName}
-        const pathParts = storagePath.split("/");
-        if (pathParts.length >= 3) {
-          const storyId = pathParts[2];
-          if (!existingStoryIdsSet.has(storyId)) {
-            entriesToDelete.push(storagePath);
-
-            // Delete the cached file
-            await this.deleteCacheFile(entry, { storagePath });
-          }
-        }
+    const orphanedPaths = Object.keys(this.cacheIndex).filter((storagePath) => {
+      if (!storagePath.startsWith(userStoriesPrefix)) {
+        return false;
       }
+      // Extract story ID from path: stories/{userId}/{storyId}/{imageName}
+      const pathParts = storagePath.split("/");
+      if (pathParts.length >= 3) {
+        const storyId = pathParts[2];
+        return !existingStoryIdsSet.has(storyId);
+      }
+      return false;
+    });
+
+    if (orphanedPaths.length === 0) {
+      return;
     }
 
-    // Remove entries from index
-    for (const path of entriesToDelete) {
+    // Delete orphaned files in parallel
+    await Promise.all(
+      orphanedPaths.map((path) => {
+        const entry = this.cacheIndex[path];
+        return this.deleteCacheFile(entry, { storagePath: path });
+      })
+    );
+
+    // Remove entries from the index
+    for (const path of orphanedPaths) {
       delete this.cacheIndex[path];
     }
 
-    if (entriesToDelete.length > 0) {
-      await this.saveCacheIndex();
-      logger.debug("Cleared orphaned story cache", {
-        userId,
-        entriesCleared: entriesToDelete.length,
-      });
-    }
+    await this.saveCacheIndex();
+    logger.debug("Cleared orphaned story cache", {
+      userId,
+      entriesCleared: orphanedPaths.length,
+    });
   }
 }
 
