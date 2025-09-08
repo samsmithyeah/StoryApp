@@ -398,6 +398,9 @@ class ImageCacheService {
     const userStoriesPrefix = `stories/${userId}/`;
     const entriesToDelete: string[] = [];
 
+    // For efficient lookups, convert the array of existing story IDs to a Set
+    const existingStoryIdsSet = new Set(existingStoryIds);
+
     // Find cache entries for stories that no longer exist
     for (const [storagePath, entry] of Object.entries(this.cacheIndex)) {
       if (storagePath.startsWith(userStoriesPrefix)) {
@@ -405,7 +408,7 @@ class ImageCacheService {
         const pathParts = storagePath.split("/");
         if (pathParts.length >= 3) {
           const storyId = pathParts[2];
-          if (!existingStoryIds.includes(storyId)) {
+          if (!existingStoryIdsSet.has(storyId)) {
             entriesToDelete.push(storagePath);
 
             // Delete the cached file

@@ -13,7 +13,9 @@ import { IconSymbol } from "../ui/IconSymbol";
 export interface SettingsMenuItemProps {
   title: string;
   subtitle?: string;
+  /** Ionicons name - used in main settings screen */
   iconName?: keyof typeof Ionicons.glyphMap;
+  /** SF Symbol name - used in support section */
   icon?: string;
   onPress: () => void;
   showChevron?: boolean;
@@ -33,8 +35,10 @@ export function SettingsMenuItem({
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.iconContainer}>
         {iconName ? (
+          // Use Ionicons for main settings screen
           <Ionicons name={iconName} size={24} color={Colors.primary} />
         ) : (
+          // Use SF Symbols for support section and fallback
           <IconSymbol
             name={icon ?? "questionmark.circle"}
             size={24}
