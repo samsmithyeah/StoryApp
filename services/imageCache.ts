@@ -404,9 +404,9 @@ class ImageCacheService {
       if (!storagePath.startsWith(userStoriesPrefix)) {
         return false;
       }
-      // Extract story ID from path: stories/{userId}/{storyId}/{imageName}
+      // Expecting path like: stories/{userId}/{storyId}/{imageName}
       const pathParts = storagePath.split("/");
-      if (pathParts.length >= 3) {
+      if (pathParts.length === 4 && pathParts[2]) {
         const storyId = pathParts[2];
         return !existingStoryIdsSet.has(storyId);
       }
