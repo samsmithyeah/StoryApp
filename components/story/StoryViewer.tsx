@@ -49,7 +49,10 @@ const CREAM_COLOR = "#F5E6C8";
 interface StoryViewerProps {
   story: Story;
   onClose?: () => void;
-  onRetryImageGeneration?: (storyId: string, pageIndex: number) => void;
+  onRetryImageGeneration?: (
+    storyId: string,
+    pageIndex: number
+  ) => Promise<void>;
 }
 
 const StoryViewerComponent: React.FC<StoryViewerProps> = ({
@@ -243,7 +246,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
         logger.info(
           `StoryViewer calling retry for story ${story.id}, page ${pageIndex}`
         );
-        onRetryImageGeneration(story.id, pageIndex);
+        await onRetryImageGeneration(story.id, pageIndex);
         // If we get here, the call succeeded and UI is already updated correctly
       } catch (error) {
         // If retry failed, revert to original states
