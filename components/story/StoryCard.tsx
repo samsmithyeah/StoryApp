@@ -1,5 +1,6 @@
 // components/story/StoryCard.tsx
 import { useStorageUrl } from "@/hooks/useStorageUrl";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Story } from "@/types/story.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,10 +21,7 @@ import { StoryCardMenu } from "./StoryCardMenu";
 
 /* ---------- sizing helpers ---------- */
 const { width } = Dimensions.get("window");
-const COLS = width >= 768 ? 3 : 2; // 3 on tablets, 2 on phones
-const GAP = 20; // must match LibraryScreen.grid.gap
-const CARD_W = (width - 2 * 24 - (COLS - 1) * GAP) / COLS;
-const CARD_H = CARD_W * 1.46; // ≈ 2 : 3 portrait ratio
+// Fallback initial font sizes used by base styles; overridden responsively in component
 const TITLE_SIZE = width >= 768 ? 36 : width < 360 ? 14 : width < 390 ? 16 : 18;
 const SUBTITLE_SIZE =
   width >= 768 ? 18 : width < 360 ? 10 : width < 390 ? 11 : 12;
@@ -36,6 +34,13 @@ interface StoryCardProps {
 
 export const StoryCard: React.FC<StoryCardProps> = React.memo(
   ({ story, onPress }) => {
+    const {
+      gap,
+      cardWidth: cardW,
+      cardHeight: cardH,
+      titleSize,
+      subtitleSize,
+    } = useResponsiveLayout();
     const [imageError, setImageError] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
     const [menuVisible, setMenuVisible] = useState(false);
@@ -71,7 +76,12 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
 
     /* ---------- render ---------- */
     return (
-      <View style={[styles.card, { width: CARD_W, height: CARD_H }]}>
+      <View
+        style={[
+          styles.card,
+          { width: cardW, height: cardH, marginBottom: gap },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => onPress(story.id)}
@@ -156,10 +166,16 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
 
         {/* meta block ---------------------------------------------------- */}
         <View style={styles.meta} pointerEvents="none">
-          <Text numberOfLines={4} style={styles.title}>
+          <Text
+            numberOfLines={4}
+            style={[
+              styles.title,
+              { fontSize: titleSize, lineHeight: titleSize + 2 },
+            ]}
+          >
             {story.title}
           </Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>
             {formatDate(story.createdAt)} – {pageCount} pages
           </Text>
         </View>
@@ -195,7 +211,6 @@ const styles = StyleSheet.create({
     borderColor: "#D4AF37",
     borderRadius: 18,
     overflow: "hidden",
-    marginBottom: GAP,
     backgroundColor: Colors.cardBackground,
     ...Shadows.glowStrong,
   },

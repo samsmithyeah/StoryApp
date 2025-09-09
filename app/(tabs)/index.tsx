@@ -32,6 +32,7 @@ import { StoryCard } from "../../components/story/StoryCard";
 import { Button } from "../../components/ui/Button";
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { Story } from "../../types/story.types";
@@ -56,6 +57,12 @@ const emptyTop = Math.round(
 export default function LibraryScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const {
+    columns,
+    gap: dynamicGap,
+    brandFontSize,
+    taglineFontSize,
+  } = useResponsiveLayout();
 
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +208,8 @@ export default function LibraryScreen() {
           />
         </Animated.View>
 
-        <Animated.ScrollView
+        <Animated.FlatList
+          key={`cols-${columns}`}
           style={[styles.scrollView, { marginTop: -insets.top }]}
           contentContainerStyle={[
             styles.scrollContent,
@@ -217,26 +225,33 @@ export default function LibraryScreen() {
               tintColor="#D4AF37"
             />
           }
-        >
-          {stories.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <>
-              <View style={styles.hero}>
-                <Text style={styles.brand}>DreamWeaver</Text>
-                <Text style={styles.tagline}>{TAGLINE}</Text>
-              </View>
-
-              <Text style={styles.sectionLabel}>LIBRARY</Text>
-
-              <View style={styles.grid}>
-                {stories.map((s) => (
-                  <StoryCard key={s.id} story={s} onPress={openStory} />
-                ))}
-              </View>
-            </>
+          data={stories}
+          keyExtractor={(item: Story) => item.id}
+          numColumns={columns}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            gap: dynamicGap,
+          }}
+          ListHeaderComponent={
+            stories.length > 0 ? (
+              <>
+                <View style={styles.hero}>
+                  <Text style={[styles.brand, { fontSize: brandFontSize }]}>
+                    DreamWeaver
+                  </Text>
+                  <Text style={[styles.tagline, { fontSize: taglineFontSize }]}>
+                    {TAGLINE}
+                  </Text>
+                </View>
+                <Text style={styles.sectionLabel}>LIBRARY</Text>
+              </>
+            ) : null
+          }
+          ListEmptyComponent={<EmptyState />}
+          renderItem={({ item }) => (
+            <StoryCard story={item} onPress={openStory} />
           )}
-        </Animated.ScrollView>
+        />
       </View>
     </ImageBackground>
   );

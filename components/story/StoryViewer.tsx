@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
   ImageBackground,
   Platform,
   ScrollView,
@@ -69,7 +70,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [readingStartTime] = useState(Date.now());
   const hasTrackedCompletion = useRef(false);
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<any>>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -172,11 +173,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
 
   // keep correct offset after rotation / inset change
   useEffect(() => {
-    scrollViewRef.current?.scrollTo({
-      x: currentPage * pageWidth,
-      y: 0,
-      animated: false,
-    });
+    // Ensure we stay on the same page index when dimensions change
+    listRef.current?.scrollToIndex({ index: currentPage, animated: false });
   }, [pageWidth, currentPage]);
 
   const handleImageLoad = (idx: number) =>
@@ -245,15 +243,9 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       if (!story.storyContent) return;
       if (idx < 0 || idx >= totalPages) return;
 
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({
-          x: idx * pageWidth,
-          y: 0,
-          animated: true,
-        });
-      }
+      listRef.current?.scrollToIndex({ index: idx, animated: true });
     },
-    [story.storyContent, pageWidth, totalPages]
+    [story.storyContent, totalPages]
   );
 
   const handleNewStory = useCallback(() => {
@@ -463,8 +455,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <ScrollView
-              ref={scrollViewRef}
+            <FlatList
+              ref={listRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -475,19 +467,43 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
               ]}
               scrollEnabled={true}
               decelerationRate="fast"
-            >
-              {story.storyContent.map((p, i) => renderPage(p, i))}
-              {/* The End Screen */}
-              <View
-                key="end-screen"
-                style={[styles.pageContainer, { width: pageWidth }]}
-              >
-                <TheEndScreen
-                  onNewStory={handleNewStory}
-                  onBackToLibrary={handleBackToLibrary}
-                />
-              </View>
-            </ScrollView>
+              data={Array.from({ length: totalPages }, (_, i) => i)}
+              keyExtractor={(i) => String(i)}
+              renderItem={({ index }) =>
+                index < (story.storyContent?.length || 0) ? (
+                  renderPage(story.storyContent[index], index)
+                ) : (
+                  <View style={[styles.pageContainer, { width: pageWidth }]}>
+                    <TheEndScreen
+                      onNewStory={handleNewStory}
+                      onBackToLibrary={handleBackToLibrary}
+                    />
+                  </View>
+                )
+              }
+              getItemLayout={(_, index) => ({
+                length: pageWidth,
+                offset: pageWidth * index,
+                index,
+              })}
+              initialScrollIndex={0}
+              onScrollToIndexFailed={(info) => {
+                // In rare cases right after layout change, try again quickly
+                setTimeout(() => {
+                  listRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: false,
+                  });
+                }, 50);
+              }}
+              extraData={{
+                pageWidth,
+                imageLoading,
+                imageErrors,
+                textPanelMaxHeight,
+                availableHeight,
+              }}
+            />
           </Animated.View>
 
           {/* NAV ARROWS */}
