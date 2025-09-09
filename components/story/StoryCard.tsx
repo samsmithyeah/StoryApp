@@ -1,6 +1,6 @@
 // components/story/StoryCard.tsx
-import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     backgroundColor: Colors.cardBackground,
-    ...Shadows.glowStrong,
+    ...Shadows.glowIos,
   },
 
   placeholder: {

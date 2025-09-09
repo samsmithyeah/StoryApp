@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardSectionBorder,
     marginBottom: Spacing.sm,
-    ...Shadows.glow,
+    ...Shadows.glowIos,
   },
   iconContainer: {
     width: 48,
