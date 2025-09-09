@@ -139,6 +139,16 @@ export const Shadows = {
     },
   }),
 
+  glowIos: Platform.select({
+    ios: {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 12,
+    },
+    android: {},
+  }),
+
   // Stronger glow (outer glow for buttons)
   glowStrong: Platform.select({
     ios: {

@@ -19,7 +19,6 @@ import React, {
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   ImageBackground,
   RefreshControl,
@@ -32,32 +31,54 @@ import { StoryCard } from "../../components/story/StoryCard";
 import { Button } from "../../components/ui/Button";
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
-import { Story } from "../../types/story.types";
 import { imageCache } from "../../services/imageCache";
+import { Story } from "../../types/story.types";
 import { logger } from "../../utils/logger";
 
 import {
-  isTablet,
   isPhoneMiddle,
   isPhoneSmall,
+  isTablet,
   isVerySmallScreen,
 } from "../../constants/Theme";
-
-const { height } = Dimensions.get("window"); // Still needed for emptyTop calculation
-const GAP = isTablet() ? 20 : 16;
-const emptyTop = Math.round(
-  height * (isTablet() ? 0.25 : isVerySmallScreen() ? 0.12 : 0.18)
-);
 
 /* --------------------------------------------------------------------- */
 
 export default function LibraryScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const {
+    columns,
+    gap: dynamicGap,
+    brandFontSize,
+    taglineFontSize,
+    emptyStateTopPadding,
+  } = useResponsiveLayout();
 
   const [stories, setStories] = useState<Story[]>([]);
+
+  // Memoize ListHeaderComponent to prevent unnecessary re-renders
+  const listHeaderComponent = useMemo(() => {
+    if (stories.length === 0) return null;
+
+    return (
+      <>
+        <View style={styles.hero}>
+          <Text style={[styles.brand, { fontSize: brandFontSize }]}>
+            DreamWeaver
+          </Text>
+          <Text style={[styles.tagline, { fontSize: taglineFontSize }]}>
+            {TAGLINE}
+          </Text>
+        </View>
+        <Text style={styles.sectionLabel}>LIBRARY</Text>
+      </>
+    );
+  }, [stories.length, brandFontSize, taglineFontSize]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -113,6 +134,14 @@ export default function LibraryScreen() {
     (storyId: string) =>
       router.push({ pathname: "/story/[id]", params: { id: storyId } }),
     []
+  );
+
+  // Memoize renderItem to prevent unnecessary re-renders of list items
+  const renderStoryCard = useCallback(
+    ({ item }: { item: Story }) => (
+      <StoryCard story={item} onPress={openStory} />
+    ),
+    [openStory]
   );
 
   const handleScroll = Animated.event(
@@ -201,11 +230,12 @@ export default function LibraryScreen() {
           />
         </Animated.View>
 
-        <Animated.ScrollView
+        <Animated.FlatList
+          key={`cols-${columns}`}
           style={[styles.scrollView, { marginTop: -insets.top }]}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: heroTop },
+            { paddingTop: heroTop, rowGap: dynamicGap },
           ]}
           contentInsetAdjustmentBehavior="never"
           onScroll={handleScroll}
@@ -217,26 +247,19 @@ export default function LibraryScreen() {
               tintColor="#D4AF37"
             />
           }
-        >
-          {stories.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <>
-              <View style={styles.hero}>
-                <Text style={styles.brand}>DreamWeaver</Text>
-                <Text style={styles.tagline}>{TAGLINE}</Text>
-              </View>
-
-              <Text style={styles.sectionLabel}>LIBRARY</Text>
-
-              <View style={styles.grid}>
-                {stories.map((s) => (
-                  <StoryCard key={s.id} story={s} onPress={openStory} />
-                ))}
-              </View>
-            </>
-          )}
-        </Animated.ScrollView>
+          data={stories}
+          keyExtractor={(item: Story) => item.id}
+          numColumns={columns}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            gap: dynamicGap,
+          }}
+          ListHeaderComponent={listHeaderComponent}
+          ListEmptyComponent={
+            <EmptyState emptyStateTopPadding={emptyStateTopPadding} />
+          }
+          renderItem={renderStoryCard}
+        />
       </View>
     </ImageBackground>
   );
@@ -284,7 +307,11 @@ function Decorations() {
 /* empty-state component (unchanged)                                     */
 /* --------------------------------------------------------------------- */
 
-function EmptyState() {
+function EmptyState({
+  emptyStateTopPadding,
+}: {
+  emptyStateTopPadding: number;
+}) {
   const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -311,7 +338,7 @@ function EmptyState() {
   );
 
   return (
-    <View style={[styles.emptyContainer, { paddingTop: emptyTop }]}>
+    <View style={[styles.emptyContainer, { paddingTop: emptyStateTopPadding }]}>
       <Animated.Image
         source={require("../../assets/images/butterfly.png")}
         style={butterflyStyle}
@@ -401,17 +428,10 @@ const styles = StyleSheet.create({
 
   /* library grid ------------------------------------------------------ */
   sectionLabel: {
-    //fontSize: 20,
     fontSize: isTablet() ? 20 : isPhoneSmall() ? 14 : 16,
     color: "#FFF",
     letterSpacing: 1.6,
-    marginBottom: 24,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: GAP,
+    marginBottom: 8,
   },
 
   /* decorative sprites ------------------------------------------------ */

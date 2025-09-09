@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: Colors.cardBackground,
     overflow: "hidden",
-    ...Shadows.glow,
+    ...Shadows.glowIos,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },

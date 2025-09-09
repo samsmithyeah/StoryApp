@@ -2,10 +2,17 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
   ImageBackground,
   Platform,
   ScrollView,
@@ -42,7 +49,10 @@ const CREAM_COLOR = "#F5E6C8";
 interface StoryViewerProps {
   story: Story;
   onClose?: () => void;
-  onRetryImageGeneration?: (storyId: string, pageIndex: number) => void;
+  onRetryImageGeneration?: (
+    storyId: string,
+    pageIndex: number
+  ) => Promise<void>;
 }
 
 const StoryViewerComponent: React.FC<StoryViewerProps> = ({
@@ -69,7 +79,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const [readingStartTime] = useState(Date.now());
   const hasTrackedCompletion = useRef(false);
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<number>>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -89,6 +99,12 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
 
   const totalPages = story.storyContent ? story.storyContent.length + 1 : 0; // +1 for the end screen
+
+  // Memoize the FlatList data array to prevent unnecessary re-renders
+  const flatListData = useMemo(
+    () => Array.from({ length: totalPages }, (_, i) => i),
+    [totalPages]
+  );
 
   useEffect(() => {
     if (Array.isArray(story.storyContent)) {
@@ -172,21 +188,22 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
 
   // keep correct offset after rotation / inset change
   useEffect(() => {
-    scrollViewRef.current?.scrollTo({
-      x: currentPage * pageWidth,
-      y: 0,
-      animated: false,
-    });
-  }, [pageWidth, currentPage]);
+    // Ensure we stay on the same page index when dimensions change
+    listRef.current?.scrollToIndex({ index: currentPage, animated: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageWidth]); // intentionally omitting currentPage - only for dimension changes
 
-  const handleImageLoad = (idx: number) =>
-    setImageLoading((prev) => {
-      const next = [...prev];
-      next[idx] = false;
-      return next;
-    });
+  const handleImageLoad = useCallback(
+    (idx: number) =>
+      setImageLoading((prev) => {
+        const next = [...prev];
+        next[idx] = false;
+        return next;
+      }),
+    []
+  );
 
-  const handleImageError = (idx: number) => {
+  const handleImageError = useCallback((idx: number) => {
     setImageLoading((prev) => {
       const next = [...prev];
       next[idx] = false;
@@ -197,7 +214,11 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       next[idx] = true;
       return next;
     });
-  };
+  }, []);
+
+  // Use ref to access latest state values without causing callback recreation
+  const imageStateRef = useRef({ imageErrors, imageLoading });
+  imageStateRef.current = { imageErrors, imageLoading };
 
   const handleRetryClick = useCallback(
     async (pageIndex: number) => {
@@ -206,8 +227,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       setRetryingGeneration(true);
 
       // Store original states in case we need to revert
-      const originalImageErrors = [...imageErrors];
-      const originalImageLoading = [...imageLoading];
+      const originalImageErrors = [...imageStateRef.current.imageErrors];
+      const originalImageLoading = [...imageStateRef.current.imageLoading];
 
       try {
         // Optimistically update UI before the call
@@ -237,7 +258,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
         setRetryingGeneration(false);
       }
     },
-    [onRetryImageGeneration, story.id, imageErrors, imageLoading]
+    [onRetryImageGeneration, story.id]
   );
 
   const goToPage = useCallback(
@@ -245,15 +266,10 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       if (!story.storyContent) return;
       if (idx < 0 || idx >= totalPages) return;
 
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({
-          x: idx * pageWidth,
-          y: 0,
-          animated: true,
-        });
-      }
+      listRef.current?.scrollToIndex({ index: idx, animated: true });
     },
-    [story.storyContent, pageWidth, totalPages]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [story.storyContent] // intentionally omitting totalPages - it's derived from story.storyContent
   );
 
   const handleNewStory = useCallback(() => {
@@ -269,116 +285,162 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
     if (pageIdx !== currentPage) setCurrentPage(pageIdx);
   };
 
-  const renderPage = (page: any, index: number) => {
-    const pageText = page.text || "";
-    const imageUrl = imageUrls[index];
+  const renderPage = useCallback(
+    (page: any, index: number) => {
+      const pageText = page.text || "";
+      const imageUrl = imageUrls[index];
 
-    return (
-      <View key={index} style={[styles.pageContainer, { width: pageWidth }]}>
-        <View style={styles.pageContent}>
-          <View style={styles.storyCardWrapper}>
-            <View style={[styles.storyCard, { height: availableHeight }]}>
-              {hasImages && (
-                <View style={[styles.imageContainer, styles.imageFlex]}>
-                  {imageLoading[index] && !imageErrors[index] && (
-                    <View style={styles.imageLoader}>
-                      {!page.imageUrl &&
-                      (story.imageGenerationStatus === "generating" ||
-                        story.imageGenerationStatus === "pending") ? (
-                        <LoadingSpinner size="medium" showGlow={false} />
-                      ) : (
-                        <ActivityIndicator
-                          size="large"
-                          color={Colors.primary}
-                        />
-                      )}
-                    </View>
-                  )}
-                  {imageErrors[index] ? (
-                    <View style={styles.errorImage}>
-                      <IconSymbol
-                        name="exclamationmark.triangle"
-                        size={48}
-                        color={Colors.error}
-                      />
-                      <Text style={styles.errorText}>
-                        {story.imageGenerationStatus === "failed"
-                          ? "Image generation failed"
-                          : "Image failed to load"}
-                      </Text>
-                      {story.imageGenerationStatus === "failed" &&
-                        onRetryImageGeneration && (
-                          <Button
-                            title={retryingGeneration ? "Retrying..." : "Retry"}
-                            onPress={() => handleRetryClick(index)}
-                            variant="outline"
-                            size="small"
-                            style={styles.retryButton}
-                            disabled={retryingGeneration}
+      return (
+        <View key={index} style={[styles.pageContainer, { width: pageWidth }]}>
+          <View style={styles.pageContent}>
+            <View style={styles.storyCardWrapper}>
+              <View style={[styles.storyCard, { height: availableHeight }]}>
+                {hasImages && (
+                  <View style={[styles.imageContainer, styles.imageFlex]}>
+                    {imageLoading[index] && !imageErrors[index] && (
+                      <View style={styles.imageLoader}>
+                        {!page.imageUrl &&
+                        (story.imageGenerationStatus === "generating" ||
+                          story.imageGenerationStatus === "pending") ? (
+                          <LoadingSpinner size="medium" showGlow={false} />
+                        ) : (
+                          <ActivityIndicator
+                            size="large"
+                            color={Colors.primary}
                           />
                         )}
-                    </View>
-                  ) : imageUrl ? (
-                    <Image
-                      source={{ uri: imageUrl }}
-                      style={styles.pageImage}
-                      contentFit="cover"
-                      onLoad={() => handleImageLoad(index)}
-                      onError={() => handleImageError(index)}
-                    />
-                  ) : !imageLoading[index] ? (
-                    <View style={styles.errorImage}>
-                      <IconSymbol
-                        name="photo.badge.exclamationmark"
-                        size={48}
-                        color={Colors.textMuted}
+                      </View>
+                    )}
+                    {imageErrors[index] ? (
+                      <View style={styles.errorImage}>
+                        <IconSymbol
+                          name="exclamationmark.triangle"
+                          size={48}
+                          color={Colors.error}
+                        />
+                        <Text style={styles.errorText}>
+                          {story.imageGenerationStatus === "failed"
+                            ? "Image generation failed"
+                            : "Image failed to load"}
+                        </Text>
+                        {story.imageGenerationStatus === "failed" &&
+                          onRetryImageGeneration && (
+                            <Button
+                              title={
+                                retryingGeneration ? "Retrying..." : "Retry"
+                              }
+                              onPress={() => handleRetryClick(index)}
+                              variant="outline"
+                              size="small"
+                              style={styles.retryButton}
+                              disabled={retryingGeneration}
+                            />
+                          )}
+                      </View>
+                    ) : imageUrl ? (
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.pageImage}
+                        contentFit="cover"
+                        onLoad={() => handleImageLoad(index)}
+                        onError={() => handleImageError(index)}
                       />
-                      <Text style={styles.errorText}>No image available</Text>
-                    </View>
-                  ) : null}
-                </View>
-              )}
+                    ) : !imageLoading[index] ? (
+                      <View style={styles.errorImage}>
+                        <IconSymbol
+                          name="photo.badge.exclamationmark"
+                          size={48}
+                          color={Colors.textMuted}
+                        />
+                        <Text style={styles.errorText}>No image available</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
 
-              <View
-                style={[
-                  styles.textPanel,
-                  !hasImages && styles.textPanelNoImages,
-                  {
-                    maxHeight: hasImages ? textPanelMaxHeight : availableHeight,
-                  },
-                ]}
-              >
-                <ScrollView
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator={false}
-                  style={{
-                    flexGrow: 0,
-                    maxHeight: hasImages
-                      ? textPanelMaxHeight - 24
-                      : availableHeight - 28,
-                  }}
-                  contentContainerStyle={{ paddingBottom: Spacing.sm }}
+                <View
+                  style={[
+                    styles.textPanel,
+                    !hasImages && styles.textPanelNoImages,
+                    {
+                      maxHeight: hasImages
+                        ? textPanelMaxHeight
+                        : availableHeight,
+                    },
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.pageText,
-                      !hasImages && styles.pageTextLarge,
-                      { textAlign: "center" },
-                    ]}
+                  <ScrollView
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                    style={{
+                      flexGrow: 0,
+                      maxHeight: hasImages
+                        ? textPanelMaxHeight - 24
+                        : availableHeight - 28,
+                    }}
+                    contentContainerStyle={{ paddingBottom: Spacing.sm }}
                   >
-                    {pageText}
+                    <Text
+                      style={[
+                        styles.pageText,
+                        !hasImages && styles.pageTextLarge,
+                        { textAlign: "center" },
+                      ]}
+                    >
+                      {pageText}
+                    </Text>
+                  </ScrollView>
+                  <Text style={styles.pageNumber}>
+                    Page {page.page} of {story.storyContent?.length || 0}
                   </Text>
-                </ScrollView>
-                <Text style={styles.pageNumber}>
-                  Page {page.page} of {story.storyContent?.length || 0}
-                </Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </View>
-    );
-  };
+      );
+    },
+    [
+      pageWidth,
+      availableHeight,
+      textPanelMaxHeight,
+      hasImages,
+      imageUrls,
+      imageLoading,
+      imageErrors,
+      story.imageGenerationStatus,
+      story.storyContent,
+      handleImageLoad,
+      handleImageError,
+      handleRetryClick,
+      retryingGeneration,
+      onRetryImageGeneration,
+    ]
+  );
+
+  // Memoize renderItem to prevent unnecessary page re-renders
+  const renderItem = useCallback(
+    ({ index }: { index: number }) => {
+      if (index < (story.storyContent?.length || 0)) {
+        return renderPage(story.storyContent[index], index);
+      }
+      return (
+        <View style={[styles.pageContainer, { width: pageWidth }]}>
+          <TheEndScreen
+            onNewStory={handleNewStory}
+            onBackToLibrary={handleBackToLibrary}
+          />
+        </View>
+      );
+    },
+    [
+      story.storyContent,
+      renderPage,
+      pageWidth,
+      handleNewStory,
+      handleBackToLibrary,
+    ]
+  );
 
   if (!Array.isArray(story.storyContent) || story.storyContent.length === 0) {
     return (
@@ -463,8 +525,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <ScrollView
-              ref={scrollViewRef}
+            <FlatList
+              ref={listRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -475,19 +537,32 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
               ]}
               scrollEnabled={true}
               decelerationRate="fast"
-            >
-              {story.storyContent.map((p, i) => renderPage(p, i))}
-              {/* The End Screen */}
-              <View
-                key="end-screen"
-                style={[styles.pageContainer, { width: pageWidth }]}
-              >
-                <TheEndScreen
-                  onNewStory={handleNewStory}
-                  onBackToLibrary={handleBackToLibrary}
-                />
-              </View>
-            </ScrollView>
+              data={flatListData}
+              keyExtractor={(i) => String(i)}
+              renderItem={renderItem}
+              getItemLayout={(_, index) => ({
+                length: pageWidth,
+                offset: pageWidth * index,
+                index,
+              })}
+              initialScrollIndex={0}
+              onScrollToIndexFailed={(info) => {
+                // In rare cases right after layout change, try again quickly
+                setTimeout(() => {
+                  listRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: false,
+                  });
+                }, 50);
+              }}
+              extraData={{
+                pageWidth,
+                imageLoading,
+                imageErrors,
+                textPanelMaxHeight,
+                availableHeight,
+              }}
+            />
           </Animated.View>
 
           {/* NAV ARROWS */}
