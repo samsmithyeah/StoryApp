@@ -2,7 +2,13 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -90,6 +96,12 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   const textPanelMaxHeight = Math.round(availableHeight * textPanelMaxPct);
 
   const totalPages = story.storyContent ? story.storyContent.length + 1 : 0; // +1 for the end screen
+
+  // Memoize the FlatList data array to prevent unnecessary re-renders
+  const flatListData = useMemo(
+    () => Array.from({ length: totalPages }, (_, i) => i),
+    [totalPages]
+  );
 
   useEffect(() => {
     if (Array.isArray(story.storyContent)) {
@@ -467,7 +479,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
               ]}
               scrollEnabled={true}
               decelerationRate="fast"
-              data={Array.from({ length: totalPages }, (_, i) => i)}
+              data={flatListData}
               keyExtractor={(i) => String(i)}
               renderItem={({ index }) =>
                 index < (story.storyContent?.length || 0) ? (

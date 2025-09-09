@@ -213,7 +213,7 @@ export default function LibraryScreen() {
           style={[styles.scrollView, { marginTop: -insets.top }]}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: heroTop },
+            { paddingTop: heroTop, rowGap: dynamicGap },
           ]}
           contentInsetAdjustmentBehavior="never"
           onScroll={handleScroll}

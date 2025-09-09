@@ -35,7 +35,6 @@ interface StoryCardProps {
 export const StoryCard: React.FC<StoryCardProps> = React.memo(
   ({ story, onPress }) => {
     const {
-      gap,
       cardWidth: cardW,
       cardHeight: cardH,
       titleSize,
@@ -76,12 +75,7 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
 
     /* ---------- render ---------- */
     return (
-      <View
-        style={[
-          styles.card,
-          { width: cardW, height: cardH, marginBottom: gap },
-        ]}
-      >
+      <View style={[styles.card, { width: cardW, height: cardH }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => onPress(story.id)}
