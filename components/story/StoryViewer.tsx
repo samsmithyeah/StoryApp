@@ -213,6 +213,10 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
     });
   }, []);
 
+  // Use ref to access latest state values without causing callback recreation
+  const imageStateRef = useRef({ imageErrors, imageLoading });
+  imageStateRef.current = { imageErrors, imageLoading };
+
   const handleRetryClick = useCallback(
     async (pageIndex: number) => {
       if (!onRetryImageGeneration) return;
@@ -220,8 +224,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
       setRetryingGeneration(true);
 
       // Store original states in case we need to revert
-      const originalImageErrors = [...imageErrors];
-      const originalImageLoading = [...imageLoading];
+      const originalImageErrors = [...imageStateRef.current.imageErrors];
+      const originalImageLoading = [...imageStateRef.current.imageLoading];
 
       try {
         // Optimistically update UI before the call
@@ -251,7 +255,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
         setRetryingGeneration(false);
       }
     },
-    [onRetryImageGeneration, story.id, imageErrors, imageLoading]
+    [onRetryImageGeneration, story.id]
   );
 
   const goToPage = useCallback(
