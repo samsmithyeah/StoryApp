@@ -32,6 +32,7 @@ import { Button } from "../../components/ui/Button";
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import { useLibraryStore } from "../../store/libraryStore";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { imageCache } from "../../services/imageCache";
@@ -58,7 +59,19 @@ export default function LibraryScreen() {
     emptyStateTopPadding,
   } = useResponsiveLayout();
 
-  const [stories, setStories] = useState<Story[]>([]);
+  const {
+    stories,
+    setStories,
+    loading,
+    setLoading,
+    shouldPreserveState,
+    setShouldPreserveState,
+    scrollPosition: _scrollPosition,
+    setScrollPosition,
+    restoreScrollPosition,
+  } = useLibraryStore();
+
+  const flatListRef = useRef<Animated.FlatList<Story>>(null);
 
   // Memoize ListHeaderComponent to prevent unnecessary re-renders
   const listHeaderComponent = useMemo(() => {
@@ -79,7 +92,6 @@ export default function LibraryScreen() {
     );
   }, [stories.length, brandFontSize, taglineFontSize]);
 
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const createButtonTranslateY = useRef(new Animated.Value(0)).current;
@@ -87,8 +99,18 @@ export default function LibraryScreen() {
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
     if (!user) {
-      setStories([]);
+      if (!shouldPreserveState) {
+        setStories([]);
+        setLoading(false);
+      }
+      return;
+    }
+
+    // If we're preserving state and already have stories, don't reload
+    if (shouldPreserveState && stories.length > 0) {
       setLoading(false);
+      restoreScrollPosition(flatListRef.current);
+      setShouldPreserveState(false);
       return;
     }
     const q = query(
@@ -119,7 +141,15 @@ export default function LibraryScreen() {
       }
     });
     return unsub;
-  }, [user]);
+  }, [
+    user,
+    shouldPreserveState,
+    stories.length,
+    restoreScrollPosition,
+    setShouldPreserveState,
+    setStories,
+    setLoading,
+  ]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -128,12 +158,14 @@ export default function LibraryScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [setStories]);
 
   const openStory = useCallback(
-    (storyId: string) =>
-      router.push({ pathname: "/story/[id]", params: { id: storyId } }),
-    []
+    (storyId: string) => {
+      setShouldPreserveState(true);
+      router.push({ pathname: "/story/[id]", params: { id: storyId } });
+    },
+    [setShouldPreserveState]
   );
 
   // Memoize renderItem to prevent unnecessary re-renders of list items
@@ -150,6 +182,9 @@ export default function LibraryScreen() {
       useNativeDriver: false,
       listener: (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
+        // Save scroll position to context
+        setScrollPosition(offsetY);
+
         const buttonHeight = 52;
         const ctaBottomPosition = insets.top + 12 + buttonHeight;
         // Different trigger points for mobile vs tablet
@@ -231,6 +266,7 @@ export default function LibraryScreen() {
         </Animated.View>
 
         <Animated.FlatList
+          ref={flatListRef}
           key={`cols-${columns}`}
           style={[styles.scrollView, { marginTop: -insets.top }]}
           contentContainerStyle={[

@@ -4,7 +4,7 @@ import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -41,6 +41,12 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
     const [menuVisible, setMenuVisible] = useState(false);
     const [isReporting, setIsReporting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Reset image states only when story ID changes to prevent flickering
+    useEffect(() => {
+      setImageError(false);
+      setImageLoading(true);
+    }, [story.id]);
 
     const storagePath = useMemo(
       () => story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
@@ -83,7 +89,10 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
               source={{ uri: imageUrl }}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
-              cachePolicy="memory-disk"
+              cachePolicy="disk"
+              priority="high"
+              recyclingKey={story.id}
+              transition={200}
               onLoad={() => setImageLoading(false)}
               onError={() => {
                 setImageLoading(false);
@@ -190,6 +199,24 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
           </View>
         )}
       </View>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if story content, cover image, or generation status changed
+    return (
+      prevProps.story.id === nextProps.story.id &&
+      prevProps.story.coverImageUrl === nextProps.story.coverImageUrl &&
+      prevProps.story.generationPhase === nextProps.story.generationPhase &&
+      prevProps.story.imageGenerationStatus ===
+        nextProps.story.imageGenerationStatus &&
+      prevProps.story.imagesGenerated === nextProps.story.imagesGenerated &&
+      prevProps.story.totalImages === nextProps.story.totalImages &&
+      prevProps.story.title === nextProps.story.title &&
+      prevProps.story.createdAt === nextProps.story.createdAt &&
+      prevProps.story.storyContent?.length ===
+        nextProps.story.storyContent?.length &&
+      prevProps.story.storyContent?.[0]?.imageUrl ===
+        nextProps.story.storyContent?.[0]?.imageUrl
     );
   }
 );
