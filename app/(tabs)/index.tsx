@@ -141,15 +141,8 @@ export default function LibraryScreen() {
       }
     });
     return unsub;
-  }, [
-    user,
-    shouldPreserveState,
-    stories.length,
-    restoreScrollPosition,
-    setShouldPreserveState,
-    setStories,
-    setLoading,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, shouldPreserveState]); // Zustand setters are stable, stories.length would cause unnecessary re-subscriptions
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -44,13 +44,13 @@ export const useLibraryStore = create<LibraryState>()(
       restoreScrollPosition: (flatListRef: Animated.FlatList<Story> | null) => {
         const { scrollPosition } = get();
         if (flatListRef && scrollPosition > 0) {
-          // Use a small delay to ensure the FlatList is fully rendered
-          setTimeout(() => {
+          // Use requestAnimationFrame to ensure the list has been painted
+          requestAnimationFrame(() => {
             flatListRef?.scrollToOffset({
               offset: scrollPosition,
               animated: false,
             });
-          }, 50);
+          });
         }
       },
 
