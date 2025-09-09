@@ -243,7 +243,7 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
         logger.info(
           `StoryViewer calling retry for story ${story.id}, page ${pageIndex}`
         );
-        await onRetryImageGeneration(story.id, pageIndex);
+        onRetryImageGeneration(story.id, pageIndex);
         // If we get here, the call succeeded and UI is already updated correctly
       } catch (error) {
         // If retry failed, revert to original states

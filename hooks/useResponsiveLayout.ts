@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 
-// Import device type checking functions
-import { isTablet, isVerySmallScreen } from "../constants/Theme";
+// No external device checking functions needed - using consistent dimensions
 
 // Responsive design constants
 const TABLET_BREAKPOINT = 768;
@@ -141,9 +140,9 @@ export function useResponsiveLayout(): ResponsiveLayoutValues {
     // Empty state top padding calculation
     const emptyStateTopPadding = Math.round(
       winHeight *
-        (isTablet()
+        (isTabletDevice
           ? EMPTY_STATE_PADDING_PERCENTAGES.tablet
-          : isVerySmallScreen()
+          : winHeight < 650 // Replaces isVerySmallScreen() for consistency
             ? EMPTY_STATE_PADDING_PERCENTAGES.verySmall
             : EMPTY_STATE_PADDING_PERCENTAGES.default)
     );
