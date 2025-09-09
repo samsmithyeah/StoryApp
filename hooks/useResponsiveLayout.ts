@@ -1,6 +1,55 @@
 import { useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 
+// Responsive design constants
+const TABLET_BREAKPOINT = 768;
+const HORIZONTAL_PADDING = 24;
+const CARD_ASPECT_RATIO = 1.46;
+
+// Device type constants
+const TABLET_GAP = 20;
+const PHONE_GAP = 16;
+
+// Column count constants
+const TABLET_LANDSCAPE_COLUMNS = 4;
+const TABLET_PORTRAIT_COLUMNS = 3;
+const PHONE_LANDSCAPE_COLUMNS = 3;
+const PHONE_PORTRAIT_COLUMNS = 2;
+
+// Typography breakpoints and sizes
+const TYPOGRAPHY_LARGE_BREAKPOINT = 768;
+const TYPOGRAPHY_SMALL_BREAKPOINT = 360;
+const TYPOGRAPHY_MEDIUM_BREAKPOINT = 390;
+const BRAND_MEDIUM_BREAKPOINT = 430;
+
+// Typography sizes
+const TITLE_SIZES = {
+  large: 36,
+  small: 14,
+  medium: 16,
+  default: 18,
+};
+
+const SUBTITLE_SIZES = {
+  large: 18,
+  small: 10,
+  medium: 11,
+  default: 12,
+};
+
+const BRAND_SIZES = {
+  large: 64,
+  small: 34,
+  medium: 40,
+  default: 48,
+};
+
+const TAGLINE_SIZES = {
+  large: 24,
+  small: 14,
+  default: 18,
+};
+
 export interface ResponsiveLayoutValues {
   isLandscape: boolean;
   isTabletDevice: boolean;
@@ -24,32 +73,59 @@ export function useResponsiveLayout(): ResponsiveLayoutValues {
 
   return useMemo(() => {
     const isLandscape = winWidth > winHeight;
-    const isTabletDevice = Math.min(winWidth, winHeight) >= 768;
+    const isTabletDevice = Math.min(winWidth, winHeight) >= TABLET_BREAKPOINT;
 
     // Column calculation based on device type and orientation
     const columns = isTabletDevice
       ? isLandscape
-        ? 4
-        : 3
+        ? TABLET_LANDSCAPE_COLUMNS
+        : TABLET_PORTRAIT_COLUMNS
       : isLandscape
-        ? 3
-        : 2;
+        ? PHONE_LANDSCAPE_COLUMNS
+        : PHONE_PORTRAIT_COLUMNS;
 
     // Gap spacing
-    const gap = isTabletDevice ? 20 : 16;
+    const gap = isTabletDevice ? TABLET_GAP : PHONE_GAP;
 
-    // Card dimensions (assuming 24px horizontal padding on each side)
-    const cardWidth = (winWidth - 2 * 24 - (columns - 1) * gap) / columns;
-    const cardHeight = cardWidth * 1.46; // 2:3 aspect ratio approximately
+    // Card dimensions
+    const cardWidth =
+      (winWidth - 2 * HORIZONTAL_PADDING - (columns - 1) * gap) / columns;
+    const cardHeight = cardWidth * CARD_ASPECT_RATIO;
 
-    // Typography sizes
+    // Typography sizes with responsive breakpoints
     const titleSize =
-      winWidth >= 768 ? 36 : winWidth < 360 ? 14 : winWidth < 390 ? 16 : 18;
+      winWidth >= TYPOGRAPHY_LARGE_BREAKPOINT
+        ? TITLE_SIZES.large
+        : winWidth < TYPOGRAPHY_SMALL_BREAKPOINT
+          ? TITLE_SIZES.small
+          : winWidth < TYPOGRAPHY_MEDIUM_BREAKPOINT
+            ? TITLE_SIZES.medium
+            : TITLE_SIZES.default;
+
     const subtitleSize =
-      winWidth >= 768 ? 18 : winWidth < 360 ? 10 : winWidth < 390 ? 11 : 12;
+      winWidth >= TYPOGRAPHY_LARGE_BREAKPOINT
+        ? SUBTITLE_SIZES.large
+        : winWidth < TYPOGRAPHY_SMALL_BREAKPOINT
+          ? SUBTITLE_SIZES.small
+          : winWidth < TYPOGRAPHY_MEDIUM_BREAKPOINT
+            ? SUBTITLE_SIZES.medium
+            : SUBTITLE_SIZES.default;
+
     const brandFontSize =
-      winWidth >= 768 ? 64 : winWidth < 360 ? 34 : winWidth < 430 ? 40 : 48;
-    const taglineFontSize = winWidth >= 768 ? 24 : winWidth < 360 ? 14 : 18;
+      winWidth >= TYPOGRAPHY_LARGE_BREAKPOINT
+        ? BRAND_SIZES.large
+        : winWidth < TYPOGRAPHY_SMALL_BREAKPOINT
+          ? BRAND_SIZES.small
+          : winWidth < BRAND_MEDIUM_BREAKPOINT
+            ? BRAND_SIZES.medium
+            : BRAND_SIZES.default;
+
+    const taglineFontSize =
+      winWidth >= TYPOGRAPHY_LARGE_BREAKPOINT
+        ? TAGLINE_SIZES.large
+        : winWidth < TYPOGRAPHY_SMALL_BREAKPOINT
+          ? TAGLINE_SIZES.small
+          : TAGLINE_SIZES.default;
 
     return {
       isLandscape,
