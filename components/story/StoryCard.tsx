@@ -202,21 +202,28 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if story content, cover image, or generation status changed
-    return (
-      prevProps.story.id === nextProps.story.id &&
-      prevProps.story.coverImageUrl === nextProps.story.coverImageUrl &&
-      prevProps.story.generationPhase === nextProps.story.generationPhase &&
-      prevProps.story.imageGenerationStatus ===
-        nextProps.story.imageGenerationStatus &&
-      prevProps.story.imagesGenerated === nextProps.story.imagesGenerated &&
-      prevProps.story.totalImages === nextProps.story.totalImages &&
-      prevProps.story.title === nextProps.story.title &&
-      prevProps.story.createdAt === nextProps.story.createdAt &&
-      prevProps.story.storyContent?.length ===
-        nextProps.story.storyContent?.length &&
-      prevProps.story.storyContent?.[0]?.imageUrl ===
-        nextProps.story.storyContent?.[0]?.imageUrl
+    // Create a visual hash of properties that affect the card's appearance
+    const getVisualHash = (story: Story) => ({
+      id: story.id,
+      coverImageUrl: story.coverImageUrl,
+      generationPhase: story.generationPhase,
+      imageGenerationStatus: story.imageGenerationStatus,
+      imagesGenerated: story.imagesGenerated,
+      totalImages: story.totalImages,
+      title: story.title,
+      createdAt: story.createdAt.getTime(),
+      storyContentLength: story.storyContent?.length,
+      firstPageImageUrl: story.storyContent?.[0]?.imageUrl,
+    });
+
+    const prevHash = getVisualHash(prevProps.story);
+    const nextHash = getVisualHash(nextProps.story);
+
+    // Shallow comparison of the hash object
+    return Object.keys(prevHash).every(
+      (key) =>
+        prevHash[key as keyof typeof prevHash] ===
+        nextHash[key as keyof typeof nextHash]
     );
   }
 );

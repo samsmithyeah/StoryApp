@@ -66,9 +66,9 @@ export default function LibraryScreen() {
     setLoading,
     shouldPreserveState,
     setShouldPreserveState,
-    scrollPosition: _scrollPosition,
     setScrollPosition,
     restoreScrollPosition,
+    resetStore,
   } = useLibraryStore();
 
   const flatListRef = useRef<Animated.FlatList<Story>>(null);
@@ -99,10 +99,9 @@ export default function LibraryScreen() {
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
     if (!user) {
-      if (!shouldPreserveState) {
-        setStories([]);
-        setLoading(false);
-      }
+      // Reset the entire store to its initial state on logout
+      // to prevent state leakage between users (e.g., scroll position).
+      resetStore();
       return;
     }
 
@@ -142,7 +141,8 @@ export default function LibraryScreen() {
     });
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, shouldPreserveState]); // Zustand setters are stable, stories.length would cause unnecessary re-subscriptions
+  }, [user, shouldPreserveState]); // Functions from useLibraryStore are stable and created only once.
+  // Omitting stories.length to prevent re-subscribing on every story change.
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
