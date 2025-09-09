@@ -35,14 +35,14 @@ import { useAuth } from "../../hooks/useAuth";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
-import { Story } from "../../types/story.types";
 import { imageCache } from "../../services/imageCache";
+import { Story } from "../../types/story.types";
 import { logger } from "../../utils/logger";
 
 import {
-  isTablet,
   isPhoneMiddle,
   isPhoneSmall,
+  isTablet,
   isVerySmallScreen,
 } from "../../constants/Theme";
 
@@ -65,6 +65,25 @@ export default function LibraryScreen() {
   } = useResponsiveLayout();
 
   const [stories, setStories] = useState<Story[]>([]);
+
+  // Memoize ListHeaderComponent to prevent unnecessary re-renders
+  const listHeaderComponent = useMemo(() => {
+    if (stories.length === 0) return null;
+
+    return (
+      <>
+        <View style={styles.hero}>
+          <Text style={[styles.brand, { fontSize: brandFontSize }]}>
+            DreamWeaver
+          </Text>
+          <Text style={[styles.tagline, { fontSize: taglineFontSize }]}>
+            {TAGLINE}
+          </Text>
+        </View>
+        <Text style={styles.sectionLabel}>LIBRARY</Text>
+      </>
+    );
+  }, [stories.length, brandFontSize, taglineFontSize]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -232,21 +251,7 @@ export default function LibraryScreen() {
             justifyContent: "space-between",
             gap: dynamicGap,
           }}
-          ListHeaderComponent={
-            stories.length > 0 ? (
-              <>
-                <View style={styles.hero}>
-                  <Text style={[styles.brand, { fontSize: brandFontSize }]}>
-                    DreamWeaver
-                  </Text>
-                  <Text style={[styles.tagline, { fontSize: taglineFontSize }]}>
-                    {TAGLINE}
-                  </Text>
-                </View>
-                <Text style={styles.sectionLabel}>LIBRARY</Text>
-              </>
-            ) : null
-          }
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={<EmptyState />}
           renderItem={({ item }) => (
             <StoryCard story={item} onPress={openStory} />
@@ -416,11 +421,10 @@ const styles = StyleSheet.create({
 
   /* library grid ------------------------------------------------------ */
   sectionLabel: {
-    //fontSize: 20,
     fontSize: isTablet() ? 20 : isPhoneSmall() ? 14 : 16,
     color: "#FFF",
     letterSpacing: 1.6,
-    marginBottom: 24,
+    marginBottom: 8,
   },
   grid: {
     flexDirection: "row",

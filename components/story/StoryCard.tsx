@@ -26,6 +26,9 @@ const TITLE_SIZE = width >= 768 ? 36 : width < 360 ? 14 : width < 390 ? 16 : 18;
 const SUBTITLE_SIZE =
   width >= 768 ? 18 : width < 360 ? 10 : width < 390 ? 11 : 12;
 
+// Typography constants
+const TITLE_LINE_HEIGHT_ADJUSTMENT = 2;
+
 /* ---------- component ---------- */
 interface StoryCardProps {
   story: Story;
@@ -164,7 +167,10 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
             numberOfLines={4}
             style={[
               styles.title,
-              { fontSize: titleSize, lineHeight: titleSize + 2 },
+              {
+                fontSize: titleSize,
+                lineHeight: titleSize + TITLE_LINE_HEIGHT_ADJUSTMENT,
+              },
             ]}
           >
             {story.title}

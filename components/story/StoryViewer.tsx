@@ -187,7 +187,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
   useEffect(() => {
     // Ensure we stay on the same page index when dimensions change
     listRef.current?.scrollToIndex({ index: currentPage, animated: false });
-  }, [pageWidth, currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageWidth]); // intentionally omitting currentPage - only for dimension changes
 
   const handleImageLoad = (idx: number) =>
     setImageLoading((prev) => {
@@ -257,7 +258,8 @@ const StoryViewerComponent: React.FC<StoryViewerProps> = ({
 
       listRef.current?.scrollToIndex({ index: idx, animated: true });
     },
-    [story.storyContent, totalPages]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [story.storyContent] // intentionally omitting totalPages - it's derived from story.storyContent
   );
 
   const handleNewStory = useCallback(() => {
