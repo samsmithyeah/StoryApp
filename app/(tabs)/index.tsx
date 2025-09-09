@@ -19,7 +19,6 @@ import React, {
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   ImageBackground,
   RefreshControl,
@@ -46,12 +45,6 @@ import {
   isVerySmallScreen,
 } from "../../constants/Theme";
 
-const { height } = Dimensions.get("window"); // Still needed for emptyTop calculation
-const GAP = isTablet() ? 20 : 16;
-const emptyTop = Math.round(
-  height * (isTablet() ? 0.25 : isVerySmallScreen() ? 0.12 : 0.18)
-);
-
 /* --------------------------------------------------------------------- */
 
 export default function LibraryScreen() {
@@ -62,6 +55,7 @@ export default function LibraryScreen() {
     gap: dynamicGap,
     brandFontSize,
     taglineFontSize,
+    emptyStateTopPadding,
   } = useResponsiveLayout();
 
   const [stories, setStories] = useState<Story[]>([]);
@@ -261,7 +255,9 @@ export default function LibraryScreen() {
             gap: dynamicGap,
           }}
           ListHeaderComponent={listHeaderComponent}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={
+            <EmptyState emptyStateTopPadding={emptyStateTopPadding} />
+          }
           renderItem={renderStoryCard}
         />
       </View>
@@ -311,7 +307,11 @@ function Decorations() {
 /* empty-state component (unchanged)                                     */
 /* --------------------------------------------------------------------- */
 
-function EmptyState() {
+function EmptyState({
+  emptyStateTopPadding,
+}: {
+  emptyStateTopPadding: number;
+}) {
   const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -338,7 +338,7 @@ function EmptyState() {
   );
 
   return (
-    <View style={[styles.emptyContainer, { paddingTop: emptyTop }]}>
+    <View style={[styles.emptyContainer, { paddingTop: emptyStateTopPadding }]}>
       <Animated.Image
         source={require("../../assets/images/butterfly.png")}
         style={butterflyStyle}
@@ -432,12 +432,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     letterSpacing: 1.6,
     marginBottom: 8,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: GAP,
   },
 
   /* decorative sprites ------------------------------------------------ */

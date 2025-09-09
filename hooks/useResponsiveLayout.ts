@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 
+// Import device type checking functions
+import { isTablet, isVerySmallScreen } from "../constants/Theme";
+
 // Responsive design constants
 const TABLET_BREAKPOINT = 768;
 const HORIZONTAL_PADDING = 24;
@@ -50,6 +53,13 @@ const TAGLINE_SIZES = {
   default: 18,
 };
 
+// Empty state positioning constants
+const EMPTY_STATE_PADDING_PERCENTAGES = {
+  tablet: 0.25,
+  verySmall: 0.12,
+  default: 0.18,
+};
+
 export interface ResponsiveLayoutValues {
   isLandscape: boolean;
   isTabletDevice: boolean;
@@ -61,6 +71,7 @@ export interface ResponsiveLayoutValues {
   subtitleSize: number;
   brandFontSize: number;
   taglineFontSize: number;
+  emptyStateTopPadding: number;
 }
 
 /**
@@ -127,6 +138,16 @@ export function useResponsiveLayout(): ResponsiveLayoutValues {
           ? TAGLINE_SIZES.small
           : TAGLINE_SIZES.default;
 
+    // Empty state top padding calculation
+    const emptyStateTopPadding = Math.round(
+      winHeight *
+        (isTablet()
+          ? EMPTY_STATE_PADDING_PERCENTAGES.tablet
+          : isVerySmallScreen()
+            ? EMPTY_STATE_PADDING_PERCENTAGES.verySmall
+            : EMPTY_STATE_PADDING_PERCENTAGES.default)
+    );
+
     return {
       isLandscape,
       isTabletDevice,
@@ -138,6 +159,7 @@ export function useResponsiveLayout(): ResponsiveLayoutValues {
       subtitleSize,
       brandFontSize,
       taglineFontSize,
+      emptyStateTopPadding,
     };
   }, [winWidth, winHeight]);
 }

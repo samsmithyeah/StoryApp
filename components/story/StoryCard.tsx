@@ -7,7 +7,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
   StyleSheet,
   Text,
@@ -19,13 +18,7 @@ import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { IconSymbol } from "../ui/IconSymbol";
 import { StoryCardMenu } from "./StoryCardMenu";
 
-/* ---------- sizing helpers ---------- */
-const { width } = Dimensions.get("window");
-// Fallback initial font sizes used by base styles; overridden responsively in component
-const TITLE_SIZE = width >= 768 ? 36 : width < 360 ? 14 : width < 390 ? 16 : 18;
-const SUBTITLE_SIZE =
-  width >= 768 ? 18 : width < 360 ? 10 : width < 390 ? 11 : 12;
-
+/* ---------- typography constants ---------- */
 // Typography constants
 const TITLE_LINE_HEIGHT_ADJUSTMENT = 2;
 
@@ -272,12 +265,14 @@ const styles = StyleSheet.create({
       android: "PlayfairDisplay-Regular",
       default: "serif", // Fallback for testing
     }),
-    fontSize: TITLE_SIZE,
-    lineHeight: TITLE_SIZE + 2,
     color: "#D4AF37",
     marginBottom: 4,
+    // fontSize and lineHeight are set dynamically via inline styles
   },
-  subtitle: { fontSize: SUBTITLE_SIZE, color: "#fff" },
+  subtitle: {
+    color: "#fff",
+    // fontSize is set dynamically via inline styles
+  },
   tag: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.14)",
