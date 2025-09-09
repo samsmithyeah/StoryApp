@@ -84,6 +84,7 @@ export default function LibraryScreen() {
       </>
     );
   }, [stories.length, brandFontSize, taglineFontSize]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -139,6 +140,14 @@ export default function LibraryScreen() {
     (storyId: string) =>
       router.push({ pathname: "/story/[id]", params: { id: storyId } }),
     []
+  );
+
+  // Memoize renderItem to prevent unnecessary re-renders of list items
+  const renderStoryCard = useCallback(
+    ({ item }: { item: Story }) => (
+      <StoryCard story={item} onPress={openStory} />
+    ),
+    [openStory]
   );
 
   const handleScroll = Animated.event(
@@ -253,9 +262,7 @@ export default function LibraryScreen() {
           }}
           ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={<EmptyState />}
-          renderItem={({ item }) => (
-            <StoryCard story={item} onPress={openStory} />
-          )}
+          renderItem={renderStoryCard}
         />
       </View>
     </ImageBackground>
