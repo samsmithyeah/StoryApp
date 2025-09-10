@@ -13,6 +13,28 @@ import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
 
+// JSON repair utility to fix common malformed JSON patterns
+function repairJSON(jsonText: string): string {
+  let repaired = jsonText.trim();
+
+  // Fix missing quotes on keys - handle multiline cases (e.g., page": 2 → "page": 2)
+  repaired = repaired.replace(
+    /([{,]\s*|\n\s*)([a-zA-Z_][a-zA-Z0-9_]*)":/g,
+    '$1"$2":'
+  );
+
+  // Fix trailing commas before closing braces/brackets
+  repaired = repaired.replace(/,\s*([}\]])/g, "$1");
+
+  // Fix single quotes to double quotes (but avoid breaking escaped content)
+  repaired = repaired.replace(/(?<!\\)'/g, '"');
+
+  // Fix common escape sequence issues in strings
+  repaired = repaired.replace(/\\"/g, '"').replace(/""/g, '"');
+
+  return repaired;
+}
+
 const pubsub = new PubSub();
 
 // Helper function to calculate age from birthdate
@@ -316,8 +338,24 @@ Return the story in this JSON format:
                     jsonText = jsonMatch[1];
                   }
                 }
-                // Parse JSON - this will throw if invalid, triggering retry
-                return JSON.parse(jsonText.trim());
+
+                // First attempt: try parsing as-is
+                try {
+                  return JSON.parse(jsonText.trim());
+                } catch (firstError) {
+                  // Second attempt: try repairing common JSON issues
+                  try {
+                    const repairedJSON = repairJSON(jsonText);
+                    logger.info("Successfully repaired malformed JSON", {
+                      original: jsonText.substring(0, 200) + "...",
+                      repaired: repairedJSON.substring(0, 200) + "...",
+                    });
+                    return JSON.parse(repairedJSON);
+                  } catch (repairError) {
+                    // If repair fails, throw original error to trigger retry
+                    throw firstError;
+                  }
+                }
               });
           });
         } catch (error: any) {
