@@ -202,6 +202,10 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
     );
   },
   (prevProps, nextProps) => {
+    // This custom comparison function is a performance optimization.
+    // It prevents re-renders unless a prop that visually affects the card changes.
+    // IMPORTANT: If you add a new prop to StoryCard that affects its appearance,
+    // you MUST update this comparison function to include it.
     const prev = prevProps.story;
     const next = nextProps.story;
 
