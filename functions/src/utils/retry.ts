@@ -18,6 +18,10 @@ export async function retryWithBackoff<T>(
         error.status === 429 || // Rate limit error
         (error.message &&
           error.message.includes("No image data in Gemini response")) || // Gemini no image data error
+        (error.message &&
+          (error.message.includes("Unexpected token") ||
+            error.message.includes("JSON") ||
+            error.message.includes("parse"))) || // JSON parsing errors
         (error.status === 400 &&
           error.message &&
           (error.message.includes("content policy") ||
@@ -31,7 +35,12 @@ export async function retryWithBackoff<T>(
             ? "Rate limited"
             : error.message?.includes("No image data in Gemini response")
               ? "Gemini image generation failed"
-              : "Content policy violation";
+              : error.message &&
+                  (error.message.includes("Unexpected token") ||
+                    error.message.includes("JSON") ||
+                    error.message.includes("parse"))
+                ? "JSON parsing failed"
+                : "Content policy violation";
         logger.info("Retrying after error", {
           errorType,
           delay,

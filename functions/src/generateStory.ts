@@ -296,31 +296,44 @@ Return the story in this JSON format:
       } else if (selectedTextModel === "gemini-2.5-pro") {
         try {
           const geminiClient = getGeminiClient();
-          const geminiResponse = await retryWithBackoff(() =>
-            geminiClient.generateText(
-              systemPrompt,
-              userPrompt +
-                "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
-              temperature,
-              data.geminiThinkingBudget
-            )
-          );
-
-          // Clean the response to extract JSON
-          let jsonText = geminiResponse;
-          if (jsonText.includes("```json")) {
-            const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[1];
-            }
-          }
-
-          try {
-            storyContent = JSON.parse(jsonText.trim());
-          } catch (error) {
-            logger.error("Failed to parse Gemini response as JSON", {
-              jsonText,
-            });
+          storyContent = await retryWithBackoff(() => {
+            return geminiClient
+              .generateText(
+                systemPrompt,
+                userPrompt +
+                  "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
+                temperature,
+                data.geminiThinkingBudget
+              )
+              .then((geminiResponse) => {
+                // Clean the response to extract JSON
+                let jsonText = geminiResponse;
+                if (jsonText.includes("```json")) {
+                  const jsonMatch = jsonText.match(
+                    /```json\s*([\s\S]*?)\s*```/
+                  );
+                  if (jsonMatch) {
+                    jsonText = jsonMatch[1];
+                  }
+                }
+                // Parse JSON - this will throw if invalid, triggering retry
+                return JSON.parse(jsonText.trim());
+              });
+          });
+        } catch (error: any) {
+          // Log JSON parsing failures that persisted through all retries
+          if (
+            error.message &&
+            (error.message.includes("Unexpected token") ||
+              error.message.includes("JSON") ||
+              error.message.includes("parse"))
+          ) {
+            logger.error(
+              "Failed to parse Gemini response as JSON after retries",
+              {
+                error: error.message,
+              }
+            );
 
             await logMetric("story_generation_failed", {
               error_type: "json_parse_failure",
@@ -338,10 +351,10 @@ Return the story in this JSON format:
 
             throw new HttpsError(
               "internal",
-              "Invalid JSON response from Gemini"
+              "Invalid JSON response from Gemini after multiple attempts"
             );
           }
-        } catch (error: any) {
+
           // Check if this is a Gemini safety filter error
           if (error.message && error.message.includes("safety filter")) {
             logger.info(

@@ -96,6 +96,9 @@ const MAPPING = {
 
   // Arts & Entertainment
   "music.note": "music-note",
+
+  // Photos & Media
+  "photo.badge.exclamationmark": "broken-image",
 } as IconMapping;
 
 /**
