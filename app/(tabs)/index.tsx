@@ -21,6 +21,8 @@ import {
   Animated,
   Easing,
   ImageBackground,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   RefreshControl,
   StyleSheet,
   Text,
@@ -173,7 +175,7 @@ export default function LibraryScreen() {
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
       useNativeDriver: false,
-      listener: (event: any) => {
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         // Save scroll position to context
         setScrollPosition(offsetY);
