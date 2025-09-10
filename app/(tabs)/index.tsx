@@ -122,12 +122,6 @@ export default function LibraryScreen() {
       return;
     }
 
-    // If stories are already loaded, the listener is still active. No need to re-attach.
-    if (currentStories.length > 0) {
-      setLoading(false);
-      return;
-    }
-
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),
@@ -138,7 +132,7 @@ export default function LibraryScreen() {
         (d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
           id: d.id,
           ...d.data(),
-          createdAt: d.data().createdAt?.toDate() || new Date(),
+          createdAt: d.data().createdAt?.toDate() || new Date(0), // Use stable fallback
         })
       ) as Story[];
       setStories(list);
