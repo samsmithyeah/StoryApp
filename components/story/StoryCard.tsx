@@ -4,7 +4,7 @@ import { useStorageUrl } from "@/hooks/useStorageUrl";
 import { Story } from "@/types/story.types";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -41,6 +41,12 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
     const [menuVisible, setMenuVisible] = useState(false);
     const [isReporting, setIsReporting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Reset image states only when story ID changes to prevent flickering
+    useEffect(() => {
+      setImageError(false);
+      setImageLoading(true);
+    }, [story.id]);
 
     const storagePath = useMemo(
       () => story.coverImageUrl || story.storyContent?.[0]?.imageUrl,
@@ -83,7 +89,10 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
               source={{ uri: imageUrl }}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
-              cachePolicy="memory-disk"
+              cachePolicy="disk"
+              priority="high"
+              recyclingKey={story.id}
+              transition={200}
               onLoad={() => setImageLoading(false)}
               onError={() => {
                 setImageLoading(false);
@@ -190,6 +199,28 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
           </View>
         )}
       </View>
+    );
+  },
+  (prevProps, nextProps) => {
+    // This custom comparison function is a performance optimization.
+    // It prevents re-renders unless a prop that visually affects the card changes.
+    // IMPORTANT: If you add a new prop to StoryCard that affects its appearance,
+    // you MUST update this comparison function to include it.
+    const prev = prevProps.story;
+    const next = nextProps.story;
+
+    // Compare all properties that visually affect the card
+    return (
+      prev.id === next.id &&
+      prev.coverImageUrl === next.coverImageUrl &&
+      prev.generationPhase === next.generationPhase &&
+      prev.imageGenerationStatus === next.imageGenerationStatus &&
+      prev.imagesGenerated === next.imagesGenerated &&
+      prev.totalImages === next.totalImages &&
+      prev.title === next.title &&
+      prev.createdAt.getTime() === next.createdAt.getTime() &&
+      prev.storyContent?.length === next.storyContent?.length &&
+      prev.storyContent?.[0]?.imageUrl === next.storyContent?.[0]?.imageUrl
     );
   }
 );

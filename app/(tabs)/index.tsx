@@ -21,6 +21,8 @@ import {
   Animated,
   Easing,
   ImageBackground,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   RefreshControl,
   StyleSheet,
   Text,
@@ -32,6 +34,7 @@ import { Button } from "../../components/ui/Button";
 import { TAGLINE } from "../../constants/UIText";
 import { useAuth } from "../../hooks/useAuth";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import { useLibraryStore } from "../../store/libraryStore";
 import { db } from "../../services/firebase/config";
 import { getStories } from "../../services/firebase/stories";
 import { imageCache } from "../../services/imageCache";
@@ -58,7 +61,24 @@ export default function LibraryScreen() {
     emptyStateTopPadding,
   } = useResponsiveLayout();
 
-  const [stories, setStories] = useState<Story[]>([]);
+  // Select only the state needed for rendering to prevent unnecessary re-renders
+  const stories = useLibraryStore((state) => state.stories);
+  const loading = useLibraryStore((state) => state.loading);
+  const shouldPreserveState = useLibraryStore(
+    (state) => state.shouldPreserveState
+  );
+
+  // Actions are stable and won't cause re-renders
+  const {
+    setStories,
+    setLoading,
+    setShouldPreserveState,
+    setScrollPosition,
+    restoreScrollPosition,
+    resetStore,
+  } = useLibraryStore.getState();
+
+  const flatListRef = useRef<Animated.FlatList<Story>>(null);
 
   // Memoize ListHeaderComponent to prevent unnecessary re-renders
   const listHeaderComponent = useMemo(() => {
@@ -79,7 +99,6 @@ export default function LibraryScreen() {
     );
   }, [stories.length, brandFontSize, taglineFontSize]);
 
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const createButtonTranslateY = useRef(new Animated.Value(0)).current;
@@ -87,10 +106,22 @@ export default function LibraryScreen() {
   /* realtime listener -------------------------------------------------- */
   useEffect(() => {
     if (!user) {
-      setStories([]);
-      setLoading(false);
+      // Reset the entire store to its initial state on logout
+      // to prevent state leakage between users (e.g., scroll position).
+      resetStore();
       return;
     }
+
+    // If we're preserving state and already have stories, don't reload
+    // Use getState() to avoid stale closure and dependency array issues
+    const currentStories = useLibraryStore.getState().stories;
+    if (shouldPreserveState && currentStories.length > 0) {
+      setLoading(false);
+      restoreScrollPosition(flatListRef.current);
+      setShouldPreserveState(false);
+      return;
+    }
+
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),
@@ -101,7 +132,7 @@ export default function LibraryScreen() {
         (d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
           id: d.id,
           ...d.data(),
-          createdAt: d.data().createdAt?.toDate() || new Date(),
+          createdAt: d.data().createdAt?.toDate() || new Date(0), // Use stable fallback
         })
       ) as Story[];
       setStories(list);
@@ -119,7 +150,8 @@ export default function LibraryScreen() {
       }
     });
     return unsub;
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, shouldPreserveState]); // Using getState() to access current stories without dependency
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -128,12 +160,14 @@ export default function LibraryScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [setStories]);
 
   const openStory = useCallback(
-    (storyId: string) =>
-      router.push({ pathname: "/story/[id]", params: { id: storyId } }),
-    []
+    (storyId: string) => {
+      setShouldPreserveState(true);
+      router.push({ pathname: "/story/[id]", params: { id: storyId } });
+    },
+    [setShouldPreserveState]
   );
 
   // Memoize renderItem to prevent unnecessary re-renders of list items
@@ -148,8 +182,11 @@ export default function LibraryScreen() {
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
       useNativeDriver: false,
-      listener: (event: any) => {
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
+        // Save scroll position to context
+        setScrollPosition(offsetY);
+
         const buttonHeight = 52;
         const ctaBottomPosition = insets.top + 12 + buttonHeight;
         // Different trigger points for mobile vs tablet
@@ -231,6 +268,7 @@ export default function LibraryScreen() {
         </Animated.View>
 
         <Animated.FlatList
+          ref={flatListRef}
           key={`cols-${columns}`}
           style={[styles.scrollView, { marginTop: -insets.top }]}
           contentContainerStyle={[

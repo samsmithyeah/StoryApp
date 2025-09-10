@@ -44,7 +44,7 @@ export default function StoryScreen() {
   }, [story]);
 
   const handleGoBack = useCallback(() => {
-    router.replace("/(tabs)");
+    router.back();
   }, []);
 
   const handleRetryImageGeneration = useCallback(
