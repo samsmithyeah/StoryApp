@@ -202,28 +202,21 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(
     );
   },
   (prevProps, nextProps) => {
-    // Create a visual hash of properties that affect the card's appearance
-    const getVisualHash = (story: Story) => ({
-      id: story.id,
-      coverImageUrl: story.coverImageUrl,
-      generationPhase: story.generationPhase,
-      imageGenerationStatus: story.imageGenerationStatus,
-      imagesGenerated: story.imagesGenerated,
-      totalImages: story.totalImages,
-      title: story.title,
-      createdAt: story.createdAt.getTime(),
-      storyContentLength: story.storyContent?.length,
-      firstPageImageUrl: story.storyContent?.[0]?.imageUrl,
-    });
+    const prev = prevProps.story;
+    const next = nextProps.story;
 
-    const prevHash = getVisualHash(prevProps.story);
-    const nextHash = getVisualHash(nextProps.story);
-
-    // Shallow comparison of the hash object
-    return Object.keys(prevHash).every(
-      (key) =>
-        prevHash[key as keyof typeof prevHash] ===
-        nextHash[key as keyof typeof nextHash]
+    // Compare all properties that visually affect the card
+    return (
+      prev.id === next.id &&
+      prev.coverImageUrl === next.coverImageUrl &&
+      prev.generationPhase === next.generationPhase &&
+      prev.imageGenerationStatus === next.imageGenerationStatus &&
+      prev.imagesGenerated === next.imagesGenerated &&
+      prev.totalImages === next.totalImages &&
+      prev.title === next.title &&
+      prev.createdAt.getTime() === next.createdAt.getTime() &&
+      prev.storyContent?.length === next.storyContent?.length &&
+      prev.storyContent?.[0]?.imageUrl === next.storyContent?.[0]?.imageUrl
     );
   }
 );

@@ -121,6 +121,13 @@ export default function LibraryScreen() {
       setShouldPreserveState(false);
       return;
     }
+
+    // If stories are already loaded, the listener is still active. No need to re-attach.
+    if (currentStories.length > 0) {
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, "stories"),
       where("userId", "==", user.uid),
