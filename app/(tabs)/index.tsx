@@ -61,17 +61,22 @@ export default function LibraryScreen() {
     emptyStateTopPadding,
   } = useResponsiveLayout();
 
+  // Select only the state needed for rendering to prevent unnecessary re-renders
+  const stories = useLibraryStore((state) => state.stories);
+  const loading = useLibraryStore((state) => state.loading);
+  const shouldPreserveState = useLibraryStore(
+    (state) => state.shouldPreserveState
+  );
+
+  // Actions are stable and won't cause re-renders
   const {
-    stories,
     setStories,
-    loading,
     setLoading,
-    shouldPreserveState,
     setShouldPreserveState,
     setScrollPosition,
     restoreScrollPosition,
     resetStore,
-  } = useLibraryStore();
+  } = useLibraryStore.getState();
 
   const flatListRef = useRef<Animated.FlatList<Story>>(null);
 
@@ -108,7 +113,9 @@ export default function LibraryScreen() {
     }
 
     // If we're preserving state and already have stories, don't reload
-    if (shouldPreserveState && stories.length > 0) {
+    // Use getState() to avoid stale closure and dependency array issues
+    const currentStories = useLibraryStore.getState().stories;
+    if (shouldPreserveState && currentStories.length > 0) {
       setLoading(false);
       restoreScrollPosition(flatListRef.current);
       setShouldPreserveState(false);
@@ -143,8 +150,7 @@ export default function LibraryScreen() {
     });
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, shouldPreserveState]); // Functions from useLibraryStore are stable and created only once.
-  // Omitting stories.length to prevent re-subscribing on every story change.
+  }, [user, shouldPreserveState]); // Using getState() to access current stories without dependency
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
