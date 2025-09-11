@@ -39,17 +39,21 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     [children, selectedChildren]
   );
 
+  // Helper function to format an array of strings into a natural language list
+  const formatListAsSentence = (items: string[]): string => {
+    if (items.length === 0) return "";
+    if (items.length === 1) return items[0];
+    if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+    // For 3+ items: "a, b, and c"
+    return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  };
+
   // Helper function to format comma-separated interests into natural language
   const formatInterestList = (interestsString: string): string => {
     if (!interestsString) return "";
     const interests = interestsString.split(", ").filter(Boolean);
-
-    if (interests.length === 0) return "";
-    if (interests.length === 1) return interests[0];
-    if (interests.length === 2) return `${interests[0]} and ${interests[1]}`;
-
-    // For 3+ items: "a, b, and c"
-    return `${interests.slice(0, -1).join(", ")}, and ${interests[interests.length - 1]}`;
+    return formatListAsSentence(interests);
   };
 
   const handleNext = () => {
@@ -71,10 +75,9 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
           const interestDescriptions = childInterests.map(
             (interests) => `a child who likes ${formatInterestList(interests)}`
           );
-          const lastDescription = interestDescriptions.pop()!;
-          storyAboutText = `A story that would appeal to ${interestDescriptions.join(
-            ", "
-          )} as well as ${lastDescription}`;
+          storyAboutText = `A story that would appeal to ${formatListAsSentence(
+            interestDescriptions
+          )}`;
         }
       }
     } else if (mode === "custom") {
@@ -111,15 +114,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   );
 
   // Format child names naturally for the interests option title
-  const formatNameList = (names: string[]): string => {
-    if (names.length === 0) return "";
-    if (names.length === 1) return names[0];
-    if (names.length === 2) return `${names[0]} and ${names[1]}`;
-    // For 3+ items: "A, B, and C"
-    return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
-  };
-
-  const formattedChildNames = formatNameList(
+  const formattedChildNames = formatListAsSentence(
     selectedChildrenData.map((child) => child.childName)
   );
 
