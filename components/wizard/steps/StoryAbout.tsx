@@ -42,11 +42,12 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   // Helper function to format comma-separated interests into natural language
   const formatInterestList = (interestsString: string): string => {
     if (!interestsString) return "";
-    const interests = interestsString.split(", ");
-    if (interests.length <= 1) {
-      return interests[0] || "";
-    }
-    return `${interests.slice(0, -1).join(", ")} and ${interests.slice(-1)}`;
+    const interests = interestsString.split(", ").filter(Boolean);
+    // Use Intl.ListFormat for natural language lists (e.g., "a, b, and c")
+    return new Intl.ListFormat("en", {
+      style: "long",
+      type: "conjunction",
+    }).format(interests);
   };
 
   const handleNext = () => {
@@ -56,28 +57,22 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       // Get selected children's interests
       const childInterests = selectedChildrenData
         .map((child) => child.childPreferences)
-        .filter(Boolean);
+        .filter((interests): interests is string => !!interests?.trim());
 
       if (childInterests.length > 0) {
         if (childInterests.length === 1) {
-          // Format single child's interests with "and" for last item
-          const firstInterest = childInterests[0];
-          if (firstInterest) {
-            const formattedInterests = formatInterestList(firstInterest);
-            storyAboutText = `A story that would appeal to a child who likes ${formattedInterests}`;
-          }
+          // Format single child's interests
+          const formattedInterests = formatInterestList(childInterests[0]);
+          storyAboutText = `A story that would appeal to a child who likes ${formattedInterests}`;
         } else {
-          const interestDescriptions = childInterests
-            .map((interests) => {
-              if (!interests) return "";
-              const formattedInterests = formatInterestList(interests);
-              return `a child who likes ${formattedInterests}`;
-            })
-            .filter(Boolean);
-          const lastInterest = interestDescriptions.pop();
-          if (lastInterest) {
-            storyAboutText = `A story that would appeal to ${interestDescriptions.join(", ")} as well as ${lastInterest}`;
-          }
+          // Format multiple children's interests
+          const interestDescriptions = childInterests.map(
+            (interests) => `a child who likes ${formatInterestList(interests)}`
+          );
+          const lastDescription = interestDescriptions.pop()!;
+          storyAboutText = `A story that would appeal to ${interestDescriptions.join(
+            ", "
+          )} as well as ${lastDescription}`;
         }
       }
     } else if (mode === "custom") {
@@ -89,8 +84,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       selection_type: mode === "interests" ? "custom" : mode,
       has_custom_description:
         (mode === "custom" && text.trim().length > 0) || mode === "interests",
-      description_length:
-        mode === "custom" ? text.trim().length : storyAboutText.length,
+      description_length: storyAboutText.length,
     });
 
     if (storyAboutText) {
