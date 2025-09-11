@@ -43,11 +43,13 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const formatInterestList = (interestsString: string): string => {
     if (!interestsString) return "";
     const interests = interestsString.split(", ").filter(Boolean);
-    // Use Intl.ListFormat for natural language lists (e.g., "a, b, and c")
-    return new Intl.ListFormat("en", {
-      style: "long",
-      type: "conjunction",
-    }).format(interests);
+
+    if (interests.length === 0) return "";
+    if (interests.length === 1) return interests[0];
+    if (interests.length === 2) return `${interests[0]} and ${interests[1]}`;
+
+    // For 3+ items: "a, b, and c"
+    return `${interests.slice(0, -1).join(", ")}, and ${interests[interests.length - 1]}`;
   };
 
   const handleNext = () => {
@@ -108,6 +110,19 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     child.childPreferences?.trim()
   );
 
+  // Format child names naturally for the interests option title
+  const formatNameList = (names: string[]): string => {
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    // For 3+ items: "A, B, and C"
+    return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+  };
+
+  const formattedChildNames = formatNameList(
+    selectedChildrenData.map((child) => child.childName)
+  );
+
   const isNextDisabled =
     (mode === "custom" && !text.trim()) ||
     (mode === "interests" && !hasInterests);
@@ -123,7 +138,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       ? [
           {
             id: "interests",
-            title: `${selectedChildrenData.map((child) => child.childName).join(" & ")}'s interests`,
+            title: `${formattedChildNames}'s interests`,
             description: "Use their saved interests to inspire the story",
             icon: "heart.fill",
           },
