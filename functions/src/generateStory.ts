@@ -319,14 +319,11 @@ Return the story in this JSON format:
               data.geminiThinkingBudget
             );
 
-            // Clean the response to extract JSON
-            let jsonText = geminiResponse;
-            if (jsonText.includes("```json")) {
-              const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
-              if (jsonMatch) {
-                jsonText = jsonMatch[1];
-              }
-            }
+            // Clean the response to extract JSON from markdown code blocks
+            const jsonMatch = geminiResponse.match(
+              /```(?:\w+)?\s*([\s\S]*?)\s*```/
+            );
+            const jsonText = jsonMatch ? jsonMatch[1] : geminiResponse;
 
             // Attempt to repair the JSON. jsonrepair is safe to run on valid JSON.
             const repairedJSON = repairJSON(jsonText);
