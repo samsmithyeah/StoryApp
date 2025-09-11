@@ -6,6 +6,7 @@ import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { Story } from "@/types/story.types";
 import { Analytics } from "@/utils/analytics";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
@@ -102,9 +103,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const generationStartTime = useRef<number | null>(null);
   const hasTrackedStart = useRef(false);
+  const hasAutoNavigated = useRef(false);
+  const wasGenerating = useRef(false);
   const hasTrackedCompletion = useRef(false);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const isFocused = useIsFocused();
 
   // Helper functions to check generation status
   // Memoize story status calculations to prevent unnecessary re-renders
@@ -269,9 +273,25 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     }
   }, [error]);
 
-  // Auto-redirect when story is complete (including with some failures)
+  // Track if we're currently generating
   useEffect(() => {
-    if (isStoryFullyComplete && onNavigateToStory) {
+    if (isGenerating) {
+      wasGenerating.current = true;
+    }
+  }, [isGenerating]);
+
+  // Auto-redirect when story is complete (only if screen is focused and was actively generating)
+  useEffect(() => {
+    if (
+      isStoryFullyComplete &&
+      onNavigateToStory &&
+      isFocused &&
+      wasGenerating.current &&
+      !hasAutoNavigated.current
+    ) {
+      // Mark that we're about to auto-navigate to prevent duplicate navigations
+      hasAutoNavigated.current = true;
+
       // Add a small delay to show completion state briefly
       const timer = setTimeout(() => {
         onNavigateToStory();
@@ -279,7 +299,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [isStoryFullyComplete, onNavigateToStory]);
+  }, [isStoryFullyComplete, onNavigateToStory, isFocused]);
 
   // Check if this is an insufficient credits error
   const isInsufficientCreditsError =

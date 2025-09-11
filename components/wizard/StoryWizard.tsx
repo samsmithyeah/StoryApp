@@ -77,6 +77,36 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const hasTrackedWizardStart = useRef(false);
   const lastTrackedStep = useRef<WizardStep | null>(null);
 
+  // Reset all state for every new wizard session to prevent stale state leak
+  useEffect(() => {
+    // Reset local state to initial values
+    setCurrentStep("child");
+    setWizardData({
+      selectedChildren: [],
+      pageCount: DEFAULT_PAGE_COUNT,
+      shouldRhyme: false,
+      illustrationStyle: "loose-ink-wash",
+      illustrationAiDescription:
+        "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
+      storyAbout: "",
+      characters: [],
+    });
+    setIsGenerating(false);
+    setGenerationError(null);
+    setGeneratedStoryId(null);
+    setStoryData(null);
+    setHasAutoSelected(false);
+
+    // Reset analytics tracking refs
+    wizardStartTime.current = null;
+    stepStartTime.current = null;
+    hasTrackedWizardStart.current = false;
+    lastTrackedStep.current = null;
+
+    // Reset wizard store to clear any character data from previous session
+    resetWizardStore();
+  }, [resetWizardStore]);
+
   // Helper function to track wizard completion
   const trackWizardCompleted = useCallback(() => {
     if (wizardStartTime.current) {

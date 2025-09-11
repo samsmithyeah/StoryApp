@@ -11,7 +11,7 @@ export default function WizardScreen() {
       // If we have a storyId, the story was already generated
       if (wizardData.storyId) {
         // Navigate directly to the story viewer
-        router.push({
+        router.replace({
           pathname: "/story/[id]",
           params: { id: wizardData.storyId },
         });
