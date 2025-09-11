@@ -3,7 +3,7 @@ import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -33,14 +33,27 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   );
   const [text, setText] = useState(storyAbout);
 
+  // Memoize selected children data to avoid redundant computation
+  const selectedChildrenData = useMemo(() =>
+    children.filter((child) => selectedChildren.includes(child.id)),
+    [children, selectedChildren]
+  );
+
+  // Helper function to format comma-separated interests into natural language
+  const formatInterestList = (interestsString: string): string => {
+    if (!interestsString) return '';
+    const interests = interestsString.split(', ');
+    if (interests.length <= 1) {
+      return interests[0] || '';
+    }
+    return `${interests.slice(0, -1).join(', ')} and ${interests.slice(-1)}`;
+  };
+
   const handleNext = () => {
     let storyAboutText = "";
 
     if (mode === "interests") {
       // Get selected children's interests
-      const selectedChildrenData = children.filter((child) =>
-        selectedChildren.includes(child.id)
-      );
       const childInterests = selectedChildrenData
         .map((child) => child.childPreferences)
         .filter(Boolean);
@@ -50,27 +63,14 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
           // Format single child's interests with "and" for last item
           const firstInterest = childInterests[0];
           if (firstInterest) {
-            const interests = firstInterest.split(", ");
-            const formattedInterests =
-              interests.length > 1
-                ? interests.slice(0, -1).join(", ") +
-                  " and " +
-                  interests[interests.length - 1]
-                : interests[0];
+            const formattedInterests = formatInterestList(firstInterest);
             storyAboutText = `A story that would appeal to a child who likes ${formattedInterests}`;
           }
         } else {
           const interestDescriptions = childInterests
             .map((interests) => {
               if (!interests) return "";
-              // Format each child's interests with "and" for last item
-              const interestList = interests.split(", ");
-              const formattedInterests =
-                interestList.length > 1
-                  ? interestList.slice(0, -1).join(", ") +
-                    " and " +
-                    interestList[interestList.length - 1]
-                  : interestList[0];
+              const formattedInterests = formatInterestList(interests);
               return `a child who likes ${formattedInterests}`;
             })
             .filter(Boolean);
@@ -109,10 +109,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     onNext();
   };
 
-  // Get selected children's interests
-  const selectedChildrenData = children.filter((child) =>
-    selectedChildren.includes(child.id)
-  );
+  // Check if any selected children have interests
   const hasInterests = selectedChildrenData.some((child) =>
     child.childPreferences?.trim()
   );
