@@ -273,10 +273,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     }
   }, [error]);
 
-  // Track if we're currently generating
+  // Track if we're currently generating and reset refs when generation restarts
   useEffect(() => {
     if (isGenerating) {
       wasGenerating.current = true;
+      // Reset refs when generation restarts for multiple attempts
+      hasAutoNavigated.current = false;
     }
   }, [isGenerating]);
 
@@ -294,7 +296,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
       // Add a small delay to show completion state briefly
       const timer = setTimeout(() => {
-        onNavigateToStory();
+        // Double-check focus before navigating to prevent race condition
+        if (isFocused) {
+          onNavigateToStory();
+        }
       }, 2000);
 
       return () => clearTimeout(timer);

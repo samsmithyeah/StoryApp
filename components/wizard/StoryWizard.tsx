@@ -40,6 +40,37 @@ const WIZARD_STEPS = [
 
 type WizardStep = (typeof WIZARD_STEPS)[number];
 
+// Consolidated wizard state interface
+interface WizardState {
+  currentStep: WizardStep;
+  wizardData: Partial<StoryConfiguration>;
+  isGenerating: boolean;
+  generationError: string | null;
+  generatedStoryId: string | null;
+  storyData: Story | null;
+  hasAutoSelected: boolean;
+}
+
+// Initial state constant for easy reset
+const INITIAL_WIZARD_STATE: WizardState = {
+  currentStep: "child",
+  wizardData: {
+    selectedChildren: [],
+    pageCount: DEFAULT_PAGE_COUNT,
+    shouldRhyme: false,
+    illustrationStyle: "loose-ink-wash",
+    illustrationAiDescription:
+      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
+    storyAbout: "",
+    characters: [],
+  },
+  isGenerating: false,
+  generationError: null,
+  generatedStoryId: null,
+  storyData: null,
+  hasAutoSelected: false,
+};
+
 interface StoryWizardProps {
   onComplete: (data: StoryConfiguration) => void;
   onCancel: () => void;
@@ -53,23 +84,20 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const { preferences } = useUserPreferences();
   const { credits } = useCredits();
   const { reset: resetWizardStore } = useWizardStore();
-  const [currentStep, setCurrentStep] = useState<WizardStep>("child");
-  const [wizardData, setWizardData] = useState<Partial<StoryConfiguration>>({
-    selectedChildren: [],
-    pageCount: DEFAULT_PAGE_COUNT,
-    shouldRhyme: false,
-    illustrationStyle: "loose-ink-wash",
-    illustrationAiDescription:
-      "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
-    storyAbout: "",
-    characters: [],
-  });
+  // Consolidated state management
+  const [wizardState, setWizardState] =
+    useState<WizardState>(INITIAL_WIZARD_STATE);
 
-  const [_isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [generatedStoryId, setGeneratedStoryId] = useState<string | null>(null);
-  const [storyData, setStoryData] = useState<Story | null>(null);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  // Destructure for easier access
+  const {
+    currentStep,
+    wizardData,
+    isGenerating: _isGenerating,
+    generationError,
+    generatedStoryId,
+    storyData,
+    hasAutoSelected,
+  } = wizardState;
 
   // Analytics tracking state
   const wizardStartTime = useRef<number | null>(null);
@@ -79,23 +107,8 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
 
   // Reset all state for every new wizard session to prevent stale state leak
   useEffect(() => {
-    // Reset local state to initial values
-    setCurrentStep("child");
-    setWizardData({
-      selectedChildren: [],
-      pageCount: DEFAULT_PAGE_COUNT,
-      shouldRhyme: false,
-      illustrationStyle: "loose-ink-wash",
-      illustrationAiDescription:
-        "Loose, scratchy dip-pen lines that feel quick and witty, splashed with unruly watercolor blooms. Lots of white paper, gawky limbs, and a 1970s British picture-book energy—messy, lively, and mid-scribble.",
-      storyAbout: "",
-      characters: [],
-    });
-    setIsGenerating(false);
-    setGenerationError(null);
-    setGeneratedStoryId(null);
-    setStoryData(null);
-    setHasAutoSelected(false);
+    // Reset consolidated state to initial values (much simpler!)
+    setWizardState(INITIAL_WIZARD_STATE);
 
     // Reset analytics tracking refs
     wizardStartTime.current = null;
@@ -119,10 +132,26 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
     }
   }, [wizardData]);
 
+  // Memoized navigation handler to prevent unnecessary re-renders
+  const handleNavigateToStory = useCallback(() => {
+    if (generatedStoryId) {
+      // Track wizard completion (manual navigation)
+      trackWizardCompleted();
+
+      onComplete({
+        ...(wizardData as StoryConfiguration),
+        storyId: generatedStoryId,
+      });
+    }
+  }, [generatedStoryId, trackWizardCompleted, onComplete, wizardData]);
+
   const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
 
   const updateWizardData = (data: Partial<StoryConfiguration>) => {
-    setWizardData((prev) => ({ ...prev, ...data }));
+    setWizardState((prev) => ({
+      ...prev,
+      wizardData: { ...prev.wizardData, ...data },
+    }));
   };
 
   // Reset wizard store and track wizard start
@@ -154,7 +183,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       !hasAutoSelected
     ) {
       updateWizardData({ selectedChildren: [children[0].id] });
-      setHasAutoSelected(true);
+      setWizardState((prev) => ({ ...prev, hasAutoSelected: true }));
     }
   }, [children, wizardData.selectedChildren, hasAutoSelected]);
 
@@ -184,12 +213,12 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
           createdAt: doc.data()?.createdAt?.toDate() || new Date(),
         } as Story;
 
-        setStoryData(story);
+        setWizardState((prev) => ({ ...prev, storyData: story }));
 
         // Check if everything is complete and auto-redirect
         if (isStoryFullyComplete(story) && _isGenerating) {
           // Story is fully complete - auto-redirect to story
-          setIsGenerating(false);
+          setWizardState((prev) => ({ ...prev, isGenerating: false }));
 
           // Track wizard completion
           trackWizardCompleted();
@@ -223,7 +252,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         ? Date.now() - stepStartTime.current
         : undefined;
 
-      setCurrentStep(nextStep);
+      setWizardState((prev) => ({ ...prev, currentStep: nextStep }));
 
       // Track step entered analytics
       Analytics.logWizardStepEntered(
@@ -236,7 +265,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       lastTrackedStep.current = nextStep;
 
       if (nextStep === "generation") {
-        setIsGenerating(true);
+        setWizardState((prev) => ({ ...prev, isGenerating: true }));
         // Trigger story generation
         handleGeneration();
       }
@@ -254,7 +283,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         ? Date.now() - stepStartTime.current
         : undefined;
 
-      setCurrentStep(prevStep);
+      setWizardState((prev) => ({ ...prev, currentStep: prevStep }));
 
       // Track step entered analytics (going backward)
       Analytics.logWizardStepEntered(
@@ -322,7 +351,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
   const handleGeneration = async () => {
     try {
       // Clear any previous errors
-      setGenerationError(null);
+      setWizardState((prev) => ({ ...prev, generationError: null }));
 
       if (!isWizardComplete(wizardData)) {
         logger.error("Wizard data incomplete", { wizardData });
@@ -342,17 +371,17 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
       const result = await generateStory(generationRequest);
 
       // Store the story ID to monitor progress, but don't navigate yet
-      setGeneratedStoryId(result.storyId);
+      setWizardState((prev) => ({ ...prev, generatedStoryId: result.storyId }));
     } catch (error: any) {
       logger.error("Error generating story", error, { wizardData });
-      setIsGenerating(false);
+      setWizardState((prev) => ({ ...prev, isGenerating: false }));
 
       // Use the error message from the cloud function, or provide a fallback
       const errorMessage =
         error?.message ||
         "We're having trouble generating your story right now. Please try again in a few moments.";
 
-      setGenerationError(errorMessage);
+      setWizardState((prev) => ({ ...prev, generationError: errorMessage }));
     }
   };
 
@@ -450,23 +479,16 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
             error={generationError}
             storyData={storyData}
             currentBalance={credits?.balance || 0}
-            onNavigateToStory={() => {
-              if (generatedStoryId) {
-                // Track wizard completion (manual navigation)
-                trackWizardCompleted();
-
-                onComplete({
-                  ...(wizardData as StoryConfiguration),
-                  storyId: generatedStoryId,
-                });
-              }
-            }}
+            onNavigateToStory={handleNavigateToStory}
             onStartOver={() => {
-              setGenerationError(null);
-              setIsGenerating(false);
-              setGeneratedStoryId(null);
-              setStoryData(null);
-              setCurrentStep("child");
+              setWizardState((prev) => ({
+                ...prev,
+                generationError: null,
+                isGenerating: false,
+                generatedStoryId: null,
+                storyData: null,
+                currentStep: "child",
+              }));
             }}
           />
         );
