@@ -368,7 +368,12 @@ Return the story in this JSON format:
           }
 
           // Check if this is a Gemini safety filter error
-          if (error.message && error.message.includes("safety filter")) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            typeof error.message === "string" &&
+            error.message.includes("safety filter")
+          ) {
             logger.info(
               "Gemini safety filter blocked content, falling back to GPT-4o"
             );
