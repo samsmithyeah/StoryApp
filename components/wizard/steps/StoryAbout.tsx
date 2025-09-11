@@ -34,19 +34,19 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const [text, setText] = useState(storyAbout);
 
   // Memoize selected children data to avoid redundant computation
-  const selectedChildrenData = useMemo(() =>
-    children.filter((child) => selectedChildren.includes(child.id)),
+  const selectedChildrenData = useMemo(
+    () => children.filter((child) => selectedChildren.includes(child.id)),
     [children, selectedChildren]
   );
 
   // Helper function to format comma-separated interests into natural language
   const formatInterestList = (interestsString: string): string => {
-    if (!interestsString) return '';
-    const interests = interestsString.split(', ');
+    if (!interestsString) return "";
+    const interests = interestsString.split(", ");
     if (interests.length <= 1) {
-      return interests[0] || '';
+      return interests[0] || "";
     }
-    return `${interests.slice(0, -1).join(', ')} and ${interests.slice(-1)}`;
+    return `${interests.slice(0, -1).join(", ")} and ${interests.slice(-1)}`;
   };
 
   const handleNext = () => {
