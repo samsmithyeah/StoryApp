@@ -321,45 +321,41 @@ Return the story in this JSON format:
       } else if (selectedTextModel === "gemini-2.5-pro") {
         try {
           const geminiClient = getGeminiClient();
-          storyContent = await retryWithBackoff(() => {
-            return geminiClient
-              .generateText(
-                systemPrompt,
-                userPrompt +
-                  "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
-                temperature,
-                data.geminiThinkingBudget
-              )
-              .then((geminiResponse) => {
-                // Clean the response to extract JSON
-                let jsonText = geminiResponse;
-                if (jsonText.includes("```json")) {
-                  const jsonMatch = jsonText.match(
-                    /```json\s*([\s\S]*?)\s*```/
-                  );
-                  if (jsonMatch) {
-                    jsonText = jsonMatch[1];
-                  }
-                }
+          storyContent = await retryWithBackoff(async () => {
+            const geminiResponse = await geminiClient.generateText(
+              systemPrompt,
+              userPrompt +
+                "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
+              temperature,
+              data.geminiThinkingBudget
+            );
 
-                // First attempt: try parsing as-is
-                try {
-                  return JSON.parse(jsonText.trim());
-                } catch (firstError) {
-                  // Second attempt: try repairing common JSON issues
-                  try {
-                    const repairedJSON = repairJSON(jsonText);
-                    logger.info("Successfully repaired malformed JSON", {
-                      original: jsonText.substring(0, 200) + "...",
-                      repaired: repairedJSON.substring(0, 200) + "...",
-                    });
-                    return JSON.parse(repairedJSON);
-                  } catch (repairError) {
-                    // If repair fails, throw original error to trigger retry
-                    throw firstError;
-                  }
-                }
-              });
+            // Clean the response to extract JSON
+            let jsonText = geminiResponse;
+            if (jsonText.includes("```json")) {
+              const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
+              if (jsonMatch) {
+                jsonText = jsonMatch[1];
+              }
+            }
+
+            // First attempt: try parsing as-is
+            try {
+              return JSON.parse(jsonText.trim());
+            } catch (firstError) {
+              // Second attempt: try repairing common JSON issues
+              try {
+                const repairedJSON = repairJSON(jsonText);
+                logger.info("Successfully repaired malformed JSON", {
+                  original: jsonText.substring(0, 200) + "...",
+                  repaired: repairedJSON.substring(0, 200) + "...",
+                });
+                return JSON.parse(repairedJSON);
+              } catch (repairError) {
+                // If repair fails, throw original error to trigger retry
+                throw firstError;
+              }
+            }
           });
         } catch (error: any) {
           // Log JSON parsing failures that persisted through all retries

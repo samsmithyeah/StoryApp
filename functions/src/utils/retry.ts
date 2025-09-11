@@ -13,34 +13,42 @@ export async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error;
 
+      // Helper functions for error classification
+      const isRateLimitError = () => error.status === 429;
+      const isJsonParseError = () =>
+        error.message &&
+        (error.message.includes("Unexpected token") ||
+          error.message.includes("JSON") ||
+          error.message.includes("parse"));
+      const isImageGenerationError = () =>
+        error.message &&
+        error.message.includes("No image data in Gemini response");
+      const isContentPolicyError = () =>
+        error.status === 400 &&
+        error.message &&
+        (error.message.includes("content policy") ||
+          error.message.includes("safety system") ||
+          error.message.includes("content guidelines"));
+
       // Check if it's a retryable error
       const isRetryableError =
-        error.status === 429 || // Rate limit error
-        (error.message &&
-          error.message.includes("No image data in Gemini response")) || // Gemini no image data error
-        (error.message &&
-          (error.message.includes("Unexpected token") ||
-            error.message.includes("JSON") ||
-            error.message.includes("parse"))) || // JSON parsing errors
-        (error.status === 400 &&
-          error.message &&
-          (error.message.includes("content policy") ||
-            error.message.includes("safety system") ||
-            error.message.includes("content guidelines"))); // OpenAI content filter errors
+        isRateLimitError() ||
+        isJsonParseError() ||
+        isImageGenerationError() ||
+        isContentPolicyError();
 
       if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i); // Exponential backoff
-        const errorType =
-          error.status === 429
-            ? "Rate limited"
-            : error.message?.includes("No image data in Gemini response")
-              ? "Gemini image generation failed"
-              : error.message &&
-                  (error.message.includes("Unexpected token") ||
-                    error.message.includes("JSON") ||
-                    error.message.includes("parse"))
-                ? "JSON parsing failed"
-                : "Content policy violation";
+        let errorType = "Unknown error";
+        if (isRateLimitError()) {
+          errorType = "Rate limited";
+        } else if (isImageGenerationError()) {
+          errorType = "Gemini image generation failed";
+        } else if (isJsonParseError()) {
+          errorType = "JSON parsing failed";
+        } else if (isContentPolicyError()) {
+          errorType = "Content policy violation";
+        }
         logger.info("Retrying after error", {
           errorType,
           delay,
