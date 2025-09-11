@@ -1,5 +1,28 @@
 // Retry function with exponential backoff
 import { logger } from "./logger";
+
+// Helper functions for error classification
+export const isRateLimitError = (error: any): boolean =>
+  typeof error === "object" && error !== null && error.status === 429;
+
+export const isJsonParseError = (error: any): boolean =>
+  error instanceof SyntaxError;
+
+export const isImageGenerationError = (error: any): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  typeof error.message === "string" &&
+  error.message.includes("No image data in Gemini response");
+
+export const isContentPolicyError = (error: any): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  error.status === 400 &&
+  typeof error.message === "string" &&
+  (error.message.includes("content policy") ||
+    error.message.includes("safety system") ||
+    error.message.includes("content guidelines"));
+
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
@@ -15,23 +38,23 @@ export async function retryWithBackoff<T>(
 
       // Check if it's a retryable error
       const isRetryableError =
-        error.status === 429 || // Rate limit error
-        (error.message &&
-          error.message.includes("No image data in Gemini response")) || // Gemini no image data error
-        (error.status === 400 &&
-          error.message &&
-          (error.message.includes("content policy") ||
-            error.message.includes("safety system") ||
-            error.message.includes("content guidelines"))); // OpenAI content filter errors
+        isRateLimitError(error) ||
+        isJsonParseError(error) ||
+        isImageGenerationError(error) ||
+        isContentPolicyError(error);
 
       if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i); // Exponential backoff
-        const errorType =
-          error.status === 429
-            ? "Rate limited"
-            : error.message?.includes("No image data in Gemini response")
-              ? "Gemini image generation failed"
-              : "Content policy violation";
+        let errorType = "Unknown error";
+        if (isRateLimitError(error)) {
+          errorType = "Rate limited";
+        } else if (isImageGenerationError(error)) {
+          errorType = "Gemini image generation failed";
+        } else if (isJsonParseError(error)) {
+          errorType = "JSON parsing failed";
+        } else if (isContentPolicyError(error)) {
+          errorType = "Content policy violation";
+        }
         logger.info("Retrying after error", {
           errorType,
           delay,

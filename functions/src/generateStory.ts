@@ -11,7 +11,21 @@ import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
-import { retryWithBackoff } from "./utils/retry";
+import { retryWithBackoff, isJsonParseError } from "./utils/retry";
+import { jsonrepair } from "jsonrepair";
+
+// Safe JSON repair using the jsonrepair library
+function repairJSON(jsonText: string): string {
+  try {
+    // Use the robust jsonrepair library which is designed for LLM outputs
+    return jsonrepair(jsonText);
+  } catch (error) {
+    // If jsonrepair fails, return the original text to let JSON.parse fail naturally
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn("jsonrepair library failed to repair JSON", { error: message });
+    return jsonText;
+  }
+}
 
 const pubsub = new PubSub();
 
@@ -296,31 +310,42 @@ Return the story in this JSON format:
       } else if (selectedTextModel === "gemini-2.5-pro") {
         try {
           const geminiClient = getGeminiClient();
-          const geminiResponse = await retryWithBackoff(() =>
-            geminiClient.generateText(
+          storyContent = await retryWithBackoff(async () => {
+            const geminiResponse = await geminiClient.generateText(
               systemPrompt,
               userPrompt +
                 "\n\nIMPORTANT: Return ONLY valid JSON in the exact format specified above.",
               temperature,
               data.geminiThinkingBudget
-            )
-          );
+            );
 
-          // Clean the response to extract JSON
-          let jsonText = geminiResponse;
-          if (jsonText.includes("```json")) {
-            const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[1];
+            // Clean the response to extract JSON from markdown code blocks
+            const jsonMatch = geminiResponse.match(
+              /```(?:\w+)?\s*([\s\S]*?)\s*```/
+            );
+            const jsonText = jsonMatch ? jsonMatch[1] : geminiResponse;
+
+            // Attempt to repair the JSON. jsonrepair is safe to run on valid JSON.
+            const repairedJSON = repairJSON(jsonText);
+            if (repairedJSON !== jsonText) {
+              logger.info("Successfully repaired malformed JSON", {
+                original: jsonText.substring(0, 200) + "...",
+                repaired: repairedJSON.substring(0, 200) + "...",
+              });
             }
-          }
 
-          try {
-            storyContent = JSON.parse(jsonText.trim());
-          } catch (error) {
-            logger.error("Failed to parse Gemini response as JSON", {
-              jsonText,
-            });
+            // This will throw if the repaired JSON is still invalid, triggering a retry.
+            return JSON.parse(repairedJSON.trim());
+          });
+        } catch (error: any) {
+          // Log JSON parsing failures that persisted through all retries
+          if (isJsonParseError(error)) {
+            logger.error(
+              "Failed to parse Gemini response as JSON after retries",
+              {
+                error: error.message,
+              }
+            );
 
             await logMetric("story_generation_failed", {
               error_type: "json_parse_failure",
@@ -338,12 +363,17 @@ Return the story in this JSON format:
 
             throw new HttpsError(
               "internal",
-              "Invalid JSON response from Gemini"
+              "Invalid JSON response from Gemini after multiple attempts"
             );
           }
-        } catch (error: any) {
+
           // Check if this is a Gemini safety filter error
-          if (error.message && error.message.includes("safety filter")) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            typeof error.message === "string" &&
+            error.message.includes("safety filter")
+          ) {
             logger.info(
               "Gemini safety filter blocked content, falling back to GPT-4o"
             );
