@@ -15,3 +15,8 @@ export const IMAGE_SETTINGS = {
   COVER_ASPECT_RATIO: "1:1", // Used in generateCoverImage.ts
   COVER_IMAGE_SIZE: "1024x1024" as const, // Used in generateCoverImage.ts
 } as const;
+
+// Story generation settings
+export const STORY_SETTINGS = {
+  PREVIOUS_TITLES_LIMIT: 50, // Maximum number of previous story titles to include in prompt for duplicate avoidance
+} as const;

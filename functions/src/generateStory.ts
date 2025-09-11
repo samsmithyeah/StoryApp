@@ -6,7 +6,7 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 import { jsonrepair } from "jsonrepair";
-import { TIMEOUTS } from "./constants";
+import { STORY_SETTINGS, TIMEOUTS } from "./constants";
 import { DEFAULT_MODELS } from "./models";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
@@ -116,7 +116,7 @@ export const generateStory = onCall(
         .where("userId", "==", userId)
         .select("title")
         .orderBy("createdAt", "desc")
-        .limit(50) // Limit to last 50 stories to keep prompt manageable
+        .limit(STORY_SETTINGS.PREVIOUS_TITLES_LIMIT)
         .get();
 
       const previousStoryTitles = previousStoriesSnapshot.docs
@@ -314,7 +314,7 @@ Return the story in this JSON format:
     {
       "page": 1,
       "text": "Page text here",
-      "imagePrompt": "A detailed visual description of the scene on this page, including characters, objects and setting. Its good to repeat important visual details as the images will be generated separately with just the generated cover image as visual reference."
+      "imagePrompt": "A detailed visual description of the scene on this page, including characters, objects and setting. It's good to repeat important visual details as the images will be generated separately with just the generated cover image as visual reference."
     }
   ]
 }`;
