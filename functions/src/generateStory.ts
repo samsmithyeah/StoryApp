@@ -12,30 +12,18 @@ import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
 import { retryWithBackoff } from "./utils/retry";
+import { jsonrepair } from "jsonrepair";
 
-// JSON repair utility to fix common malformed JSON patterns
+// Safe JSON repair using the jsonrepair library
 function repairJSON(jsonText: string): string {
-  let repaired = jsonText.trim();
-
-  // Fix unquoted keys (e.g., {key: "value"} → {"key": "value"})
-  repaired = repaired.replace(
-    /([\{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,
-    '$1"$2":'
-  );
-
-  // Fix missing opening quote on keys (e.g., key": "value" → "key": "value")
-  repaired = repaired.replace(
-    /([\{,]\s*|\n\s*)([a-zA-Z_][a-zA-Z0-9_]*)":/g,
-    '$1"$2":'
-  );
-
-  // Fix trailing commas before closing braces/brackets
-  repaired = repaired.replace(/,\s*([}\]])/g, "$1");
-
-  // Fix single quotes to double quotes (but avoid breaking escaped content)
-  repaired = repaired.replace(/(?<!\\)'/g, '"');
-
-  return repaired;
+  try {
+    // Use the robust jsonrepair library which is designed for LLM outputs
+    return jsonrepair(jsonText);
+  } catch (error) {
+    // If jsonrepair fails, return the original text to let JSON.parse fail naturally
+    logger.warn("jsonrepair library failed to repair JSON", { error });
+    return jsonText;
+  }
 }
 
 const pubsub = new PubSub();
