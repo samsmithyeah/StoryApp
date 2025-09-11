@@ -17,9 +17,15 @@ import { retryWithBackoff } from "./utils/retry";
 function repairJSON(jsonText: string): string {
   let repaired = jsonText.trim();
 
-  // Fix missing quotes on keys - handle multiline cases (e.g., page": 2 → "page": 2)
+  // Fix unquoted keys (e.g., {key: "value"} → {"key": "value"})
   repaired = repaired.replace(
-    /([{,]\s*|\n\s*)([a-zA-Z_][a-zA-Z0-9_]*)":/g,
+    /([\{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,
+    '$1"$2":'
+  );
+
+  // Fix missing opening quote on keys (e.g., key": "value" → "key": "value")
+  repaired = repaired.replace(
+    /([\{,]\s*|\n\s*)([a-zA-Z_][a-zA-Z0-9_]*)":/g,
     '$1"$2":'
   );
 
