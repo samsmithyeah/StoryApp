@@ -2,11 +2,17 @@ import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import { GenerationStep } from "@/components/wizard/steps/GenerationStep";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { Story } from "@/types/story.types";
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
+}));
+
+// Mock @react-navigation/native
+jest.mock("@react-navigation/native", () => ({
+  useIsFocused: jest.fn(() => true), // Default to focused for tests
 }));
 
 // Mock react-native-safe-area-context
@@ -22,6 +28,7 @@ describe("GenerationStep", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
+    (useIsFocused as jest.Mock).mockReturnValue(true);
   });
 
   describe("Loading State", () => {
