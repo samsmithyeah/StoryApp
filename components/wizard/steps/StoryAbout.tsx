@@ -1,9 +1,10 @@
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { ContentLimits } from "@/constants/ContentLimits";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { useChildren } from "@/hooks/useChildren";
+import { Analytics } from "@/utils/analytics";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import { Analytics } from "@/utils/analytics";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
@@ -11,6 +12,7 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 interface StoryAboutProps {
   storyAbout?: string;
+  selectedChildren: string[];
   onUpdate: (data: { storyAbout: string }) => void;
   onNext: () => void;
   onBack: () => void;
@@ -19,26 +21,80 @@ interface StoryAboutProps {
 
 export const StoryAbout: React.FC<StoryAboutProps> = ({
   storyAbout = "",
+  selectedChildren,
   onUpdate,
   onNext,
   onBack,
   onCancel,
 }) => {
-  const [mode, setMode] = useState<"surprise" | "custom">(
+  const { children } = useChildren();
+  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(
     storyAbout ? "custom" : "surprise"
   );
   const [text, setText] = useState(storyAbout);
 
   const handleNext = () => {
+    let storyAboutText = "";
+
+    if (mode === "interests") {
+      // Get selected children's interests
+      const selectedChildrenData = children.filter((child) =>
+        selectedChildren.includes(child.id)
+      );
+      const childInterests = selectedChildrenData
+        .map((child) => child.childPreferences)
+        .filter(Boolean);
+
+      if (childInterests.length > 0) {
+        if (childInterests.length === 1) {
+          // Format single child's interests with "and" for last item
+          const firstInterest = childInterests[0];
+          if (firstInterest) {
+            const interests = firstInterest.split(", ");
+            const formattedInterests =
+              interests.length > 1
+                ? interests.slice(0, -1).join(", ") +
+                  " and " +
+                  interests[interests.length - 1]
+                : interests[0];
+            storyAboutText = `A story that would appeal to a child who likes ${formattedInterests}`;
+          }
+        } else {
+          const interestDescriptions = childInterests
+            .map((interests) => {
+              if (!interests) return "";
+              // Format each child's interests with "and" for last item
+              const interestList = interests.split(", ");
+              const formattedInterests =
+                interestList.length > 1
+                  ? interestList.slice(0, -1).join(", ") +
+                    " and " +
+                    interestList[interestList.length - 1]
+                  : interestList[0];
+              return `a child who likes ${formattedInterests}`;
+            })
+            .filter(Boolean);
+          const lastInterest = interestDescriptions.pop();
+          if (lastInterest) {
+            storyAboutText = `A story that would appeal to ${interestDescriptions.join(", ")} as well as ${lastInterest}`;
+          }
+        }
+      }
+    } else if (mode === "custom") {
+      storyAboutText = text.trim();
+    }
+
     // Track story about selection
     Analytics.logWizardStoryAboutSelected({
-      selection_type: mode,
-      has_custom_description: mode === "custom" && text.trim().length > 0,
-      description_length: mode === "custom" ? text.trim().length : 0,
+      selection_type: mode === "interests" ? "custom" : mode,
+      has_custom_description:
+        (mode === "custom" && text.trim().length > 0) || mode === "interests",
+      description_length:
+        mode === "custom" ? text.trim().length : storyAboutText.length,
     });
 
-    if (mode === "custom" && text.trim()) {
-      const filterResult = filterContent(text);
+    if (storyAboutText) {
+      const filterResult = filterContent(storyAboutText);
       if (!filterResult.isAppropriate) {
         Alert.alert(
           "Content not appropriate",
@@ -48,11 +104,22 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         return;
       }
     }
-    onUpdate({ storyAbout: mode === "surprise" ? "" : text });
+
+    onUpdate({ storyAbout: storyAboutText });
     onNext();
   };
 
-  const isNextDisabled = mode === "custom" && !text.trim();
+  // Get selected children's interests
+  const selectedChildrenData = children.filter((child) =>
+    selectedChildren.includes(child.id)
+  );
+  const hasInterests = selectedChildrenData.some((child) =>
+    child.childPreferences?.trim()
+  );
+
+  const isNextDisabled =
+    (mode === "custom" && !text.trim()) ||
+    (mode === "interests" && !hasInterests);
 
   const options = [
     {
@@ -61,6 +128,16 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       description: "Let the AI decide what the story is about",
       icon: "sparkles",
     },
+    ...(hasInterests
+      ? [
+          {
+            id: "interests",
+            title: `${selectedChildrenData.map((child) => child.childName).join(" & ")}'s interests`,
+            description: "Use their saved interests to inspire the story",
+            icon: "heart.fill",
+          },
+        ]
+      : []),
     {
       id: "custom",
       title: "I have an idea",
@@ -92,7 +169,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 option={option}
                 isSelected={mode === option.id}
                 onSelect={(optionId) =>
-                  setMode(optionId as "surprise" | "custom")
+                  setMode(optionId as "surprise" | "custom" | "interests")
                 }
                 style={styles.optionCardSpacing}
               />
