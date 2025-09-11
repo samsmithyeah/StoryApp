@@ -5,10 +5,7 @@ import { logger } from "./logger";
 export const isRateLimitError = (error: any): boolean => error.status === 429;
 
 export const isJsonParseError = (error: any): boolean =>
-  error.message &&
-  (error.message.includes("Unexpected token") ||
-    error.message.includes("JSON") ||
-    error.message.includes("parse"));
+  error instanceof SyntaxError;
 
 export const isImageGenerationError = (error: any): boolean =>
   error.message && error.message.includes("No image data in Gemini response");

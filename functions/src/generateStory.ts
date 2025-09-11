@@ -328,23 +328,17 @@ Return the story in this JSON format:
               }
             }
 
-            // First attempt: try parsing as-is
-            try {
-              return JSON.parse(jsonText.trim());
-            } catch (firstError) {
-              // Second attempt: try repairing common JSON issues
-              try {
-                const repairedJSON = repairJSON(jsonText);
-                logger.info("Successfully repaired malformed JSON", {
-                  original: jsonText.substring(0, 200) + "...",
-                  repaired: repairedJSON.substring(0, 200) + "...",
-                });
-                return JSON.parse(repairedJSON);
-              } catch (repairError) {
-                // If repair fails, throw original error to trigger retry
-                throw firstError;
-              }
+            // Attempt to repair the JSON. jsonrepair is safe to run on valid JSON.
+            const repairedJSON = repairJSON(jsonText);
+            if (repairedJSON !== jsonText) {
+              logger.info("Successfully repaired malformed JSON", {
+                original: jsonText.substring(0, 200) + "...",
+                repaired: repairedJSON.substring(0, 200) + "...",
+              });
             }
+
+            // This will throw if the repaired JSON is still invalid, triggering a retry.
+            return JSON.parse(repairedJSON.trim());
           });
         } catch (error: any) {
           // Log JSON parsing failures that persisted through all retries
