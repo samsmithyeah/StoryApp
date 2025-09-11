@@ -29,9 +29,6 @@ function repairJSON(jsonText: string): string {
   // Fix single quotes to double quotes (but avoid breaking escaped content)
   repaired = repaired.replace(/(?<!\\)'/g, '"');
 
-  // Fix common escape sequence issues in strings
-  repaired = repaired.replace(/\\"/g, '"').replace(/""/g, '"');
-
   return repaired;
 }
 
