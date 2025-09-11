@@ -11,7 +11,7 @@ import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
-import { retryWithBackoff } from "./utils/retry";
+import { retryWithBackoff, isJsonParseError } from "./utils/retry";
 import { jsonrepair } from "jsonrepair";
 
 // Safe JSON repair using the jsonrepair library
@@ -21,7 +21,8 @@ function repairJSON(jsonText: string): string {
     return jsonrepair(jsonText);
   } catch (error) {
     // If jsonrepair fails, return the original text to let JSON.parse fail naturally
-    logger.warn("jsonrepair library failed to repair JSON", { error });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn("jsonrepair library failed to repair JSON", { error: message });
     return jsonText;
   }
 }
@@ -347,12 +348,7 @@ Return the story in this JSON format:
           });
         } catch (error: any) {
           // Log JSON parsing failures that persisted through all retries
-          if (
-            error.message &&
-            (error.message.includes("Unexpected token") ||
-              error.message.includes("JSON") ||
-              error.message.includes("parse"))
-          ) {
+          if (isJsonParseError(error)) {
             logger.error(
               "Failed to parse Gemini response as JSON after retries",
               {
