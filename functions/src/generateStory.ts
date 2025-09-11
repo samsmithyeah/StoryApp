@@ -5,14 +5,14 @@ import {
   HttpsError,
   onCall,
 } from "firebase-functions/v2/https";
-import { TIMEOUTS } from "./constants";
+import { jsonrepair } from "jsonrepair";
+import { STORY_SETTINGS, TIMEOUTS } from "./constants";
 import { DEFAULT_MODELS } from "./models";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
 import { getOpenAIClient, openaiApiKey } from "./utils/openai";
-import { retryWithBackoff, isJsonParseError } from "./utils/retry";
-import { jsonrepair } from "jsonrepair";
+import { isJsonParseError, retryWithBackoff } from "./utils/retry";
 
 // Safe JSON repair using the jsonrepair library
 function repairJSON(jsonText: string): string {
@@ -109,6 +109,25 @@ export const generateStory = onCall(
       }
 
       const children = userData.children || [];
+
+      // Fetch previous story titles for this user to avoid duplicates
+      const previousStoriesSnapshot = await db
+        .collection("stories")
+        .where("userId", "==", userId)
+        .select("title")
+        .orderBy("createdAt", "desc")
+        .limit(STORY_SETTINGS.PREVIOUS_TITLES_LIMIT)
+        .get();
+
+      const previousStoryTitles = previousStoriesSnapshot.docs
+        .map((doc) => doc.data().title)
+        .filter((title) => title && typeof title === "string");
+
+      logger.debug("Previous story titles for duplicate avoidance", {
+        userId,
+        previousTitlesCount: previousStoryTitles.length,
+        titles: previousStoryTitles.slice(0, 10), // Log first 10 titles for debugging
+      });
 
       // Get audience children (those who will read/hear the story)
       const audienceChildren = children.filter(
@@ -260,6 +279,15 @@ ${data.mood ? `- Mood: ${data.mood}` : ""}
 - Story length: ${pageCount} pages
 ${data.storyAbout ? `- Story concept: ${data.storyAbout}` : ""}
 - Illustration art style: ${data.illustrationAiDescription || data.illustrationStyle}
+${
+  previousStoryTitles.length > 0
+    ? `
+IMPORTANT - Previous story titles to avoid duplicating:
+${previousStoryTitles.map((title) => `"${title}"`).join(", ")}
+
+Please create a story with a unique title and concept that differs from these previously generated stories. Only use similar titles/concepts if strictly necessary to satisfy the specific story requirements above.`
+    : ""
+}
 
 Requirements:
 1. The story should be divided into exactly ${pageCount} pages.
@@ -274,17 +302,19 @@ Requirements:
    - Be written specifically for the "${data.illustrationAiDescription || data.illustrationStyle}" art style, although you should not mention the art style directly in the prompt.
    - Ensure visual consistency. Each image will be generated separately, so it is good to repeat visual details across pages.
    - Focus on visual elements that work well with the chosen art style
-7. Make sure the story has a clear beginning, middle, and end.
+7. Make sure the story has a clear beginning, middle, and end. 
+8. For stories for younger children, think about having a subtle lesson or moral (if it fits with the theme/mood etc), and use repetition for engagement.
+9. If characters feature in the story that are not described above in the "main character(s)" section, please make sure you include them in the coverImagePrompt, and describe their appearance consistently there and in the imagePrompts. The same goes for any important objects or settings that are important to the story.
 
 Return the story in this JSON format:
 {
   "title": "Story Title",
-  "coverImagePrompt": "A detailed description for the book cover. It should describe the main characters' appearances (e.g., 'a brave knight with a shiny silver helmet and a blue cape, and a friendly dragon with green scales and a happy smile stand at the top of a mountain. The dragon is wearing a blue scarf and has big, friendly eyes.')",
+  "coverImagePrompt": "A detailed description for the book cover. It should describe the main characters' (and any supporting characters') appearances and poses, the setting, and any important objects or themes from the story. This image will be used as the cover of the book but also as the sole visual reference for the AI models generating the page images.",
   "pages": [
     {
       "page": 1,
       "text": "Page text here",
-      "imagePrompt": "A detailed visual description of the scene on this page, including characters, objects and setting."
+      "imagePrompt": "A detailed visual description of the scene on this page, including characters, objects and setting. It's good to repeat important visual details as the images will be generated separately with just the generated cover image as visual reference."
     }
   ]
 }`;
