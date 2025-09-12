@@ -5,6 +5,7 @@ import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
 import React, { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Child } from "@/types/child.types";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
@@ -31,6 +32,17 @@ const formatInterestList = (interestsString: string): string => {
   return formatListAsSentence(interests);
 };
 
+// Constant for the interests mode story prompt prefix
+const INTERESTS_STORY_PREFIX = "A story that would appeal to";
+
+// Helper function to get selected children data
+const getSelectedChildrenData = (
+  children: Child[],
+  selectedChildren: string[]
+): Child[] => {
+  return children.filter((child) => selectedChildren.includes(child.id));
+};
+
 interface StoryAboutProps {
   storyAbout?: string;
   selectedChildren: string[];
@@ -54,14 +66,15 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       return "surprise";
     }
 
-    const selectedChildrenData = children.filter((child) =>
-      selectedChildren.includes(child.id)
+    const selectedChildrenData = getSelectedChildrenData(
+      children,
+      selectedChildren
     );
     const hasInterests = selectedChildrenData.some((child) =>
       child.childPreferences?.trim()
     );
 
-    if (hasInterests && storyAbout.startsWith("A story that would appeal to")) {
+    if (hasInterests && storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
       return "interests";
     }
 
@@ -71,7 +84,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
 
   // Memoize selected children data to avoid redundant computation
   const selectedChildrenData = useMemo(
-    () => children.filter((child) => selectedChildren.includes(child.id)),
+    () => getSelectedChildrenData(children, selectedChildren),
     [children, selectedChildren]
   );
 
@@ -89,7 +102,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         const interestDescriptions = childInterests.map(
           (interests) => `a child who likes ${formatInterestList(interests)}`
         );
-        storyAboutText = `A story that would appeal to ${formatListAsSentence(
+        storyAboutText = `${INTERESTS_STORY_PREFIX} ${formatListAsSentence(
           interestDescriptions
         )}`;
       }
