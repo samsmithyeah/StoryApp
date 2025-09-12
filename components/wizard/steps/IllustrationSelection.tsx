@@ -25,6 +25,9 @@ const isTablet = width >= 768;
 // 1 = align just under full header; lower = scroll less; higher = scroll more.
 const IOS_HEADER_SCROLL_RATIO = 1.3;
 const ANDROID_HEADER_SCROLL_RATIO = 1.1;
+const FALLBACK_HEADER_HEIGHT_IOS = 130;
+const FALLBACK_HEADER_HEIGHT_ANDROID = 96;
+const FALLBACK_HEADER_HEIGHT_DEFAULT = 120;
 
 interface IllustrationStyle {
   id: string;
@@ -351,8 +354,11 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 onFocus={() => {
                   // Scroll so the input sits just below the header
                   requestAnimationFrame(() => {
-                    const fallbackOffset =
-                      Platform.select({ ios: 130, android: 96 }) ?? 120;
+                    const fallbackOffset = Platform.select({
+                      ios: FALLBACK_HEADER_HEIGHT_IOS,
+                      android: FALLBACK_HEADER_HEIGHT_ANDROID,
+                      default: FALLBACK_HEADER_HEIGHT_DEFAULT,
+                    });
                     const base = headerHeight || fallbackOffset;
                     const ratio =
                       Platform.OS === "ios"

@@ -1,6 +1,13 @@
 import { Spacing } from "@/constants/Theme";
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, Platform, StyleSheet, View } from "react-native";
+import {
+  Dimensions,
+  Keyboard,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../ui/Button";
 
@@ -20,6 +27,7 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const baseWindowHeightRef = useRef(Dimensions.get("window").height);
   const keyboardVisibleRef = useRef(false);
+  const { height: windowHeight } = useWindowDimensions();
 
   useEffect(() => {
     const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
@@ -38,22 +46,20 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
       keyboardVisibleRef.current = false;
       setIsKeyboardVisible(false);
       setKeyboardHeight(0);
-      // Update base height after keyboard hides
-      if (Platform.OS === "android") {
-        baseWindowHeightRef.current = Dimensions.get("window").height;
-      }
-    });
-    const dimSub = Dimensions.addEventListener("change", ({ window }) => {
-      if (Platform.OS === "android" && !keyboardVisibleRef.current) {
-        baseWindowHeightRef.current = window.height;
-      }
     });
     return () => {
       showSub.remove();
       hideSub.remove();
-      dimSub.remove();
     };
   }, []);
+
+  // Keep base window height in sync (Android) without deprecated listeners
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (!keyboardVisibleRef.current) {
+      baseWindowHeightRef.current = windowHeight;
+    }
+  }, [windowHeight]);
 
   const bottomPadding = Platform.select({
     ios: isKeyboardVisible ? Spacing.md : 0,

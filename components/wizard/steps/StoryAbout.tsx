@@ -163,6 +163,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const scrollRef = useRef<ScrollView | null>(null);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const INPUT_FOCUS_SCROLL_PADDING = 6; // small spacer so the input clears the header comfortably
 
   return (
     <WizardContainer>
@@ -221,8 +222,8 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 onFocus={() => {
                   // Ensure the input is scrolled into view when focused
                   requestAnimationFrame(() => {
-                    //const focusOffset = Math.max(0, headerHeight);
-                    const focusOffset = headerHeight + 6;
+                    const focusOffset =
+                      headerHeight + INPUT_FOCUS_SCROLL_PADDING;
                     scrollRef.current?.scrollTo({
                       y: Math.max(0, customInputOffsetY - focusOffset),
                       animated: true,
