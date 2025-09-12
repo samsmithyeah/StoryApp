@@ -83,7 +83,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
 
     // Track story about selection
     Analytics.logWizardStoryAboutSelected({
-      selection_type: mode === "interests" ? "custom" : mode,
+      selection_type: mode,
       has_custom_description: storyAboutText.length > 0,
       description_length: storyAboutText.length,
     });
@@ -105,13 +105,18 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   };
 
   // Check if any selected children have interests
-  const hasInterests = selectedChildrenData.some((child) =>
-    child.childPreferences?.trim()
+  const hasInterests = useMemo(
+    () => selectedChildrenData.some((child) => child.childPreferences?.trim()),
+    [selectedChildrenData]
   );
 
   // Format child names naturally for the interests option title
-  const formattedChildNames = formatListAsSentence(
-    selectedChildrenData.map((child) => child.childName)
+  const formattedChildNames = useMemo(
+    () =>
+      formatListAsSentence(
+        selectedChildrenData.map((child) => child.childName)
+      ),
+    [selectedChildrenData]
   );
 
   const isNextDisabled =

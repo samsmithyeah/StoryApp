@@ -507,7 +507,7 @@ export class Analytics {
   }
 
   static async logWizardStoryAboutSelected(data: {
-    selection_type: "surprise" | "custom";
+    selection_type: "surprise" | "custom" | "interests";
     has_custom_description: boolean;
     description_length: number;
   }) {
