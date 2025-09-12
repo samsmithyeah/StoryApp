@@ -1,15 +1,15 @@
+import { DEFAULT_PAGE_COUNT } from "@/constants/Story";
 import { useChildren } from "@/hooks/useChildren";
 import { useCredits } from "@/hooks/useCredits";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { useWizardStore } from "@/store/wizardStore";
 import { db } from "@/services/firebase/config";
 import { generateStory } from "@/services/firebase/stories";
+import { useWizardStore } from "@/store/wizardStore";
 import { Story, StoryConfiguration } from "@/types/story.types";
-import { logger } from "@/utils/logger";
 import { Analytics } from "@/utils/analytics";
-import { DEFAULT_PAGE_COUNT } from "@/constants/Story";
+import { logger } from "@/utils/logger";
 import { doc, onSnapshot } from "@react-native-firebase/firestore";
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,

@@ -3,7 +3,7 @@ import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
@@ -160,12 +160,13 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     },
   ];
 
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
   return (
     <WizardContainer>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
         <WizardStepHeader
           title="What's the story about?"
           subtitle="You can be as vague or specific as you like"
@@ -174,7 +175,18 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
           onBack={onBack}
           onCancel={onCancel}
         />
+      </View>
 
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        contentInsetAdjustmentBehavior="always"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.content}>
           <View style={styles.optionsContainer}>
             {options.map((option) => (
@@ -191,7 +203,10 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
           </View>
 
           {mode === "custom" && (
-            <View style={styles.customInputContainer}>
+            <View
+              style={styles.customInputContainer}
+              onLayout={(e) => setCustomInputOffsetY(e.nativeEvent.layout.y)}
+            >
               <TextInput
                 style={styles.customInput}
                 placeholder="Describe what you'd like the story to be about..."
@@ -203,6 +218,17 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 textAlignVertical="top"
                 returnKeyType="done"
                 maxLength={ContentLimits.STORY_ABOUT_MAX_LENGTH}
+                onFocus={() => {
+                  // Ensure the input is scrolled into view when focused
+                  requestAnimationFrame(() => {
+                    //const focusOffset = Math.max(0, headerHeight);
+                    const focusOffset = headerHeight + 6;
+                    scrollRef.current?.scrollTo({
+                      y: Math.max(0, customInputOffsetY - focusOffset),
+                      animated: true,
+                    });
+                  });
+                }}
               />
             </View>
           )}
@@ -215,13 +241,16 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
-    paddingBottom: 100,
+    paddingBottom: 160,
   },
   optionsContainer: { marginBottom: -8 },
   optionCardSpacing: {
