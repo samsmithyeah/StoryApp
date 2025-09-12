@@ -65,19 +65,9 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     if (!storyAbout) {
       return "surprise";
     }
-
-    const selectedChildrenData = getSelectedChildrenData(
-      children,
-      selectedChildren
-    );
-    const hasInterests = selectedChildrenData.some((child) =>
-      child.childPreferences?.trim()
-    );
-
-    if (hasInterests && storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
+    if (storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
       return "interests";
     }
-
     return "custom";
   });
   const [text, setText] = useState(storyAbout);
