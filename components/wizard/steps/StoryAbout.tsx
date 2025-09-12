@@ -70,7 +70,16 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     }
     return "custom";
   });
-  const [text, setText] = useState(storyAbout);
+  const [text, setText] = useState(() => {
+    // Only populate text if the mode is custom
+    if (!storyAbout) {
+      return "";
+    }
+    if (storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
+      return ""; // Don't populate text field for interests mode
+    }
+    return storyAbout; // Custom mode gets the original text
+  });
 
   // Memoize selected children data to avoid redundant computation
   const selectedChildrenData = useMemo(
