@@ -3,13 +3,14 @@ import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
 
+// TODO: Use Intl.ListFormat for this (requires polyfills)
 // Helper function to format an array of strings into a natural language list
 const formatListAsSentence = (items: string[]): string => {
   if (items.length === 0) return "";
@@ -48,9 +49,24 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
-  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(
-    storyAbout ? "custom" : "surprise"
-  );
+  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(() => {
+    if (!storyAbout) {
+      return "surprise";
+    }
+
+    const selectedChildrenData = children.filter((child) =>
+      selectedChildren.includes(child.id)
+    );
+    const hasInterests = selectedChildrenData.some((child) =>
+      child.childPreferences?.trim()
+    );
+
+    if (hasInterests && storyAbout.startsWith("A story that would appeal to")) {
+      return "interests";
+    }
+
+    return "custom";
+  });
   const [text, setText] = useState(storyAbout);
 
   // Memoize selected children data to avoid redundant computation
