@@ -61,7 +61,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
-  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(() => {
+  const initialMode = (() => {
     if (!storyAbout) {
       return "surprise";
     }
@@ -69,17 +69,12 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       return "interests";
     }
     return "custom";
-  });
-  const [text, setText] = useState(() => {
-    // Only populate text if the mode is custom
-    if (!storyAbout) {
-      return "";
-    }
-    if (storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
-      return ""; // Don't populate text field for interests mode
-    }
-    return storyAbout; // Custom mode gets the original text
-  });
+  })();
+
+  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(
+    initialMode
+  );
+  const [text, setText] = useState(initialMode === "custom" ? storyAbout : "");
 
   // Memoize selected children data to avoid redundant computation
   const selectedChildrenData = useMemo(
@@ -96,15 +91,13 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         .map((child) => child.childPreferences)
         .filter((interests): interests is string => !!interests?.trim());
 
-      if (childInterests.length > 0) {
-        // Format children's interests
-        const interestDescriptions = childInterests.map(
-          (interests) => `a child who likes ${formatInterestList(interests)}`
-        );
-        storyAboutText = `${INTERESTS_STORY_PREFIX} ${formatListAsSentence(
-          interestDescriptions
-        )}`;
-      }
+      // Format children's interests
+      const interestDescriptions = childInterests.map(
+        (interests) => `a child who likes ${formatInterestList(interests)}`
+      );
+      storyAboutText = `${INTERESTS_STORY_PREFIX} ${formatListAsSentence(
+        interestDescriptions
+      )}`;
     } else if (mode === "custom") {
       storyAboutText = text.trim();
     }
