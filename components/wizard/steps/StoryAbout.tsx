@@ -10,6 +10,26 @@ import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
 
+// Helper function to format an array of strings into a natural language list
+const formatListAsSentence = (items: string[]): string => {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  // For 3+ items: "a, b, and c"
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+// Helper function to format comma-separated interests into natural language
+const formatInterestList = (interestsString: string): string => {
+  if (!interestsString) return "";
+  const interests = interestsString
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return formatListAsSentence(interests);
+};
+
 interface StoryAboutProps {
   storyAbout?: string;
   selectedChildren: string[];
@@ -38,23 +58,6 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     () => children.filter((child) => selectedChildren.includes(child.id)),
     [children, selectedChildren]
   );
-
-  // Helper function to format an array of strings into a natural language list
-  const formatListAsSentence = (items: string[]): string => {
-    if (items.length === 0) return "";
-    if (items.length === 1) return items[0];
-    if (items.length === 2) return `${items[0]} and ${items[1]}`;
-
-    // For 3+ items: "a, b, and c"
-    return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-  };
-
-  // Helper function to format comma-separated interests into natural language
-  const formatInterestList = (interestsString: string): string => {
-    if (!interestsString) return "";
-    const interests = interestsString.split(", ").filter(Boolean);
-    return formatListAsSentence(interests);
-  };
 
   const handleNext = () => {
     let storyAboutText = "";
