@@ -1,16 +1,42 @@
-import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { ContentLimits } from "@/constants/ContentLimits";
-import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
+import { useChildren } from "@/hooks/useChildren";
 import { Analytics } from "@/utils/analytics";
+import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import React, { useMemo, useState } from "react";
+import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
 
+// TODO: Use Intl.ListFormat for this (requires polyfills)
+// Helper function to format an array of strings into a natural language list
+const formatListAsSentence = (items: string[]): string => {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  // For 3+ items: "a, b, and c"
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+// Helper function to format comma-separated interests into natural language
+const formatInterestList = (interestsString: string): string => {
+  if (!interestsString) return "";
+  const interests = interestsString
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return formatListAsSentence(interests);
+};
+
+// Constant for the interests mode story prompt prefix
+const INTERESTS_STORY_PREFIX = "A story that would appeal to";
+
 interface StoryAboutProps {
   storyAbout?: string;
+  selectedChildren: string[];
   onUpdate: (data: { storyAbout: string }) => void;
   onNext: () => void;
   onBack: () => void;
@@ -19,26 +45,63 @@ interface StoryAboutProps {
 
 export const StoryAbout: React.FC<StoryAboutProps> = ({
   storyAbout = "",
+  selectedChildren,
   onUpdate,
   onNext,
   onBack,
   onCancel,
 }) => {
-  const [mode, setMode] = useState<"surprise" | "custom">(
-    storyAbout ? "custom" : "surprise"
+  const { children } = useChildren();
+  const initialMode = (() => {
+    if (!storyAbout) {
+      return "surprise";
+    }
+    if (storyAbout.startsWith(INTERESTS_STORY_PREFIX)) {
+      return "interests";
+    }
+    return "custom";
+  })();
+
+  const [mode, setMode] = useState<"surprise" | "custom" | "interests">(
+    initialMode
   );
-  const [text, setText] = useState(storyAbout);
+  const [text, setText] = useState(initialMode === "custom" ? storyAbout : "");
+
+  // Memoize selected children data to avoid redundant computation
+  const selectedChildrenData = useMemo(
+    () => children.filter((child) => selectedChildren.includes(child.id)),
+    [children, selectedChildren]
+  );
 
   const handleNext = () => {
+    let storyAboutText = "";
+
+    if (mode === "interests") {
+      // Get selected children's interests
+      const childInterests = selectedChildrenData
+        .map((child) => child.childPreferences)
+        .filter((interests): interests is string => !!interests?.trim());
+
+      // Format children's interests
+      const interestDescriptions = childInterests.map(
+        (interests) => `a child who likes ${formatInterestList(interests)}`
+      );
+      storyAboutText = `${INTERESTS_STORY_PREFIX} ${formatListAsSentence(
+        interestDescriptions
+      )}`;
+    } else if (mode === "custom") {
+      storyAboutText = text.trim();
+    }
+
     // Track story about selection
     Analytics.logWizardStoryAboutSelected({
       selection_type: mode,
-      has_custom_description: mode === "custom" && text.trim().length > 0,
-      description_length: mode === "custom" ? text.trim().length : 0,
+      has_custom_description: storyAboutText.length > 0,
+      description_length: storyAboutText.length,
     });
 
-    if (mode === "custom" && text.trim()) {
-      const filterResult = filterContent(text);
+    if (storyAboutText) {
+      const filterResult = filterContent(storyAboutText);
       if (!filterResult.isAppropriate) {
         Alert.alert(
           "Content not appropriate",
@@ -48,11 +111,29 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         return;
       }
     }
-    onUpdate({ storyAbout: mode === "surprise" ? "" : text });
+
+    onUpdate({ storyAbout: storyAboutText });
     onNext();
   };
 
-  const isNextDisabled = mode === "custom" && !text.trim();
+  // Check if any selected children have interests
+  const hasInterests = useMemo(
+    () => selectedChildrenData.some((child) => child.childPreferences?.trim()),
+    [selectedChildrenData]
+  );
+
+  // Format child names naturally for the interests option title
+  const formattedChildNames = useMemo(
+    () =>
+      formatListAsSentence(
+        selectedChildrenData.map((child) => child.childName)
+      ),
+    [selectedChildrenData]
+  );
+
+  const isNextDisabled =
+    (mode === "custom" && !text.trim()) ||
+    (mode === "interests" && !hasInterests);
 
   const options = [
     {
@@ -61,6 +142,16 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       description: "Let the AI decide what the story is about",
       icon: "sparkles",
     },
+    ...(hasInterests
+      ? [
+          {
+            id: "interests",
+            title: `${formattedChildNames}'s interests`,
+            description: "Use their saved interests to inspire the story",
+            icon: "heart.fill",
+          },
+        ]
+      : []),
     {
       id: "custom",
       title: "I have an idea",
@@ -92,7 +183,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 option={option}
                 isSelected={mode === option.id}
                 onSelect={(optionId) =>
-                  setMode(optionId as "surprise" | "custom")
+                  setMode(optionId as "surprise" | "custom" | "interests")
                 }
                 style={styles.optionCardSpacing}
               />

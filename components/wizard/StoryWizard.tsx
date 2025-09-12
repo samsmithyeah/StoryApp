@@ -433,6 +433,7 @@ export const StoryWizard: React.FC<StoryWizardProps> = ({
         return (
           <StoryAbout
             storyAbout={wizardData.storyAbout}
+            selectedChildren={wizardData.selectedChildren || []}
             onUpdate={(data) => updateWizardData(data)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
