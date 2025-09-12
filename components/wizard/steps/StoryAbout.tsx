@@ -69,19 +69,13 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         .filter((interests): interests is string => !!interests?.trim());
 
       if (childInterests.length > 0) {
-        if (childInterests.length === 1) {
-          // Format single child's interests
-          const formattedInterests = formatInterestList(childInterests[0]);
-          storyAboutText = `A story that would appeal to a child who likes ${formattedInterests}`;
-        } else {
-          // Format multiple children's interests
-          const interestDescriptions = childInterests.map(
-            (interests) => `a child who likes ${formatInterestList(interests)}`
-          );
-          storyAboutText = `A story that would appeal to ${formatListAsSentence(
-            interestDescriptions
-          )}`;
-        }
+        // Format children's interests
+        const interestDescriptions = childInterests.map(
+          (interests) => `a child who likes ${formatInterestList(interests)}`
+        );
+        storyAboutText = `A story that would appeal to ${formatListAsSentence(
+          interestDescriptions
+        )}`;
       }
     } else if (mode === "custom") {
       storyAboutText = text.trim();
@@ -90,8 +84,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
     // Track story about selection
     Analytics.logWizardStoryAboutSelected({
       selection_type: mode === "interests" ? "custom" : mode,
-      has_custom_description:
-        (mode === "custom" && text.trim().length > 0) || mode === "interests",
+      has_custom_description: storyAboutText.length > 0,
       description_length: storyAboutText.length,
     });
 
