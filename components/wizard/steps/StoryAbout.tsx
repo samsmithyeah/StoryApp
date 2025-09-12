@@ -10,6 +10,9 @@ import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
 
+// Extra bottom padding so content doesn't sit under the footer while keyboard is up
+const IOS_KEYBOARD_EXTRA_BOTTOM_PADDING = 160;
+
 // TODO: Use Intl.ListFormat for this (requires polyfills)
 // Helper function to format an array of strings into a natural language list
 const formatListAsSentence = (items: string[]): string => {
@@ -251,7 +254,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
-    paddingBottom: 160,
+    paddingBottom: IOS_KEYBOARD_EXTRA_BOTTOM_PADDING,
   },
   optionsContainer: { marginBottom: -8 },
   optionCardSpacing: {

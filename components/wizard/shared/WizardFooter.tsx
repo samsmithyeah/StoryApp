@@ -22,6 +22,7 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   nextDisabled = false,
   nextText = "Next",
 }) => {
+  const ANDROID_KEYBOARD_RESIZE_THRESHOLD = 0.6; // Treat window as resized if it shrank by at least 60% of reported keyboard height
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -38,7 +39,9 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
         const expectedKb = e.endCoordinates?.height || 0;
         const shrunkBy = baseWindowHeightRef.current - currentHeight;
         // If window already resized to accommodate keyboard, don't add extra padding
-        const windowResized = expectedKb > 0 && shrunkBy > expectedKb * 0.6;
+        const windowResized =
+          expectedKb > 0 &&
+          shrunkBy > expectedKb * ANDROID_KEYBOARD_RESIZE_THRESHOLD;
         setKeyboardHeight(windowResized ? 0 : expectedKb);
       }
     });

@@ -21,13 +21,10 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
-// Controls how far the custom input scrolls up on iOS relative to the header height.
-// 1 = align just under full header; lower = scroll less; higher = scroll more.
-const IOS_HEADER_SCROLL_RATIO = 1.3;
-const ANDROID_HEADER_SCROLL_RATIO = 1.1;
-const FALLBACK_HEADER_HEIGHT_IOS = 130;
-const FALLBACK_HEADER_HEIGHT_ANDROID = 96;
-const FALLBACK_HEADER_HEIGHT_DEFAULT = 120;
+// Small spacer so the input clears the header comfortably when focused
+const INPUT_FOCUS_SCROLL_PADDING = 40;
+// Extra bottom padding on iOS so content doesn't sit under the footer while keyboard is up
+const IOS_KEYBOARD_EXTRA_BOTTOM_PADDING = 160;
 
 interface IllustrationStyle {
   id: string;
@@ -352,19 +349,10 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 multiline
                 maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
                 onFocus={() => {
-                  // Scroll so the input sits just below the header
+                  // Align input just below the header (similar to StoryAbout)
                   requestAnimationFrame(() => {
-                    const fallbackOffset = Platform.select({
-                      ios: FALLBACK_HEADER_HEIGHT_IOS,
-                      android: FALLBACK_HEADER_HEIGHT_ANDROID,
-                      default: FALLBACK_HEADER_HEIGHT_DEFAULT,
-                    });
-                    const base = headerHeight || fallbackOffset;
-                    const ratio =
-                      Platform.OS === "ios"
-                        ? IOS_HEADER_SCROLL_RATIO
-                        : ANDROID_HEADER_SCROLL_RATIO;
-                    const focusOffset = Math.max(0, Math.round(base * ratio));
+                    const focusOffset =
+                      headerHeight + INPUT_FOCUS_SCROLL_PADDING;
                     scrollRef.current?.scrollTo({
                       y: Math.max(0, customInputOffsetY - focusOffset),
                       animated: true,
@@ -393,7 +381,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {},
   iosExtraPadding: {
-    paddingBottom: 160,
+    paddingBottom: IOS_KEYBOARD_EXTRA_BOTTOM_PADDING,
   },
   section: {
     marginBottom: 32,
