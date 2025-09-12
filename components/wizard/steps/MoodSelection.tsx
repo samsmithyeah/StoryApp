@@ -103,7 +103,7 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
     (!!selectedMood && !MOOD_OPTIONS.find((m) => m.id === selectedMood));
 
   const [customMood, setCustomMood] = useState(
-    isCustomMoodSelected ? selectedMood : ""
+    isCustomMoodSelected && selectedMood !== "custom" ? selectedMood : ""
   );
 
   const handleMoodSelect = (moodId: string) => {

@@ -1,12 +1,13 @@
 import { ContentLimits } from "@/constants/ContentLimits";
-import { Colors } from "@/constants/Theme";
 import { LAYOUT } from "@/constants/Layout";
+import { Colors } from "@/constants/Theme";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +21,10 @@ import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+// Small spacer so the input clears the header comfortably when focused
+const INPUT_FOCUS_SCROLL_PADDING = 40;
+// Extra bottom padding on iOS so content doesn't sit under the footer while keyboard is up
+const IOS_KEYBOARD_EXTRA_BOTTOM_PADDING = 160;
 
 interface IllustrationStyle {
   id: string;
@@ -231,6 +236,8 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     }
   };
 
+  const isNextDisabled = isCustomStyleSelected && !customStyle.trim();
+
   const handleNext = () => {
     // Validate custom illustration style if it's selected
     if (isCustomStyleSelected && customStyle.trim()) {
@@ -247,20 +254,36 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
     onNext();
   };
 
+  // Keyboard-aware scrolling (primarily for iOS)
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
+
   return (
     <WizardContainer>
-      <WizardStepHeader
-        title="Illustrations"
-        subtitle="Choose the perfect illustration style for your story"
-        stepNumber={7}
-        totalSteps={7}
-        onBack={onBack}
-        onCancel={onCancel}
-      />
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        <WizardStepHeader
+          title="Illustrations"
+          subtitle="Choose the perfect illustration style for your story"
+          stepNumber={7}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
+      </View>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS === "ios" && styles.iosExtraPadding,
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        contentInsetAdjustmentBehavior="always"
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose an illustration style</Text>
@@ -311,7 +334,10 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
           </View>
 
           {isCustomStyleSelected && (
-            <View style={styles.customInputContainer}>
+            <View
+              style={styles.customInputContainer}
+              onLayout={(e) => setCustomInputOffsetY(e.nativeEvent.layout.y)}
+            >
               <TextInput
                 style={styles.customInput}
                 placeholder="E.g. vintage comic book style, hand-drawn sketches..."
@@ -322,13 +348,28 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 autoFocus={!customStyle}
                 multiline
                 maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
+                onFocus={() => {
+                  // Align input just below the header (similar to StoryAbout)
+                  requestAnimationFrame(() => {
+                    const focusOffset =
+                      headerHeight + INPUT_FOCUS_SCROLL_PADDING;
+                    scrollRef.current?.scrollTo({
+                      y: Math.max(0, customInputOffsetY - focusOffset),
+                      animated: true,
+                    });
+                  });
+                }}
               />
             </View>
           )}
         </View>
       </ScrollView>
 
-      <WizardFooter onNext={handleNext} nextText="Create story" />
+      <WizardFooter
+        onNext={handleNext}
+        nextText="Create story"
+        nextDisabled={isNextDisabled}
+      />
     </WizardContainer>
   );
 };
@@ -337,6 +378,10 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 24,
+  },
+  scrollContent: {},
+  iosExtraPadding: {
+    paddingBottom: IOS_KEYBOARD_EXTRA_BOTTOM_PADDING,
   },
   section: {
     marginBottom: 32,

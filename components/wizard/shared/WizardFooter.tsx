@@ -1,6 +1,13 @@
 import { Spacing } from "@/constants/Theme";
-import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Dimensions,
+  Keyboard,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../ui/Button";
 
@@ -15,10 +22,51 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
   nextDisabled = false,
   nextText = "Next",
 }) => {
+  const ANDROID_KEYBOARD_RESIZE_THRESHOLD = 0.6; // Treat window as resized if it shrank by at least 60% of reported keyboard height
   const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const baseWindowHeightRef = useRef(Dimensions.get("window").height);
+  const keyboardVisibleRef = useRef(false);
+  const { height: windowHeight } = useWindowDimensions();
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      keyboardVisibleRef.current = true;
+      setIsKeyboardVisible(true);
+      if (Platform.OS === "android") {
+        const currentHeight = Dimensions.get("window").height;
+        const expectedKb = e.endCoordinates?.height || 0;
+        const shrunkBy = baseWindowHeightRef.current - currentHeight;
+        // If window already resized to accommodate keyboard, don't add extra padding
+        const windowResized =
+          expectedKb > 0 &&
+          shrunkBy > expectedKb * ANDROID_KEYBOARD_RESIZE_THRESHOLD;
+        setKeyboardHeight(windowResized ? 0 : expectedKb);
+      }
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      keyboardVisibleRef.current = false;
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Keep base window height in sync (Android) without deprecated listeners
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (!keyboardVisibleRef.current) {
+      baseWindowHeightRef.current = windowHeight;
+    }
+  }, [windowHeight]);
+
   const bottomPadding = Platform.select({
-    ios: 0,
-    android: insets.bottom + Spacing.sm,
+    ios: isKeyboardVisible ? Spacing.md : 0,
+    android: insets.bottom + Spacing.sm + keyboardHeight,
   });
 
   return (
