@@ -58,13 +58,6 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.xxxl,
   },
-  sectionTitle: {
-    fontSize: Typography.fontSize.h4,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-    fontFamily: Typography.fontFamily.primary,
-  },
   sectionDescription: {
     fontSize: Typography.fontSize.medium,
     color: Colors.textSecondary,

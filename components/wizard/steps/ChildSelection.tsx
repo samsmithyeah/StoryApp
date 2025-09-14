@@ -307,12 +307,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 4,
   },
-  childAge: {
-    fontSize: isTablet ? 14 : 12,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 16,
-  },
   selectedText: {
     color: Colors.primary,
   },

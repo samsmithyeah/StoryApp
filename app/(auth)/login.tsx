@@ -341,14 +341,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.2)",
     padding: isTablet ? Spacing.xxxl : Spacing.xxl,
   },
-  welcomeText: {
-    fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textAlign: "center",
-    marginBottom: isTablet ? Spacing.xxxl : Spacing.xxl,
-    fontFamily: Typography.fontFamily.primary,
-  },
   socialButtons: {
     marginBottom: Spacing.xl,
     gap: Spacing.md,

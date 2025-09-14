@@ -908,10 +908,6 @@ export default function CreditsScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   safeArea: {
     flex: 1,
   },

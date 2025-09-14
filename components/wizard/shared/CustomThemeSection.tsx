@@ -3,6 +3,7 @@ import { ContentLimits } from "@/constants/ContentLimits";
 import { LAYOUT } from "@/constants/Layout";
 import { Shadows } from "@/constants/Theme";
 import React, { useMemo } from "react";
+/* eslint-disable react-native/no-unused-styles */
 import {
   StyleSheet,
   Text,

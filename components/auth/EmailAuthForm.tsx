@@ -225,14 +225,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 0,
   },
-  title: {
-    fontSize: isTablet ? Typography.fontSize.h2 : Typography.fontSize.h3,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-    fontFamily: Typography.fontFamily.primary,
-  },
   subtitle: {
     fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
     color: Colors.textSecondary,

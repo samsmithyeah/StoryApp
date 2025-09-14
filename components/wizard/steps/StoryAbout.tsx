@@ -275,10 +275,4 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: "top",
   },
-  helperText: {
-    marginTop: Spacing.md,
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
 });

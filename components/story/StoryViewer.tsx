@@ -748,11 +748,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  placeholderImage: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   errorImage: {
     flex: 1,
     alignItems: "center",

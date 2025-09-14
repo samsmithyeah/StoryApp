@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Colors, Spacing, Typography } from "../../constants/Theme";
+import { Spacing } from "../../constants/Theme";
 import { SettingsMenuItem } from "./SettingsMenuItem";
 import type { SupportSectionProps } from "./types";
 
@@ -34,12 +34,5 @@ export function SupportSection({ onNavigate }: SupportSectionProps) {
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.xxxl,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.h4,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-    fontFamily: Typography.fontFamily.primary,
   },
 });

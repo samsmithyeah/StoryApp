@@ -2,6 +2,7 @@ const { FlatCompat } = require("@eslint/eslintrc");
 const js = require("@eslint/js");
 const typescriptEslint = require("@typescript-eslint/eslint-plugin");
 const typescriptParser = require("@typescript-eslint/parser");
+const reactNative = require("eslint-plugin-react-native");
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -63,6 +64,7 @@ module.exports = [
     },
     plugins: {
       "@typescript-eslint": typescriptEslint,
+      "react-native": reactNative,
     },
     rules: {
       // TypeScript unused vars (catches unused imports too)
@@ -80,6 +82,8 @@ module.exports = [
       ],
       // Disable base rule in favor of TypeScript rule
       "no-unused-vars": "off",
+      // React Native specific rules
+      "react-native/no-unused-styles": "warn",
     },
   },
 ];

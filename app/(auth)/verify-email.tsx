@@ -131,19 +131,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  title: {
-    fontSize: isTablet() ? Typography.fontSize.h2 : Typography.fontSize.h3,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-  },
-  subtitle: {
-    fontSize: isTablet()
-      ? Typography.fontSize.medium
-      : Typography.fontSize.small,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: isTablet() ? 24 : 20,
-  },
   authContainer: {
     width: "100%",
     maxWidth: isTablet() ? 500 : 400,
@@ -168,25 +155,6 @@ const styles = StyleSheet.create({
     maxWidth: isTablet() ? 500 : 400,
     width: "100%",
     alignSelf: "center",
-  },
-  infoCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xxl,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-  },
-  infoTitle: {
-    fontSize: Typography.fontSize.medium,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  infoText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    lineHeight: 20,
   },
   signOutButton: {
     width: "100%",
