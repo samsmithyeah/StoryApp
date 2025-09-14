@@ -116,7 +116,7 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
             ) : childrenError ? (
               <View style={styles.stateContainer}>
                 <IconSymbol
-                  name="exclamationmark.triangle"
+                  name="exclamationmark.triangle.fill"
                   size={48}
                   color={Colors.error}
                 />
@@ -206,12 +206,6 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
                         >
                           {child.childName}
                         </Text>
-                        <Text
-                          style={[
-                            styles.childAge,
-                            isSelected && styles.selectedText,
-                          ]}
-                        ></Text>
                       </TouchableOpacity>
                     );
                   })}
