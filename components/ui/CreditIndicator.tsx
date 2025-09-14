@@ -1,9 +1,15 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
-import { Colors, Typography, Spacing, BorderRadius } from "@/constants/Theme";
-import { IconSymbol } from "./IconSymbol";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useCredits } from "@/hooks/useCredits";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { IconSymbol } from "./IconSymbol";
 
 interface CreditIndicatorProps {
   compact?: boolean;
@@ -29,10 +35,11 @@ export const CreditIndicator: React.FC<CreditIndicatorProps> = ({
     if (compact) {
       return (
         <View style={styles.compactContainer}>
-          <IconSymbol name="sparkles" size={16} color={Colors.textSecondary} />
-          <Text style={[styles.compactText, { color: Colors.textSecondary }]}>
-            -
-          </Text>
+          <ActivityIndicator
+            size="small"
+            color={Colors.textSecondary}
+            style={styles.loadingSpinner}
+          />
         </View>
       );
     }
@@ -40,10 +47,11 @@ export const CreditIndicator: React.FC<CreditIndicatorProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <IconSymbol name="sparkles" size={18} color={Colors.textSecondary} />
-          <Text style={[styles.balance, { color: Colors.textSecondary }]}>
-            -
-          </Text>
+          <ActivityIndicator
+            size="small"
+            color={Colors.textSecondary}
+            style={styles.loadingSpinner}
+          />
           <Text style={styles.label}>credits</Text>
         </View>
         <IconSymbol
@@ -115,5 +123,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
     marginLeft: 4,
+  },
+  loadingSpinner: {
+    marginRight: Spacing.xs,
   },
 });

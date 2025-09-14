@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   StatusBar as RNStatusBar,
   SafeAreaView,
@@ -22,63 +21,15 @@ import {
   Spacing,
   Typography,
 } from "../../constants/Theme";
-import { useChildren } from "../../hooks/useChildren";
 import { useCredits } from "../../hooks/useCredits";
 
 export default function CreateScreen() {
-  const {
-    children,
-    loading: childrenLoading,
-    error: childrenError,
-    refreshChildren,
-  } = useChildren();
   const { balance, loading: creditsLoading } = useCredits();
   const insets = useSafeAreaInsets();
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
 
   const handleCreateStory = () => {
-    // If children are still loading, inform the user rather than assuming none exist
-    if (childrenLoading) {
-      Alert.alert(
-        "Loading child profiles",
-        "We’re still fetching your child profiles. Please try again in a moment."
-      );
-      return;
-    }
-
-    // If there was an error loading children (e.g., bad connectivity), show an accurate message
-    if (childrenError) {
-      Alert.alert(
-        "Unable to load children",
-        "We couldn’t load your child profiles. Please check your internet connection and try again.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Retry", onPress: () => refreshChildren() },
-          {
-            text: "Add child profile",
-            onPress: () => router.push("/child-profile"),
-          },
-        ]
-      );
-      return;
-    }
-
-    if (children.length === 0) {
-      Alert.alert(
-        "No children added",
-        "Please add at least one child profile before creating a story.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Add child profile",
-            onPress: () => router.push("/child-profile"),
-          },
-        ]
-      );
-      return;
-    }
-
     // Check if user has enough credits (minimum 1 for a story)
     if (balance < 1) {
       setShowInsufficientCreditsModal(true);

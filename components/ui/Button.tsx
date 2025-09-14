@@ -1,4 +1,5 @@
 import React from "react";
+/* eslint-disable react-native/no-unused-styles */
 import {
   ActivityIndicator,
   Platform,

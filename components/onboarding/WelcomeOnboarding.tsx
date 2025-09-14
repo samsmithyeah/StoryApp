@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import {
-  BorderRadius,
   Colors,
   CommonStyles,
   isTablet,
@@ -359,14 +358,6 @@ const styles = StyleSheet.create({
         ? Spacing.xl
         : Spacing.xxxl,
   },
-  iconGlow: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.round,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderWidth: 2,
-    borderColor: "rgba(212, 175, 55, 0.3)",
-    ...Shadows.glow,
-  },
   iconPlain: {
     padding: Spacing.xl,
     ...(Platform.OS === "ios" ? Shadows.glow : {}),
@@ -401,23 +392,6 @@ const styles = StyleSheet.create({
     lineHeight: isTablet() ? 28 : isVerySmallScreen() ? 20 : 22,
     maxWidth: isTablet() ? 480 : isVerySmallScreen() ? 280 : 320,
     opacity: 0.9,
-  },
-  existingChildrenNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.medium,
-    marginTop: Spacing.xxl,
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
-  },
-  existingChildrenText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.success,
-    flex: 1,
   },
   footer: {
     paddingHorizontal: Spacing.screenPadding,

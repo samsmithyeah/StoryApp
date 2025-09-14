@@ -539,16 +539,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxxl,
     width: isTablet ? 500 : 300,
   },
-  buttonRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  retryButton: {
-    flex: 1,
-  },
-  backButton: {
-    flex: 1,
-  },
   creditActions: {
     marginTop: Spacing.xl,
     alignItems: "center",
@@ -600,10 +590,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     flex: 1,
     flexWrap: "wrap",
-  },
-  checklistLabelCompleted: {
-    color: Colors.success,
-    fontWeight: Typography.fontWeight.medium,
   },
   checklistLabelWarning: {
     color: Colors.warning,

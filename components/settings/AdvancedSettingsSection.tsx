@@ -295,29 +295,6 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.xxxl,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.h4,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-    fontFamily: Typography.fontFamily.primary,
-  },
-  sectionDescription: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
-  },
-  advancedSettingsContent: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(212, 175, 55, 0.2)",
-  },
   settingItem: {
     marginBottom: Spacing.xl,
   },

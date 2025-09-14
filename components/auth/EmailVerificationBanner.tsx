@@ -252,21 +252,6 @@ const styles = StyleSheet.create({
     lineHeight: isVerySmallScreen() ? 18 : isSmallScreen() ? 20 : 24,
     textAlign: "center",
   },
-  autoCheckNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  autoCheckText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.primary,
-    fontWeight: Typography.fontWeight.medium,
-    flex: 1,
-  },
   spamNotice: {
     flexDirection: "row",
     alignItems: "flex-start",
