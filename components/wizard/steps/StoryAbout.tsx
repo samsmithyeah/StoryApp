@@ -3,15 +3,14 @@ import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { useChildren } from "@/hooks/useChildren";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { useKeyboardAwareScroll } from "@/utils/keyboardAwareScroll";
 import React, { useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OptionCard } from "../shared/OptionCard";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
-
-// Extra bottom padding so content doesn't sit under the footer while keyboard is up
-const IOS_KEYBOARD_EXTRA_BOTTOM_PADDING = 160;
 
 // TODO: Use Intl.ListFormat for this (requires polyfills)
 // Helper function to format an array of strings into a natural language list
@@ -55,6 +54,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   onCancel,
 }) => {
   const { children } = useChildren();
+  const insets = useSafeAreaInsets();
   const initialMode = (() => {
     if (!storyAbout) {
       return "surprise";
@@ -166,7 +166,10 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const scrollRef = useRef<ScrollView | null>(null);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const INPUT_FOCUS_SCROLL_PADDING = 6; // small spacer so the input clears the header comfortably
+  const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
+    scrollRef,
+    insets.bottom
+  );
 
   return (
     <WizardContainer>
@@ -184,7 +187,10 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: getContentPadding() },
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
@@ -223,15 +229,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 returnKeyType="done"
                 maxLength={ContentLimits.STORY_ABOUT_MAX_LENGTH}
                 onFocus={() => {
-                  // Ensure the input is scrolled into view when focused
-                  requestAnimationFrame(() => {
-                    const focusOffset =
-                      headerHeight + INPUT_FOCUS_SCROLL_PADDING;
-                    scrollRef.current?.scrollTo({
-                      y: Math.max(0, customInputOffsetY - focusOffset),
-                      animated: true,
-                    });
-                  });
+                  onInputFocus(customInputOffsetY, headerHeight);
                 }}
               />
             </View>
@@ -254,7 +252,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.xl,
-    paddingBottom: IOS_KEYBOARD_EXTRA_BOTTOM_PADDING,
   },
   optionsContainer: { marginBottom: -8 },
   optionCardSpacing: {

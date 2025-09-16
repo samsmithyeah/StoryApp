@@ -17,6 +17,7 @@ import { InsufficientCreditsModal } from "../../components/ui/InsufficientCredit
 import {
   Colors,
   CommonStyles,
+  isSmallScreen,
   isVerySmallScreen,
   Spacing,
   Typography,
@@ -149,8 +150,8 @@ const styles = StyleSheet.create({
   // Header
   title: {
     ...CommonStyles.brandTitle,
-    fontSize: isVerySmallScreen()
-      ? Typography.fontSize.h2
+    fontSize: isSmallScreen()
+      ? Typography.fontSize.h1Phone
       : Typography.fontSize.h1,
     marginBottom: Spacing.sm,
     textAlign: "center",

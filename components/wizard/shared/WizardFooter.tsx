@@ -11,6 +11,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../ui/Button";
 
+// Export the exact button height for use in keyboard calculations
+export const WIZARD_FOOTER_BUTTON_HEIGHT = 52; // Matches Button large size minHeight
+
 interface WizardFooterProps {
   onNext: () => void;
   nextDisabled?: boolean;
