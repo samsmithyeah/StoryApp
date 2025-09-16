@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
-import { Dimensions, Keyboard, EmitterSubscription } from "react-native";
-import { Spacing, isTablet, isSmallScreen } from "@/constants/Theme";
+import {
+  Keyboard,
+  EmitterSubscription,
+  ScrollView,
+  useWindowDimensions,
+} from "react-native";
+import {
+  Spacing,
+  isTablet,
+  isSmallScreen,
+  isVerySmallScreen,
+} from "@/constants/Theme";
 import { WIZARD_FOOTER_BUTTON_HEIGHT } from "@/components/wizard/shared/WizardFooter";
-
-// Screen size thresholds specific to keyboard behavior
-const KEYBOARD_SCREEN_THRESHOLDS = {
-  IPHONE_SE: 667, // iPhone SE (3rd gen) and smaller - needs aggressive scrolling
-} as const;
-
-// Helper function for iPhone SE detection (more aggressive than general small screen)
-const isIPhoneSESize = () =>
-  Dimensions.get("window").height <= KEYBOARD_SCREEN_THRESHOLDS.IPHONE_SE;
 
 // Scroll adjustment values for different scenarios
 const SCROLL_ADJUSTMENTS = {
@@ -33,7 +34,6 @@ const TIMING_DELAYS = {
 } as const;
 
 // Constants for wizard footer dimensions and spacing
-export const WIZARD_FOOTER_PADDING = Spacing.screenPadding; // Horizontal padding
 export const WIZARD_FOOTER_MARGIN_TOP = Spacing.lg; // marginTop from WizardFooter styles
 
 // Calculate the total height occupied by the WizardFooter
@@ -44,12 +44,13 @@ export const getWizardFooterHeight = (safeAreaBottom: number = 0): number => {
 };
 
 interface ScrollToInputParams {
-  scrollRef: React.RefObject<any>;
+  scrollRef: React.RefObject<ScrollView | null>;
   inputOffsetY: number;
   headerHeight: number;
   keyboardHeight?: number;
   safeAreaBottom?: number;
   extraPadding?: number;
+  screenHeight?: number;
 }
 
 /**
@@ -69,10 +70,11 @@ export const scrollToInputPosition = ({
   keyboardHeight = 0,
   safeAreaBottom = 0,
   extraPadding = 20,
+  screenHeight,
 }: ScrollToInputParams): void => {
   requestAnimationFrame(() => {
-    const screenHeight = Dimensions.get("window").height;
-    const isVerySmallScreen = isIPhoneSESize();
+    // Use Theme helpers for consistent screen detection
+    const isCurrentlySmallScreen = isSmallScreen();
 
     // Skip aggressive scrolling on tablets - they have plenty of space
     if (isTablet()) {
@@ -88,8 +90,8 @@ export const scrollToInputPosition = ({
 
     if (keyboardHeight === 0) {
       // No keyboard yet - basic positioning
-      if (isVerySmallScreen) {
-        // iPhone SE needs aggressive scroll even without keyboard
+      if (isCurrentlySmallScreen) {
+        // Small screens need aggressive scroll even without keyboard
         const targetPosition = headerHeight + 1;
         const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
         const extraScroll = SCROLL_ADJUSTMENTS.BASIC_EXTRA;
@@ -114,8 +116,8 @@ export const scrollToInputPosition = ({
     // Keyboard is visible - be very aggressive on small screens
     let targetPosition;
 
-    if (isVerySmallScreen) {
-      // iPhone SE requires VERY aggressive scrolling
+    if (isCurrentlySmallScreen) {
+      // Small screens require VERY aggressive scrolling
       // Position the input to be immediately below header with virtually no padding
       targetPosition = headerHeight + 1;
 
@@ -123,7 +125,7 @@ export const scrollToInputPosition = ({
       // We need to scroll the content up significantly more
       const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
 
-      // On iPhone SE, add extra scroll to make more room
+      // On small screens, add extra scroll to make more room
       const extraScroll = SCROLL_ADJUSTMENTS.IPHONE_SE_AGGRESSIVE;
       const finalScrollOffset = scrollOffset + extraScroll;
 
@@ -131,11 +133,15 @@ export const scrollToInputPosition = ({
         y: finalScrollOffset,
         animated: true,
       });
-      return; // Exit early with custom logic for iPhone SE
+      return; // Exit early with custom logic for small screens
     } else {
       // Larger screens - use more comfortable positioning
+      // Use dynamic screen height for calculations
+      const currentScreenHeight = screenHeight || 800; // fallback value
       const availableSpace =
-        screenHeight - keyboardHeight - getWizardFooterHeight(safeAreaBottom);
+        currentScreenHeight -
+        keyboardHeight -
+        getWizardFooterHeight(safeAreaBottom);
       const contentSpace = availableSpace - headerHeight;
       targetPosition =
         headerHeight + Math.min(extraPadding, Math.max(8, contentSpace / 4));
@@ -168,7 +174,7 @@ interface KeyboardAwareScrollHook {
  *
  * @example
  * ```tsx
- * const scrollRef = useRef<ScrollView>(null);
+ * const scrollRef = useRef<ScrollView | null>(null);
  * const insets = useSafeAreaInsets();
  * const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(scrollRef, insets.bottom);
  *
@@ -180,9 +186,10 @@ interface KeyboardAwareScrollHook {
  * ```
  */
 export const useKeyboardAwareScroll = (
-  scrollRef: React.RefObject<any>,
+  scrollRef: React.RefObject<ScrollView | null>,
   safeAreaBottom: number = 0
 ): KeyboardAwareScrollHook => {
+  const { height: screenHeight } = useWindowDimensions();
   const keyboardListenerRef = useRef<EmitterSubscription | null>(null);
   const currentFocusParamsRef = useRef<{
     inputOffsetY: number;
@@ -197,7 +204,7 @@ export const useKeyboardAwareScroll = (
   }, []);
 
   const onInputFocus = (inputOffsetY: number, headerHeight: number) => {
-    const isVerySmallScreen = isIPhoneSESize();
+    const isCurrentlySmallScreen = isSmallScreen();
 
     // Store current focus parameters for the keyboard listener
     currentFocusParamsRef.current = { inputOffsetY, headerHeight };
@@ -213,12 +220,13 @@ export const useKeyboardAwareScroll = (
         headerHeight,
         keyboardHeight: 0,
         safeAreaBottom,
+        screenHeight,
       });
       return;
     }
 
-    // For very small screens, be more aggressive with initial scroll
-    if (isVerySmallScreen) {
+    // For small screens, be more aggressive with initial scroll
+    if (isCurrentlySmallScreen) {
       // Immediate aggressive scroll for small screens
       setTimeout(() => {
         const aggressiveTargetPosition = headerHeight + 1;
@@ -226,7 +234,7 @@ export const useKeyboardAwareScroll = (
           0,
           inputOffsetY - aggressiveTargetPosition
         );
-        // Add significant extra scroll for iPhone SE
+        // Add significant extra scroll for small screens
         const extraScroll = SCROLL_ADJUSTMENTS.IPHONE_SE_VERY_AGGRESSIVE;
         const finalAggressiveScroll = aggressiveScrollOffset + extraScroll;
 
@@ -255,6 +263,7 @@ export const useKeyboardAwareScroll = (
             headerHeight: currentParams.headerHeight,
             keyboardHeight: isTablet() ? 0 : keyboardHeight, // Ignore keyboard height on tablets
             safeAreaBottom,
+            screenHeight,
           });
         }, TIMING_DELAYS.KEYBOARD_SETTLE);
 
@@ -271,6 +280,7 @@ export const useKeyboardAwareScroll = (
       headerHeight,
       keyboardHeight: 0, // No keyboard yet
       safeAreaBottom,
+      screenHeight,
     });
   };
 
@@ -278,11 +288,11 @@ export const useKeyboardAwareScroll = (
     // Calculate dynamic padding to ensure content clears the footer
     const wizardFooterHeight = getWizardFooterHeight(safeAreaBottom);
 
-    const isVerySmallScreen = isIPhoneSESize();
+    const isCurrentlyVerySmallScreen = isVerySmallScreen();
     const isCurrentlySmallScreen = isSmallScreen();
 
     // Adjust padding based on screen size to accommodate keyboard scenarios
-    if (isVerySmallScreen) {
+    if (isCurrentlyVerySmallScreen) {
       // Very small screens need significant extra padding for keyboard scenarios
       return wizardFooterHeight + Spacing.massive + Spacing.xl;
     } else if (isCurrentlySmallScreen) {
