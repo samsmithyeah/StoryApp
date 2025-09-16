@@ -11,7 +11,7 @@ import {
   isSmallScreen,
   isVerySmallScreen,
 } from "@/constants/Theme";
-import { WIZARD_FOOTER_BUTTON_HEIGHT } from "@/components/wizard/shared/WizardFooter";
+import { getWizardFooterHeight } from "@/components/wizard/shared/WizardFooter";
 
 // Scroll adjustment values for different scenarios
 const SCROLL_ADJUSTMENTS = {
@@ -21,10 +21,6 @@ const SCROLL_ADJUSTMENTS = {
   // iPhone SE aggressive scrolling
   IPHONE_SE_AGGRESSIVE: 60,
   IPHONE_SE_VERY_AGGRESSIVE: 80,
-
-  // Component-specific adjustments (for future use)
-  STORY_ABOUT_BOOST: 10,
-  ILLUSTRATION_SELECTION_REDUCTION: 15,
 } as const;
 
 // Timing delays for smooth UX
@@ -33,16 +29,6 @@ const TIMING_DELAYS = {
   KEYBOARD_SETTLE: 100, // Wait for keyboard layout to settle
 } as const;
 
-// Constants for wizard footer dimensions and spacing
-export const WIZARD_FOOTER_MARGIN_TOP = Spacing.lg; // marginTop from WizardFooter styles
-
-// Calculate the total height occupied by the WizardFooter
-export const getWizardFooterHeight = (safeAreaBottom: number = 0): number => {
-  return (
-    WIZARD_FOOTER_BUTTON_HEIGHT + WIZARD_FOOTER_MARGIN_TOP + safeAreaBottom
-  );
-};
-
 interface ScrollToInputParams {
   scrollRef: React.RefObject<ScrollView | null>;
   inputOffsetY: number;
@@ -50,7 +36,7 @@ interface ScrollToInputParams {
   keyboardHeight?: number;
   safeAreaBottom?: number;
   extraPadding?: number;
-  screenHeight?: number;
+  screenHeight: number;
 }
 
 /**
@@ -137,11 +123,8 @@ export const scrollToInputPosition = ({
     } else {
       // Larger screens - use more comfortable positioning
       // Use dynamic screen height for calculations
-      const currentScreenHeight = screenHeight || 800; // fallback value
       const availableSpace =
-        currentScreenHeight -
-        keyboardHeight -
-        getWizardFooterHeight(safeAreaBottom);
+        screenHeight - keyboardHeight - getWizardFooterHeight(safeAreaBottom);
       const contentSpace = availableSpace - headerHeight;
       targetPosition =
         headerHeight + Math.min(extraPadding, Math.max(8, contentSpace / 4));

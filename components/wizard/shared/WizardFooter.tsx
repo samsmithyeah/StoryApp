@@ -14,6 +14,16 @@ import { Button } from "../../ui/Button";
 // Export the exact button height for use in keyboard calculations
 export const WIZARD_FOOTER_BUTTON_HEIGHT = 52; // Matches Button large size minHeight
 
+// Export footer margin for consistent height calculations
+export const WIZARD_FOOTER_MARGIN_TOP = Spacing.lg; // marginTop from WizardFooter styles
+
+// Calculate the total height occupied by the WizardFooter
+export const getWizardFooterHeight = (safeAreaBottom: number = 0): number => {
+  return (
+    WIZARD_FOOTER_BUTTON_HEIGHT + WIZARD_FOOTER_MARGIN_TOP + safeAreaBottom
+  );
+};
+
 interface WizardFooterProps {
   onNext: () => void;
   nextDisabled?: boolean;
@@ -88,6 +98,6 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
 const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenPadding,
-    marginTop: Spacing.lg,
+    marginTop: WIZARD_FOOTER_MARGIN_TOP,
   },
 });
