@@ -7,7 +7,7 @@ export interface CreditsHeaderProps {
   fadeAnim: any;
 }
 
-export interface InfoSectionProps {}
+export type InfoSectionProps = Record<string, never>;
 
 export interface TabSelectorProps {
   selectedTab: "subscriptions" | "packs";

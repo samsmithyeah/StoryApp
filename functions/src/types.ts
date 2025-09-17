@@ -31,9 +31,3 @@ export interface StoryPage {
   text: string;
   imageUrl: string;
 }
-
-interface GeneratedStory {
-  title: string;
-  pages: StoryPage[];
-  coverImageUrl: string;
-}
