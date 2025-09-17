@@ -7,7 +7,7 @@ import {
 } from "firebase-functions/v2/https";
 import { jsonrepair } from "jsonrepair";
 import { STORY_SETTINGS, TIMEOUTS } from "./constants";
-import { DEFAULT_MODELS } from "./models";
+import { DEFAULT_MODELS, TEXT_MODELS } from "./models";
 import { StoryGenerationRequest, StoryPage } from "./types";
 import { geminiApiKey, getGeminiClient } from "./utils/gemini";
 import { logger } from "./utils/logger";
@@ -178,7 +178,7 @@ export const generateStory = onCall(
       }
 
       // 3. Generate story text and prompts using selected model
-      const selectedTextModel = data.textModel || "gpt-4o";
+      const selectedTextModel = data.textModel || TEXT_MODELS.GPT_4O;
       const temperature = data.temperature ?? 0.9; // Use user preference or default
 
       const systemPrompt = `You are a world-class creative children's story writer. Create engaging, age-appropriate stories that will delight young readers without relying on cliches. Be creative and inventive.`;
@@ -321,7 +321,7 @@ Return the story in this JSON format:
 
       let storyContent: any;
 
-      if (selectedTextModel === "gpt-4o") {
+      if (selectedTextModel === TEXT_MODELS.GPT_4O) {
         const openai = getOpenAIClient();
         const chatResponse = await retryWithBackoff(() =>
           openai.chat.completions.create({
@@ -337,7 +337,7 @@ Return the story in this JSON format:
         storyContent = JSON.parse(
           chatResponse.choices[0].message.content || "{}"
         );
-      } else if (selectedTextModel === "gemini-2.5-pro") {
+      } else if (selectedTextModel === TEXT_MODELS.GEMINI_2_5_PRO) {
         try {
           const geminiClient = getGeminiClient();
           storyContent = await retryWithBackoff(async () => {
@@ -514,7 +514,7 @@ Return the story in this JSON format:
           },
           temperature,
           geminiThinkingBudget:
-            selectedTextModel === "gemini-2.5-pro"
+            selectedTextModel === TEXT_MODELS.GEMINI_2_5_PRO
               ? data.geminiThinkingBudget
               : undefined,
           // Cover image generation details

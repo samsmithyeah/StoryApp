@@ -1,3 +1,5 @@
+import type { TextModel } from "./models";
+
 interface StoryCharacter {
   name: string;
   description?: string;
@@ -17,7 +19,7 @@ export interface StoryGenerationRequest {
   illustrationAiDescriptionBackup1?: string;
   illustrationAiDescriptionBackup2?: string;
   pageImageModel?: "gemini" | "gpt-image-1"; // Optional, defaults to gpt-image-1
-  textModel?: "gpt-4o" | "gemini-2.5-pro";
+  textModel?: TextModel;
   coverImageModel?: "gemini-2.5-flash-image-preview" | "gpt-image-1";
   storyAbout?: string;
   characters?: StoryCharacter[];
