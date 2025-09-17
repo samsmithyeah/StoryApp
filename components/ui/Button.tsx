@@ -26,6 +26,13 @@ interface ButtonProps {
   rightIcon?: string;
 }
 
+// Export button size constants for external use
+export const BUTTON_SIZE_HEIGHTS = {
+  small: 36,
+  medium: 44,
+  large: 52,
+} as const;
+
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
@@ -160,17 +167,17 @@ const styles = StyleSheet.create({
   smallSize: {
     paddingHorizontal: Spacing.buttonPaddingSmall.horizontal,
     paddingVertical: Spacing.buttonPaddingSmall.vertical,
-    minHeight: 36,
+    minHeight: BUTTON_SIZE_HEIGHTS.small,
   },
   mediumSize: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    minHeight: 44,
+    minHeight: BUTTON_SIZE_HEIGHTS.medium,
   },
   largeSize: {
     paddingHorizontal: Spacing.buttonPadding.horizontal,
     paddingVertical: Spacing.buttonPadding.vertical,
-    minHeight: 52,
+    minHeight: BUTTON_SIZE_HEIGHTS.large,
   },
 
   // Text styles

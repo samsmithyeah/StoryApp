@@ -3,11 +3,11 @@ import { LAYOUT } from "@/constants/Layout";
 import { Colors } from "@/constants/Theme";
 import { Analytics } from "@/utils/analytics";
 import { filterContent, getFilterErrorMessage } from "@/utils/contentFilter";
+import { useKeyboardAwareScroll } from "@/utils/keyboardAwareScroll";
 import React, { useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,16 +15,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WizardContainer } from "../shared/WizardContainer";
 import { WizardFooter } from "../shared/WizardFooter";
 import { WizardStepHeader } from "../shared/WizardStepHeader";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
-// Small spacer so the input clears the header comfortably when focused
-const INPUT_FOCUS_SCROLL_PADDING = 40;
-// Extra bottom padding on iOS so content doesn't sit under the footer while keyboard is up
-const IOS_KEYBOARD_EXTRA_BOTTOM_PADDING = 160;
 
 interface IllustrationStyle {
   id: string;
@@ -176,6 +173,8 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
   onBack,
   onCancel,
 }) => {
+  const insets = useSafeAreaInsets();
+
   // Check if the current style is a custom one (not in predefined list)
   const isCurrentStyleCustom =
     illustrationStyle &&
@@ -256,28 +255,21 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 
   // Keyboard-aware scrolling (primarily for iOS)
   const scrollRef = useRef<ScrollView | null>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
+    scrollRef,
+    insets.bottom
+  );
 
   return (
     <WizardContainer>
-      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
-        <WizardStepHeader
-          title="Illustrations"
-          subtitle="Choose the perfect illustration style for your story"
-          stepNumber={7}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          Platform.OS === "ios" && styles.iosExtraPadding,
+          { paddingBottom: getContentPadding() },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -285,6 +277,17 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="always"
       >
+        <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+          <WizardStepHeader
+            title="Illustration style"
+            subtitle="Pick a style that matches your story's mood"
+            stepNumber={7}
+            totalSteps={7}
+            onBack={onBack}
+            onCancel={onCancel}
+          />
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose an illustration style</Text>
           <View style={isTablet ? styles.stylesListTablet : styles.stylesList}>
@@ -349,15 +352,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 multiline
                 maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
                 onFocus={() => {
-                  // Align input just below the header (similar to StoryAbout)
-                  requestAnimationFrame(() => {
-                    const focusOffset =
-                      headerHeight + INPUT_FOCUS_SCROLL_PADDING;
-                    scrollRef.current?.scrollTo({
-                      y: Math.max(0, customInputOffsetY - focusOffset),
-                      animated: true,
-                    });
-                  });
+                  onInputFocus(customInputOffsetY, headerHeight);
                 }}
               />
             </View>
@@ -377,15 +372,12 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   scrollContent: {},
-  iosExtraPadding: {
-    paddingBottom: IOS_KEYBOARD_EXTRA_BOTTOM_PADDING,
-  },
   section: {
     marginBottom: 32,
     paddingTop: 16,
+    paddingHorizontal: 24,
   },
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,

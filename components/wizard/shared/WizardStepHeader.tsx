@@ -58,7 +58,7 @@ export const WizardStepHeader: React.FC<WizardStepHeaderProps> = ({
         </View>
 
         {onCancel ? (
-          <CloseButton onPress={onCancel} style={{ padding: 8 }} />
+          <CloseButton onPress={onCancel} style={styles.closeButton} />
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -100,6 +100,13 @@ const styles = StyleSheet.create({
   placeholder: {
     padding: 8,
     minWidth: 40,
+  },
+  closeButton: {
+    marginRight: -8,
+    padding: 8,
+    minWidth: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerContent: {
     flex: 1,

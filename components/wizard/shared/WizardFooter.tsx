@@ -9,7 +9,20 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button } from "../../ui/Button";
+import { Button, BUTTON_SIZE_HEIGHTS } from "../../ui/Button";
+
+// Export the exact button height for use in keyboard calculations
+export const WIZARD_FOOTER_BUTTON_HEIGHT = BUTTON_SIZE_HEIGHTS.large;
+
+// Export footer margin for consistent height calculations
+export const WIZARD_FOOTER_MARGIN_TOP = Spacing.lg; // marginTop from WizardFooter styles
+
+// Calculate the total height occupied by the WizardFooter
+export const getWizardFooterHeight = (safeAreaBottom: number = 0): number => {
+  return (
+    WIZARD_FOOTER_BUTTON_HEIGHT + WIZARD_FOOTER_MARGIN_TOP + safeAreaBottom
+  );
+};
 
 interface WizardFooterProps {
   onNext: () => void;
@@ -85,6 +98,6 @@ export const WizardFooter: React.FC<WizardFooterProps> = ({
 const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenPadding,
-    marginTop: Spacing.lg,
+    marginTop: WIZARD_FOOTER_MARGIN_TOP,
   },
 });
