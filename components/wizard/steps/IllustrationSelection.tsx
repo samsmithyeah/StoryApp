@@ -256,6 +256,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
   // Keyboard-aware scrolling (primarily for iOS)
   const scrollRef = useRef<ScrollView | null>(null);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
     scrollRef,
     insets.bottom
@@ -276,14 +277,16 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="always"
       >
-        <WizardStepHeader
-          title="Illustration style"
-          subtitle="Pick a style that matches your story's mood"
-          stepNumber={7}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
+        <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+          <WizardStepHeader
+            title="Illustration style"
+            subtitle="Pick a style that matches your story's mood"
+            stepNumber={7}
+            totalSteps={7}
+            onBack={onBack}
+            onCancel={onCancel}
+          />
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose an illustration style</Text>
@@ -349,7 +352,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 multiline
                 maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
                 onFocus={() => {
-                  onInputFocus(customInputOffsetY, 0);
+                  onInputFocus(customInputOffsetY, headerHeight);
                 }}
               />
             </View>

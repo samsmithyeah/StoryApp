@@ -169,6 +169,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   const scrollRef = useRef<ScrollView | null>(null);
   const textInputRef = useRef<TextInput | null>(null);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
     scrollRef,
     insets.bottom
@@ -199,14 +200,16 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         contentInsetAdjustmentBehavior="always"
         showsVerticalScrollIndicator={false}
       >
-        <WizardStepHeader
-          title="What's the story about?"
-          subtitle="You can be as vague or specific as you like"
-          stepNumber={5}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
+        <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+          <WizardStepHeader
+            title="What's the story about?"
+            subtitle="You can be as vague or specific as you like"
+            stepNumber={5}
+            totalSteps={7}
+            onBack={onBack}
+            onCancel={onCancel}
+          />
+        </View>
 
         <View style={styles.content}>
           <View style={styles.optionsContainer}>
@@ -241,7 +244,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 returnKeyType="done"
                 maxLength={ContentLimits.STORY_ABOUT_MAX_LENGTH}
                 onFocus={() => {
-                  onInputFocus(customInputOffsetY, 0);
+                  onInputFocus(customInputOffsetY, headerHeight);
                 }}
               />
             </View>

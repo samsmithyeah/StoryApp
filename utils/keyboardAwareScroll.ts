@@ -21,11 +21,6 @@ const SCROLL_ADJUSTMENTS = {
   // iPhone SE aggressive scrolling
   IPHONE_SE_AGGRESSIVE: 60,
 
-  // Estimated header height when inside ScrollView (replaces magic numbers)
-  // Based on WizardStepHeader: header (~60) + step indicator (~20) + title section (~60)
-  // Reduced to scroll up more aggressively
-  ESTIMATED_HEADER_HEIGHT: 100,
-
   // Additional padding for comfortable positioning
   // Reduced to scroll up more aggressively
   COMFORTABLE_PADDING: 10,
@@ -80,11 +75,7 @@ const scrollToInputPosition = ({
 
     if (isCurrentlySmallScreen) {
       // Small screens require VERY aggressive scrolling
-      // When header is inside ScrollView (headerHeight = 0), use estimated header height
-      targetPosition =
-        headerHeight === 0
-          ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT + 1
-          : headerHeight + 1;
+      targetPosition = headerHeight + 1;
 
       // The scroll offset calculation needs to be much more aggressive
       // We need to scroll the content up significantly more
@@ -104,14 +95,9 @@ const scrollToInputPosition = ({
       // Use dynamic screen height for calculations
       const availableSpace =
         screenHeight - keyboardHeight - getWizardFooterHeight(safeAreaBottom);
-      const effectiveHeaderHeight =
-        headerHeight === 0
-          ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT
-          : headerHeight;
-      const contentSpace = availableSpace - effectiveHeaderHeight;
+      const contentSpace = availableSpace - headerHeight;
       targetPosition =
-        effectiveHeaderHeight +
-        Math.min(extraPadding, Math.max(8, contentSpace / 4));
+        headerHeight + Math.min(extraPadding, Math.max(8, contentSpace / 4));
     }
 
     const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
