@@ -186,7 +186,7 @@ export const useKeyboardAwareScroll = (
               scrollRef,
               inputOffsetY: currentParams.inputOffsetY,
               headerHeight: currentParams.headerHeight,
-              keyboardHeight: isTablet() ? 0 : keyboardHeight, // Ignore keyboard height on tablets
+              keyboardHeight: keyboardHeight,
               safeAreaBottom,
               screenHeight,
             });

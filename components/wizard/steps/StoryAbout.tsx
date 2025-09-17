@@ -177,12 +177,17 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
 
   // Auto-focus the text input when custom mode is selected
   React.useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
     if (mode === "custom" && textInputRef.current) {
       // Add a small delay to ensure the TextInput is rendered
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         textInputRef.current?.focus();
       }, AUTOFOCUS_DELAY);
     }
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [mode]);
 
   return (
