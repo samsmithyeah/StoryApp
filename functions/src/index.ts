@@ -10,7 +10,6 @@ admin.initializeApp();
 export { generateSingleImage } from "./generateSingleImage";
 export { generateCoverImage } from "./generateCoverImage";
 export { generateStory } from "./generateStory";
-export { generateThemeSuggestions } from "./generateThemeSuggestions";
 export { getStories } from "./getStories";
 export { getStory } from "./getStory";
 export { deleteUserData } from "./deleteUserData";
