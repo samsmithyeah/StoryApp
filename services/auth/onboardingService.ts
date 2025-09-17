@@ -6,7 +6,7 @@ import { AuthCacheService } from "./authCacheService";
 import { ErrorNotificationService } from "./errorNotificationService";
 import { AUTH_TIMEOUTS } from "../../constants/AuthConstants";
 
-export interface OnboardingResult {
+interface OnboardingResult {
   hasCompletedOnboarding: boolean;
   reason:
     | "firestore_flag"

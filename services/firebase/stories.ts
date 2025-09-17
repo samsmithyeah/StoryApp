@@ -73,14 +73,14 @@ export const getStories = async (): Promise<Story[]> => {
   }
 };
 
-export interface ThemeSuggestion {
+interface ThemeSuggestion {
   id: string;
   name: string;
   description: string;
   icon: string;
 }
 
-export interface ChildInfo {
+interface ChildInfo {
   preferences: string;
   age: number;
 }

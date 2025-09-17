@@ -1,4 +1,4 @@
-export interface StoryPage {
+interface StoryPage {
   page: number;
   text: string;
   imageUrl: string;
@@ -56,13 +56,4 @@ export interface Story {
   totalImages?: number;
   imagesFailed?: number;
   imageGenerationError?: string;
-}
-
-export interface StoryWizardData {
-  childId: string;
-  theme: string;
-  characters: string[];
-  setting: string;
-  mood: string;
-  lesson?: string;
 }

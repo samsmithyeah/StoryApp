@@ -59,7 +59,7 @@ const EMPTY_STATE_PADDING_PERCENTAGES = {
   default: 0.18,
 };
 
-export interface ResponsiveLayoutValues {
+interface ResponsiveLayoutValues {
   isLandscape: boolean;
   isTabletDevice: boolean;
   columns: number;

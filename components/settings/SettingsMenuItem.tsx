@@ -10,7 +10,7 @@ import {
 } from "../../constants/Theme";
 import { IconSymbol } from "../ui/IconSymbol";
 
-export interface SettingsMenuItemProps {
+interface SettingsMenuItemProps {
   title: string;
   subtitle?: string;
   /** Ionicons name - used in main settings screen */

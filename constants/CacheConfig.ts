@@ -17,6 +17,3 @@ export const CacheConfig = {
   // Cleanup intervals
   CACHE_CLEANUP_INTERVAL: 4 * 60 * 60 * 1000, // Clean up caches every 4 hours - less CPU overhead
 } as const;
-
-// Cache configuration with type safety
-export type CacheConfigKey = keyof typeof CacheConfig;

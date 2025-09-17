@@ -1,18 +1,12 @@
 import type { UserCredits } from "@/types/monetization.types";
 import { PurchasesPackage } from "react-native-purchases";
 
-export interface CreditsScreenProps {
-  isModal?: boolean;
-  onPurchaseSuccess?: () => void;
-}
-
 export interface CreditsHeaderProps {
   userCredits: UserCredits | null;
   scaleAnim: any;
   fadeAnim: any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface InfoSectionProps {}
 
 export interface TabSelectorProps {
@@ -45,9 +39,6 @@ export interface PurchaseButtonProps {
   getProductInfo: (productId: string) => ProductInfo;
   insets: any;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface DecorationsProps {}
 
 export interface ProductInfo {
   credits: number;

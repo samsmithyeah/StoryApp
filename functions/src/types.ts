@@ -1,4 +1,4 @@
-export interface StoryCharacter {
+interface StoryCharacter {
   name: string;
   description?: string;
   appearance?: string;
@@ -32,7 +32,7 @@ export interface StoryPage {
   imageUrl: string;
 }
 
-export interface GeneratedStory {
+interface GeneratedStory {
   title: string;
   pages: StoryPage[];
   coverImageUrl: string;
