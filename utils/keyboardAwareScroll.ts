@@ -15,15 +15,8 @@ import {
 
 // Scroll adjustment values for different scenarios
 const SCROLL_ADJUSTMENTS = {
-  // Basic positioning
-  BASIC_EXTRA: 40,
-
   // iPhone SE aggressive scrolling
   IPHONE_SE_AGGRESSIVE: 60,
-
-  // Additional padding for comfortable positioning
-  // Reduced to scroll up more aggressively
-  COMFORTABLE_PADDING: 10,
 } as const;
 
 // Timing delays for smooth UX
@@ -176,8 +169,6 @@ export const useKeyboardAwareScroll = (
         });
         return;
       }
-
-      // Skip immediate aggressive scroll for small screens - wait for keyboard
 
       // Set up keyboard listener with proper cleanup
       keyboardListenerRef.current = Keyboard.addListener(
