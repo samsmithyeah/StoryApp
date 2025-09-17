@@ -20,7 +20,6 @@ const SCROLL_ADJUSTMENTS = {
 
   // iPhone SE aggressive scrolling
   IPHONE_SE_AGGRESSIVE: 60,
-  IPHONE_SE_VERY_AGGRESSIVE: 80,
 
   // Estimated header height when inside ScrollView (replaces magic numbers)
   // Based on WizardStepHeader: header (~60) + step indicator (~20) + title section (~60)
@@ -34,7 +33,6 @@ const SCROLL_ADJUSTMENTS = {
 
 // Timing delays for smooth UX
 const TIMING_DELAYS = {
-  IMMEDIATE_SCROLL: 50, // Quick initial scroll
   KEYBOARD_SETTLE: 100, // Wait for keyboard layout to settle
 } as const;
 
@@ -58,7 +56,7 @@ interface ScrollToInputParams {
  *
  * @param params - Scroll configuration parameters
  */
-export const scrollToInputPosition = ({
+const scrollToInputPosition = ({
   scrollRef,
   inputOffsetY,
   headerHeight,
@@ -74,40 +72,6 @@ export const scrollToInputPosition = ({
     // Skip aggressive scrolling on tablets - they have plenty of space
     if (isTablet()) {
       // On tablets, don't scroll at all - they have enough screen space
-      return;
-    }
-
-    if (keyboardHeight === 0) {
-      // No keyboard yet - basic positioning
-      if (isCurrentlySmallScreen) {
-        // Small screens need aggressive scroll even without keyboard
-        // When header is inside ScrollView (headerHeight = 0), use estimated header height
-        const targetPosition =
-          headerHeight === 0
-            ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT + 1
-            : headerHeight + 1;
-        const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
-        const extraScroll = SCROLL_ADJUSTMENTS.BASIC_EXTRA;
-        const finalScrollOffset = scrollOffset + extraScroll;
-
-        scrollRef.current?.scrollTo({
-          y: finalScrollOffset,
-          animated: true,
-        });
-      } else {
-        // When header is inside ScrollView (headerHeight = 0), use estimated header height + padding
-        const targetPosition =
-          headerHeight === 0
-            ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT +
-              SCROLL_ADJUSTMENTS.COMFORTABLE_PADDING
-            : headerHeight + extraPadding;
-        const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
-
-        scrollRef.current?.scrollTo({
-          y: scrollOffset,
-          animated: true,
-        });
-      }
       return;
     }
 

@@ -36,6 +36,9 @@ const formatInterestList = (interestsString: string): string => {
 // Constant for the interests mode story prompt prefix
 const INTERESTS_STORY_PREFIX = "A story that would appeal to";
 
+// Delay for autofocus to ensure component is fully rendered
+const AUTOFOCUS_DELAY = 100;
+
 interface StoryAboutProps {
   storyAbout?: string;
   selectedChildren: string[];
@@ -177,7 +180,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
       // Add a small delay to ensure the TextInput is rendered
       setTimeout(() => {
         textInputRef.current?.focus();
-      }, 100);
+      }, AUTOFOCUS_DELAY);
     }
   }, [mode]);
 
