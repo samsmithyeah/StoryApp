@@ -98,19 +98,18 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
   return (
     <>
       <WizardContainer>
-        <WizardStepHeader
-          title="Story details"
-          subtitle={`Choose the length and style for your story • ${balance} credits available`}
-          stepNumber={6}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
-
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
+          <WizardStepHeader
+            title="Story details"
+            subtitle={`Choose the length and style for your story • ${balance} credits available`}
+            stepNumber={6}
+            totalSteps={7}
+            onBack={onBack}
+            onCancel={onCancel}
+          />
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Story length</Text>
             <View style={styles.sliderContainer}>
@@ -186,11 +185,11 @@ export const StoryDetails: React.FC<StoryDetailsProps> = ({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   section: {
     marginBottom: 32,
     paddingTop: 16,
+    paddingHorizontal: 24,
   },
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,

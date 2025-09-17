@@ -72,16 +72,6 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           colors={["rgba(15,17,41,0.72)", "rgba(15,17,41,0.96)"]}
           style={StyleSheet.absoluteFill}
         />
-        <WizardStepHeader
-          title="Audience selection"
-          subtitle="Who's the story for? This will help us tailor the content to their age and interests."
-          stepNumber={1}
-          totalSteps={7}
-          onBack={() => {}}
-          onCancel={onCancel}
-          showBackButton={false}
-        />
-
         {/* Low credits warning */}
         {isLowCredits && (
           <View style={styles.warningBanner}>
@@ -107,6 +97,15 @@ export const ChildSelection: React.FC<ChildSelectionProps> = ({
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
+          <WizardStepHeader
+            title="Audience selection"
+            subtitle="Who's the story for? This will help us tailor the content to their age and interests."
+            stepNumber={1}
+            totalSteps={7}
+            onBack={() => {}}
+            onCancel={onCancel}
+            showBackButton={false}
+          />
           <View style={styles.childrenContainer}>
             {childrenLoading ? (
               <View style={styles.stateContainer}>
@@ -237,9 +236,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   childrenContainer: {
+    paddingHorizontal: 24,
     paddingBottom: 20,
   },
   childrenGrid: {

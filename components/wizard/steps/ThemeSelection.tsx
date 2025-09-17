@@ -214,18 +214,18 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 
   return (
     <WizardContainer>
-      <WizardStepHeader
-        title="Choose a theme"
-        subtitle="What kind of story shall we create?"
-        stepNumber={2}
-        totalSteps={7}
-        onBack={onBack}
-        onCancel={onCancel}
-      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        <WizardStepHeader
+          title="Choose a theme"
+          subtitle="What kind of story shall we create?"
+          stepNumber={2}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
         <View style={styles.contentContainer}>
           {/* {hasPreferences && (
             <AISuggestedThemes
@@ -271,9 +271,9 @@ export const ThemeSelection: React.FC<ThemeSelectionProps> = ({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   contentContainer: {
+    paddingHorizontal: 24,
     paddingBottom: 0,
   },
   themesSection: {},

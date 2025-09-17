@@ -164,26 +164,25 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
   ];
 
   const scrollRef = useRef<ScrollView | null>(null);
+  const textInputRef = useRef<TextInput | null>(null);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
     scrollRef,
     insets.bottom
   );
 
+  // Auto-focus the text input when custom mode is selected
+  React.useEffect(() => {
+    if (mode === "custom" && textInputRef.current) {
+      // Add a small delay to ensure the TextInput is rendered
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
+    }
+  }, [mode]);
+
   return (
     <WizardContainer>
-      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
-        <WizardStepHeader
-          title="What's the story about?"
-          subtitle="You can be as vague or specific as you like"
-          stepNumber={5}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
@@ -197,6 +196,15 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
         contentInsetAdjustmentBehavior="always"
         showsVerticalScrollIndicator={false}
       >
+        <WizardStepHeader
+          title="What's the story about?"
+          subtitle="You can be as vague or specific as you like"
+          stepNumber={5}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
+
         <View style={styles.content}>
           <View style={styles.optionsContainer}>
             {options.map((option) => (
@@ -218,6 +226,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
               onLayout={(e) => setCustomInputOffsetY(e.nativeEvent.layout.y)}
             >
               <TextInput
+                ref={textInputRef}
                 style={styles.customInput}
                 placeholder="Describe what you'd like the story to be about..."
                 placeholderTextColor={Colors.textSecondary}
@@ -229,7 +238,7 @@ export const StoryAbout: React.FC<StoryAboutProps> = ({
                 returnKeyType="done"
                 maxLength={ContentLimits.STORY_ABOUT_MAX_LENGTH}
                 onFocus={() => {
-                  onInputFocus(customInputOffsetY, headerHeight);
+                  onInputFocus(customInputOffsetY, 0);
                 }}
               />
             </View>

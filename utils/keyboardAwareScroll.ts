@@ -1,17 +1,17 @@
-import { useEffect, useRef } from "react";
+import { getWizardFooterHeight } from "@/components/wizard/shared/WizardFooter";
 import {
-  Keyboard,
+  Spacing,
+  isSmallScreen,
+  isTablet,
+  isVerySmallScreen,
+} from "@/constants/Theme";
+import { useCallback, useEffect, useRef } from "react";
+import {
   EmitterSubscription,
+  Keyboard,
   ScrollView,
   useWindowDimensions,
 } from "react-native";
-import {
-  Spacing,
-  isTablet,
-  isSmallScreen,
-  isVerySmallScreen,
-} from "@/constants/Theme";
-import { getWizardFooterHeight } from "@/components/wizard/shared/WizardFooter";
 
 // Scroll adjustment values for different scenarios
 const SCROLL_ADJUSTMENTS = {
@@ -21,6 +21,15 @@ const SCROLL_ADJUSTMENTS = {
   // iPhone SE aggressive scrolling
   IPHONE_SE_AGGRESSIVE: 60,
   IPHONE_SE_VERY_AGGRESSIVE: 80,
+
+  // Estimated header height when inside ScrollView (replaces magic numbers)
+  // Based on WizardStepHeader: header (~60) + step indicator (~20) + title section (~60)
+  // Reduced to scroll up more aggressively
+  ESTIMATED_HEADER_HEIGHT: 100,
+
+  // Additional padding for comfortable positioning
+  // Reduced to scroll up more aggressively
+  COMFORTABLE_PADDING: 10,
 } as const;
 
 // Timing delays for smooth UX
@@ -64,13 +73,7 @@ export const scrollToInputPosition = ({
 
     // Skip aggressive scrolling on tablets - they have plenty of space
     if (isTablet()) {
-      const basicTargetPosition = headerHeight + extraPadding;
-      const basicScrollOffset = Math.max(0, inputOffsetY - basicTargetPosition);
-
-      scrollRef.current?.scrollTo({
-        y: basicScrollOffset,
-        animated: true,
-      });
+      // On tablets, don't scroll at all - they have enough screen space
       return;
     }
 
@@ -78,7 +81,11 @@ export const scrollToInputPosition = ({
       // No keyboard yet - basic positioning
       if (isCurrentlySmallScreen) {
         // Small screens need aggressive scroll even without keyboard
-        const targetPosition = headerHeight + 1;
+        // When header is inside ScrollView (headerHeight = 0), use estimated header height
+        const targetPosition =
+          headerHeight === 0
+            ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT + 1
+            : headerHeight + 1;
         const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
         const extraScroll = SCROLL_ADJUSTMENTS.BASIC_EXTRA;
         const finalScrollOffset = scrollOffset + extraScroll;
@@ -88,7 +95,12 @@ export const scrollToInputPosition = ({
           animated: true,
         });
       } else {
-        const targetPosition = headerHeight + extraPadding;
+        // When header is inside ScrollView (headerHeight = 0), use estimated header height + padding
+        const targetPosition =
+          headerHeight === 0
+            ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT +
+              SCROLL_ADJUSTMENTS.COMFORTABLE_PADDING
+            : headerHeight + extraPadding;
         const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
 
         scrollRef.current?.scrollTo({
@@ -104,8 +116,11 @@ export const scrollToInputPosition = ({
 
     if (isCurrentlySmallScreen) {
       // Small screens require VERY aggressive scrolling
-      // Position the input to be immediately below header with virtually no padding
-      targetPosition = headerHeight + 1;
+      // When header is inside ScrollView (headerHeight = 0), use estimated header height
+      targetPosition =
+        headerHeight === 0
+          ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT + 1
+          : headerHeight + 1;
 
       // The scroll offset calculation needs to be much more aggressive
       // We need to scroll the content up significantly more
@@ -125,9 +140,14 @@ export const scrollToInputPosition = ({
       // Use dynamic screen height for calculations
       const availableSpace =
         screenHeight - keyboardHeight - getWizardFooterHeight(safeAreaBottom);
-      const contentSpace = availableSpace - headerHeight;
+      const effectiveHeaderHeight =
+        headerHeight === 0
+          ? SCROLL_ADJUSTMENTS.ESTIMATED_HEADER_HEIGHT
+          : headerHeight;
+      const contentSpace = availableSpace - effectiveHeaderHeight;
       targetPosition =
-        headerHeight + Math.min(extraPadding, Math.max(8, contentSpace / 4));
+        effectiveHeaderHeight +
+        Math.min(extraPadding, Math.max(8, contentSpace / 4));
     }
 
     const scrollOffset = Math.max(0, inputOffsetY - targetPosition);
@@ -186,88 +206,63 @@ export const useKeyboardAwareScroll = (
     };
   }, []);
 
-  const onInputFocus = (inputOffsetY: number, headerHeight: number) => {
-    const isCurrentlySmallScreen = isSmallScreen();
+  const onInputFocus = useCallback(
+    (inputOffsetY: number, headerHeight: number) => {
+      // Store current focus parameters for the keyboard listener
+      currentFocusParamsRef.current = { inputOffsetY, headerHeight };
 
-    // Store current focus parameters for the keyboard listener
-    currentFocusParamsRef.current = { inputOffsetY, headerHeight };
+      // Clean up any existing listener
+      keyboardListenerRef.current?.remove();
 
-    // Clean up any existing listener
-    keyboardListenerRef.current?.remove();
-
-    // Skip aggressive scrolling on tablets - they have plenty of space
-    if (isTablet()) {
-      scrollToInputPosition({
-        scrollRef,
-        inputOffsetY,
-        headerHeight,
-        keyboardHeight: 0,
-        safeAreaBottom,
-        screenHeight,
-      });
-      return;
-    }
-
-    // For small screens, be more aggressive with initial scroll
-    if (isCurrentlySmallScreen) {
-      // Immediate aggressive scroll for small screens
-      setTimeout(() => {
-        const aggressiveTargetPosition = headerHeight + 1;
-        const aggressiveScrollOffset = Math.max(
-          0,
-          inputOffsetY - aggressiveTargetPosition
-        );
-        // Add significant extra scroll for small screens
-        const extraScroll = SCROLL_ADJUSTMENTS.IPHONE_SE_VERY_AGGRESSIVE;
-        const finalAggressiveScroll = aggressiveScrollOffset + extraScroll;
-
-        scrollRef.current?.scrollTo({
-          y: finalAggressiveScroll,
-          animated: true,
+      // Skip aggressive scrolling on tablets - they have plenty of space
+      if (isTablet()) {
+        scrollToInputPosition({
+          scrollRef,
+          inputOffsetY,
+          headerHeight,
+          keyboardHeight: 0,
+          safeAreaBottom,
+          screenHeight,
         });
-      }, TIMING_DELAYS.IMMEDIATE_SCROLL);
-    }
-
-    // Set up keyboard listener with proper cleanup
-    keyboardListenerRef.current = Keyboard.addListener(
-      "keyboardDidShow",
-      (event) => {
-        const keyboardHeight = event.endCoordinates?.height || 0;
-        const currentParams = currentFocusParamsRef.current;
-
-        // Only proceed if we have valid current focus parameters
-        if (!currentParams) return;
-
-        // Add delay to ensure layout is settled
-        setTimeout(() => {
-          scrollToInputPosition({
-            scrollRef,
-            inputOffsetY: currentParams.inputOffsetY,
-            headerHeight: currentParams.headerHeight,
-            keyboardHeight: isTablet() ? 0 : keyboardHeight, // Ignore keyboard height on tablets
-            safeAreaBottom,
-            screenHeight,
-          });
-        }, TIMING_DELAYS.KEYBOARD_SETTLE);
-
-        // Clean up this listener after use
-        keyboardListenerRef.current?.remove();
-        keyboardListenerRef.current = null;
+        return;
       }
-    );
 
-    // Immediate scroll for better UX, will be refined when keyboard appears
-    scrollToInputPosition({
-      scrollRef,
-      inputOffsetY,
-      headerHeight,
-      keyboardHeight: 0, // No keyboard yet
-      safeAreaBottom,
-      screenHeight,
-    });
-  };
+      // Skip immediate aggressive scroll for small screens - wait for keyboard
 
-  const getContentPadding = (): number => {
+      // Set up keyboard listener with proper cleanup
+      keyboardListenerRef.current = Keyboard.addListener(
+        "keyboardDidShow",
+        (event) => {
+          const keyboardHeight = event.endCoordinates?.height || 0;
+          const currentParams = currentFocusParamsRef.current;
+
+          // Only proceed if we have valid current focus parameters
+          if (!currentParams) return;
+
+          // Add delay to ensure layout is settled
+          setTimeout(() => {
+            scrollToInputPosition({
+              scrollRef,
+              inputOffsetY: currentParams.inputOffsetY,
+              headerHeight: currentParams.headerHeight,
+              keyboardHeight: isTablet() ? 0 : keyboardHeight, // Ignore keyboard height on tablets
+              safeAreaBottom,
+              screenHeight,
+            });
+          }, TIMING_DELAYS.KEYBOARD_SETTLE);
+
+          // Clean up this listener after use
+          keyboardListenerRef.current?.remove();
+          keyboardListenerRef.current = null;
+        }
+      );
+
+      // Skip immediate scroll - wait for keyboard to appear for single, accurate scroll
+    },
+    [scrollRef, safeAreaBottom, screenHeight]
+  );
+
+  const getContentPadding = useCallback((): number => {
     // Calculate dynamic padding to ensure content clears the footer
     const wizardFooterHeight = getWizardFooterHeight(safeAreaBottom);
 
@@ -285,7 +280,7 @@ export const useKeyboardAwareScroll = (
       // Large screens use comfortable padding
       return wizardFooterHeight + Spacing.xl;
     }
-  };
+  }, [safeAreaBottom]);
 
   return {
     onInputFocus,

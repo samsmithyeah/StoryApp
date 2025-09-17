@@ -159,18 +159,18 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
 
   return (
     <WizardContainer>
-      <WizardStepHeader
-        title="Set the mood"
-        subtitle="What feeling should the story have?"
-        stepNumber={3}
-        totalSteps={7}
-        onBack={onBack}
-        onCancel={onCancel}
-      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        <WizardStepHeader
+          title="Set the mood"
+          subtitle="What feeling should the story have?"
+          stepNumber={3}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
         <View style={styles.contentContainer}>
           <CustomMoodSection
             customMood={customMood}
@@ -204,9 +204,9 @@ export const MoodSelection: React.FC<MoodSelectionProps> = ({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   contentContainer: {
+    paddingHorizontal: 24,
     paddingBottom: 0,
   },
   moodsSection: {},

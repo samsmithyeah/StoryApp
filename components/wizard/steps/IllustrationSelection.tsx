@@ -255,7 +255,6 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 
   // Keyboard-aware scrolling (primarily for iOS)
   const scrollRef = useRef<ScrollView | null>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const [customInputOffsetY, setCustomInputOffsetY] = useState(0);
   const { onInputFocus, getContentPadding } = useKeyboardAwareScroll(
     scrollRef,
@@ -264,17 +263,6 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 
   return (
     <WizardContainer>
-      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
-        <WizardStepHeader
-          title="Illustrations"
-          subtitle="Choose the perfect illustration style for your story"
-          stepNumber={7}
-          totalSteps={7}
-          onBack={onBack}
-          onCancel={onCancel}
-        />
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
@@ -288,6 +276,15 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="always"
       >
+        <WizardStepHeader
+          title="Illustration style"
+          subtitle="Pick a style that matches your story's mood"
+          stepNumber={7}
+          totalSteps={7}
+          onBack={onBack}
+          onCancel={onCancel}
+        />
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose an illustration style</Text>
           <View style={isTablet ? styles.stylesListTablet : styles.stylesList}>
@@ -352,7 +349,7 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
                 multiline
                 maxLength={ContentLimits.CUSTOM_THEME_MAX_LENGTH}
                 onFocus={() => {
-                  onInputFocus(customInputOffsetY, headerHeight);
+                  onInputFocus(customInputOffsetY, 0);
                 }}
               />
             </View>
@@ -372,12 +369,12 @@ export const IllustrationSelection: React.FC<IllustrationSelectionProps> = ({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
   },
   scrollContent: {},
   section: {
     marginBottom: 32,
     paddingTop: 16,
+    paddingHorizontal: 24,
   },
   sectionTitle: {
     fontSize: isTablet ? 20 : 18,
