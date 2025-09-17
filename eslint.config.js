@@ -11,9 +11,12 @@ const compat = new FlatCompat({
 });
 
 module.exports = [
+  // Extend Expo's ESLint configuration (provides React, React Native, and accessibility rules)
+  ...compat.extends("expo"),
   {
     // Ignore Firebase Functions directory - it has its own linting setup
-    ignores: ["functions/**/*"],
+    // Also ignore coverage directory and other generated files
+    ignores: ["functions/**/*", "coverage/**/*", "node_modules/**/*"],
   },
   {
     // ESLint config file itself

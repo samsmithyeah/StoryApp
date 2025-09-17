@@ -73,6 +73,7 @@ jest.doMock("@react-native-firebase/firestore", () => mockFirestoreModule);
 
 // Now import the service AFTER the mock is set up
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { creditsService } = require("../../services/firebase/credits");
 
 describe("CreditsService", () => {
