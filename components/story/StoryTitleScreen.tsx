@@ -231,6 +231,42 @@ type StyleParams = {
   title: string;
 };
 
+const TITLE_LAYOUT_BREAKPOINTS = {
+  COMPACT_HEIGHT: 720,
+  VERY_COMPACT_HEIGHT: 660,
+  NARROW_PHONE_WIDTH: 380,
+  VERY_SMALL_HEIGHT: 650,
+} as const;
+
+const TITLE_LENGTH_THRESHOLDS = {
+  PHONE_SHORT: 35,
+  PHONE_MEDIUM: 45,
+  PHONE_LONG: 60,
+  TABLET_LONG: 70,
+} as const;
+
+const TITLE_FONT_SCALE = {
+  TABLET_BASE: 1.2,
+  PHONE_LONG: 0.72,
+  PHONE_MEDIUM: 0.78,
+  PHONE_SHORT: 0.85,
+  NARROW_PHONE: 0.92,
+  COMPACT_HEIGHT: 0.93,
+  TABLET_LONG: 0.9,
+} as const;
+
+const TITLE_LINE_HEIGHT_MULTIPLIER = {
+  TABLET: 1.12,
+  PHONE: 1.08,
+} as const;
+
+const PORTRAIT_CARD_SIZES = {
+  TABLET: 550,
+  VERY_COMPACT: 220,
+  COMPACT: 260,
+  DEFAULT: 300,
+} as const;
+
 const createStyles = ({
   width,
   height,
@@ -241,35 +277,66 @@ const createStyles = ({
   const supportsGap =
     Platform.OS !== "android" || Number(Platform.Version) >= 33;
 
+  const isCompactHeight = height < TITLE_LAYOUT_BREAKPOINTS.COMPACT_HEIGHT;
+  const isVeryCompactHeight =
+    height < TITLE_LAYOUT_BREAKPOINTS.VERY_COMPACT_HEIGHT;
+  const isNarrowPhone =
+    !isTablet && width < TITLE_LAYOUT_BREAKPOINTS.NARROW_PHONE_WIDTH;
+  const isVerySmallHeight = height < TITLE_LAYOUT_BREAKPOINTS.VERY_SMALL_HEIGHT;
+
   // Calculate font size based on title length and available space
   const baseFontSize = isTablet
-    ? Typography.fontSize.h1Tablet * 1.2
-    : isVerySmallScreen()
+    ? Typography.fontSize.h1Tablet * TITLE_FONT_SCALE.TABLET_BASE
+    : isVerySmallHeight
       ? Typography.fontSize.h2
       : Typography.fontSize.h1Phone;
 
-  // Simple heuristic: reduce font size for long titles
-  // Based on title character length and screen characteristics
-  const shouldReduceFontSize = (() => {
-    const titleLength = title.length;
+  let titleFontSize = baseFontSize;
 
-    if (isTablet) {
-      // Tablets can handle longer titles
-      return titleLength > 60;
-    } else if (isVerySmallScreen()) {
-      // Small screens need earlier reduction
-      return titleLength > 25;
-    } else {
-      // Regular phone screens
-      return titleLength > 35;
+  if (!isTablet) {
+    const titleLength = title.trim().length;
+
+    if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_LONG) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_LONG;
+    } else if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_MEDIUM) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_MEDIUM;
+    } else if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_SHORT) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_SHORT;
     }
+
+    if (isNarrowPhone) {
+      titleFontSize *= TITLE_FONT_SCALE.NARROW_PHONE;
+    }
+
+    if (isCompactHeight) {
+      titleFontSize *= TITLE_FONT_SCALE.COMPACT_HEIGHT;
+    }
+  } else {
+    const titleLength = title.trim().length;
+    if (titleLength > TITLE_LENGTH_THRESHOLDS.TABLET_LONG) {
+      titleFontSize *= TITLE_FONT_SCALE.TABLET_LONG;
+    }
+  }
+
+  titleFontSize = Math.max(titleFontSize, Typography.fontSize.h2);
+  const titleLineHeight =
+    titleFontSize *
+    (isTablet
+      ? TITLE_LINE_HEIGHT_MULTIPLIER.TABLET
+      : TITLE_LINE_HEIGHT_MULTIPLIER.PHONE);
+
+  const portraitSize = (() => {
+    if (isTablet) {
+      return PORTRAIT_CARD_SIZES.TABLET;
+    }
+    if (isVeryCompactHeight) {
+      return PORTRAIT_CARD_SIZES.VERY_COMPACT;
+    }
+    if (isCompactHeight) {
+      return PORTRAIT_CARD_SIZES.COMPACT;
+    }
+    return PORTRAIT_CARD_SIZES.DEFAULT;
   })();
-
-  const titleFontSize = shouldReduceFontSize
-    ? baseFontSize * 0.85 // Reduce by 15% for long titles
-    : baseFontSize;
-
-  const portraitSize = isTablet ? 550 : isVerySmallScreen() ? 200 : 300;
 
   // Larger on phones in landscape; clamp by width so it doesn't overflow horizontally
   const baseShort = Math.min(width, height);
@@ -279,6 +346,15 @@ const createStyles = ({
   );
   const tabletLandscapeSize = Math.floor(baseShort * 0.55);
   const landscapeSize = isTablet ? tabletLandscapeSize : phoneLandscapeSize;
+
+  const titleMarginBottom = isCompactHeight ? Spacing.xl : Spacing.huge;
+  const detailsMarginBottom = isCompactHeight ? Spacing.lg : Spacing.huge;
+  const rowMarginBottom = isCompactHeight ? Spacing.huge : Spacing.massive;
+  const portraitMarginBottom = isCompactHeight ? Spacing.xl : Spacing.xxl;
+  const detailsMarginTop = isCompactHeight ? Spacing.md : Spacing.lg;
+  const detailFontSize = isVerySmallHeight
+    ? Typography.fontSize.small
+    : Typography.fontSize.medium;
 
   const commonImageFrame = {
     borderRadius: Spacing.xxl,
@@ -332,7 +408,7 @@ const createStyles = ({
       alignItems: "center",
       justifyContent: isLandscape ? "space-evenly" : "center",
       width: "100%",
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.massive,
+      marginBottom: rowMarginBottom,
     },
     textBlock: {
       flex: isLandscape ? 1 : undefined,
@@ -344,9 +420,10 @@ const createStyles = ({
     title: {
       fontFamily: Typography.fontFamily.primary,
       fontSize: titleFontSize,
+      lineHeight: titleLineHeight,
       color: Colors.primary,
       textAlign: "center",
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
+      marginBottom: titleMarginBottom,
       textShadowColor: "rgba(0,0,0,0.3)",
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
@@ -355,7 +432,7 @@ const createStyles = ({
     imagePortrait: {
       width: portraitSize,
       height: portraitSize,
-      marginBottom: isVerySmallScreen() ? Spacing.lg : Spacing.xxl,
+      marginBottom: portraitMarginBottom,
       alignSelf: "center",
       ...commonImageFrame,
     },
@@ -385,20 +462,16 @@ const createStyles = ({
       zIndex: 1,
     },
     detailsLine: {
-      fontSize: isVerySmallScreen()
-        ? Typography.fontSize.small
-        : Typography.fontSize.medium,
+      fontSize: detailFontSize,
       color: Colors.text,
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
+      marginBottom: detailsMarginBottom,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },
     detailsLineBelowImage: {
-      fontSize: isVerySmallScreen()
-        ? Typography.fontSize.small
-        : Typography.fontSize.medium,
+      fontSize: detailFontSize,
       color: Colors.text,
-      marginTop: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+      marginTop: detailsMarginTop,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },

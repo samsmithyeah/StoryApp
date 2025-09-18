@@ -5,16 +5,16 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import { Story } from "@/types/story.types";
 import { Analytics } from "@/utils/analytics";
-import { useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
-  StyleSheet,
+  ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -33,15 +33,13 @@ interface GenerationStepProps {
   };
 }
 
-const { width } = Dimensions.get("window");
-const isTablet = width >= 768;
-
 interface ChecklistItemProps {
   label: string;
   isCompleted: boolean;
   isLoading: boolean;
   showSpinner?: boolean;
   hasFailures?: boolean;
+  styles: ReturnType<typeof createStyles>;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
@@ -49,6 +47,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
   isCompleted,
   showSpinner = false,
   hasFailures = false,
+  styles,
 }) => {
   return (
     <View style={styles.checklistItem}>
@@ -100,6 +99,21 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   currentBalance = 0,
   _debugForceStates,
 }) => {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const minDimension = Math.min(width, height);
+  const isTablet = minDimension >= 768;
+
+  const styles = useMemo(
+    () =>
+      createStyles({
+        isTablet,
+        isLandscape,
+        width,
+      }),
+    [isTablet, isLandscape, width]
+  );
+
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const generationStartTime = useRef<number | null>(null);
   const hasTrackedStart = useRef(false);
@@ -330,7 +344,11 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     return (
       <BackgroundContainer showDecorations={true}>
         <View style={styles.container}>
-          <View style={styles.content}>
+          <ScrollView
+            bounces={false}
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.errorContainer}>
               <IconSymbol
                 name={
@@ -375,7 +393,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 </View>
               )}
             </View>
-          </View>
+          </ScrollView>
 
           <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
             {!isInsufficientCreditsError && onStartOver && (
@@ -395,57 +413,72 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   return (
     <BackgroundContainer showDecorations={true}>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.animationContainer}>
-            <LoadingSpinner size="large" showGlow={true} />
-          </View>
+        <ScrollView
+          bounces={false}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.mainContent}>
+            <View style={styles.primarySection}>
+              <View style={styles.animationContainer}>
+                <LoadingSpinner size="large" showGlow={true} />
+              </View>
 
-          <Text style={styles.title}>Creating your story</Text>
-          <Text style={styles.message}>
-            {GENERATION_MESSAGES[currentMessageIndex]}
-          </Text>
+              <View style={styles.textGroup}>
+                <Text style={styles.title}>Creating your story</Text>
+                <Text style={styles.message}>
+                  {GENERATION_MESSAGES[currentMessageIndex]}
+                </Text>
+              </View>
+            </View>
 
-          {/* Generation Progress Checklist */}
-          <View style={styles.checklistContainer}>
-            <ChecklistItem
-              label="Story text"
-              isCompleted={isStoryTextReady}
-              isLoading={isGenerating && !isStoryTextReady}
-              showSpinner={isGenerating && !isStoryTextReady}
-            />
-            <ChecklistItem
-              label="Cover illustration"
-              isCompleted={isCoverImageReady}
-              isLoading={isGenerating && !isCoverImageReady}
-              showSpinner={
-                isGenerating && isStoryTextReady && !isCoverImageReady
-              }
-            />
-            <ChecklistItem
-              label={`Page illustrations${pageImageProgress}`}
-              isCompleted={arePageImagesReady}
-              isLoading={isGenerating && !arePageImagesReady}
-              showSpinner={
-                isGenerating && isCoverImageReady && !arePageImagesReady
-              }
-              hasFailures={(storyData?.imagesFailed || 0) > 0}
-            />
-          </View>
+            <View style={styles.secondarySection}>
+              {/* Generation Progress Checklist */}
+              <View style={styles.checklistContainer}>
+                <ChecklistItem
+                  label="Story text"
+                  isCompleted={isStoryTextReady}
+                  isLoading={isGenerating && !isStoryTextReady}
+                  showSpinner={isGenerating && !isStoryTextReady}
+                  styles={styles}
+                />
+                <ChecklistItem
+                  label="Cover illustration"
+                  isCompleted={isCoverImageReady}
+                  isLoading={isGenerating && !isCoverImageReady}
+                  showSpinner={
+                    isGenerating && isStoryTextReady && !isCoverImageReady
+                  }
+                  styles={styles}
+                />
+                <ChecklistItem
+                  label={`Page illustrations${pageImageProgress}`}
+                  isCompleted={arePageImagesReady}
+                  isLoading={isGenerating && !arePageImagesReady}
+                  showSpinner={
+                    isGenerating && isCoverImageReady && !arePageImagesReady
+                  }
+                  hasFailures={(storyData?.imagesFailed || 0) > 0}
+                  styles={styles}
+                />
+              </View>
 
-          {/* Push notification message */}
-          <View style={styles.tipContainer}>
-            <IconSymbol
-              name={isStoryFullyComplete ? "checkmark.circle" : "bell"}
-              size={isTablet ? 18 : 16}
-              color={isStoryFullyComplete ? Colors.success : Colors.warning}
-            />
-            <Text style={styles.tipText}>
-              {isStoryFullyComplete
-                ? "Your story is complete and ready to read!"
-                : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
-            </Text>
+              {/* Push notification message */}
+              <View style={styles.tipContainer}>
+                <IconSymbol
+                  name={isStoryFullyComplete ? "checkmark.circle" : "bell"}
+                  size={isTablet ? 18 : 16}
+                  color={isStoryFullyComplete ? Colors.success : Colors.warning}
+                />
+                <Text style={styles.tipText}>
+                  {isStoryFullyComplete
+                    ? "Your story is complete and ready to read!"
+                    : "This'll take a few minutes. Feel free to get on with something else and we'll send you a notification when your story is ready to read!"}
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
           <Button
@@ -461,138 +494,227 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: isTablet ? Spacing.massive : Spacing.huge,
-  },
-  animationContainer: {
-    marginBottom: isTablet ? Spacing.massive : Spacing.huge,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: isTablet ? Typography.fontSize.h1Tablet : Typography.fontSize.h2,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
-    textAlign: "center",
-    fontFamily: Typography.fontFamily.primary,
-  },
-  message: {
-    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
-    color: Colors.primary,
-    textAlign: "center",
-    marginBottom: Spacing.xxxl,
-    fontWeight: Typography.fontWeight.medium,
-    letterSpacing: Typography.letterSpacing.normal,
-  },
-  tipContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.large,
-    gap: Spacing.sm,
-    width: isTablet ? 500 : 300,
-    alignSelf: "center",
-  },
-  tipText: {
-    flex: 1,
-    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
-    color: Colors.textSecondary,
-    lineHeight: isTablet ? 22 : 20,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: "rgba(15, 17, 41, 0.5)",
-  },
-  errorContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.screenPadding,
-  },
-  errorTitle: {
-    fontSize: isTablet ? Typography.fontSize.h1Tablet : Typography.fontSize.h2,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.lg,
-    textAlign: "center",
-    fontFamily: Typography.fontFamily.primary,
-  },
-  errorMessage: {
-    fontSize: isTablet ? Typography.fontSize.large : Typography.fontSize.medium,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: isTablet ? 28 : 24,
-    marginBottom: Spacing.xxxl,
-    width: isTablet ? 500 : 300,
-  },
-  creditActions: {
-    marginTop: Spacing.xl,
-    alignItems: "center",
-    width: "100%",
-    gap: Spacing.md,
-  },
-  buyCreditsButton: {
-    minWidth: 200,
-  },
-  orText: {
-    fontSize: Typography.fontSize.small,
-    color: Colors.textSecondary,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  checklistContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-    gap: Spacing.md,
-    width: 240,
-  },
-  checklistItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  checklistIcon: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.textSecondary,
-    opacity: 0.3,
-  },
-  checklistLabel: {
-    fontSize: isTablet ? Typography.fontSize.medium : Typography.fontSize.small,
-    color: Colors.text,
-    lineHeight: isTablet ? 22 : 18,
-    fontWeight: Typography.fontWeight.medium,
-    flex: 1,
-    flexWrap: "wrap",
-  },
-  checklistLabelWarning: {
-    color: Colors.warning,
-    fontWeight: Typography.fontWeight.medium,
-  },
-});
+interface StyleParams {
+  isTablet: boolean;
+  isLandscape: boolean;
+  width: number;
+}
+
+const createStyles = ({ isTablet, isLandscape, width }: StyleParams) => {
+  const maxContentWidth = isLandscape
+    ? Math.min(width * 0.78, 960)
+    : Math.min(width, isTablet ? 720 : width);
+  const landscapeColumnWidth = Math.min(maxContentWidth * 0.48, 360);
+  const portraitTipWidth = isTablet ? 500 : 300;
+  const tipWidth = isLandscape
+    ? Math.min(landscapeColumnWidth, portraitTipWidth)
+    : portraitTipWidth;
+  const errorTextWidth = isTablet ? Math.min(560, maxContentWidth) : tipWidth;
+  const checklistWidth = isTablet
+    ? 280
+    : isLandscape
+      ? Math.min(320, landscapeColumnWidth)
+      : 240;
+  const spinnerMarginBottom = isLandscape
+    ? Spacing.xl
+    : isTablet
+      ? Spacing.xxxl
+      : Spacing.xxl;
+  const messageMarginBottom = isLandscape
+    ? Spacing.lg
+    : isTablet
+      ? Spacing.xxl
+      : Spacing.xl;
+
+  return {
+    container: {
+      flex: 1,
+    },
+    scroll: {
+      flex: 1,
+      width: "100%",
+    },
+    scrollContent: {
+      flexGrow: 1,
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: isTablet ? Spacing.massive : Spacing.huge,
+      paddingVertical: isLandscape ? Spacing.xl : 0,
+      gap: isLandscape ? Spacing.xl : 0,
+    },
+    mainContent: {
+      width: "100%",
+      maxWidth: maxContentWidth,
+      flexDirection: isLandscape ? "row" : "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: isLandscape ? Spacing.xxl : 0,
+    },
+    primarySection: {
+      width: isLandscape ? undefined : "100%",
+      maxWidth: isLandscape ? maxContentWidth * 0.52 : "100%",
+      alignItems: isLandscape ? "center" : "center",
+      flexGrow: isLandscape ? 0 : undefined,
+      flexShrink: isLandscape ? 1 : undefined,
+      paddingRight: isLandscape ? 0 : 0,
+      marginBottom: isLandscape ? 0 : Spacing.lg,
+    },
+    secondarySection: {
+      width: isLandscape ? undefined : "100%",
+      maxWidth: isLandscape ? landscapeColumnWidth : "100%",
+      alignItems: "center",
+      flexGrow: isLandscape ? 0 : undefined,
+      flexShrink: isLandscape ? 1 : undefined,
+    },
+    textGroup: {
+      width: "100%",
+      alignItems: "center",
+    },
+    animationContainer: {
+      marginBottom: spinnerMarginBottom,
+      alignItems: "center",
+      justifyContent: "center",
+      width: "100%",
+    },
+    title: {
+      fontSize: isTablet
+        ? Typography.fontSize.h1Tablet
+        : Typography.fontSize.h2,
+      fontWeight: Typography.fontWeight.bold,
+      color: Colors.text,
+      marginBottom: Spacing.lg,
+      textAlign: "center",
+      fontFamily: Typography.fontFamily.primary,
+    },
+    message: {
+      fontSize: isTablet
+        ? Typography.fontSize.large
+        : Typography.fontSize.medium,
+      color: Colors.primary,
+      textAlign: isLandscape ? "left" : "center",
+      marginBottom: messageMarginBottom,
+      fontWeight: Typography.fontWeight.medium,
+      letterSpacing: Typography.letterSpacing.normal,
+    },
+    tipContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "rgba(245, 158, 11, 0.1)",
+      borderWidth: 1,
+      borderColor: "rgba(245, 158, 11, 0.3)",
+      padding: Spacing.lg,
+      borderRadius: BorderRadius.large,
+      gap: Spacing.sm,
+      width: tipWidth,
+      alignSelf: "center",
+      marginTop: isLandscape ? 0 : Spacing.xl,
+    },
+    tipText: {
+      flex: 1,
+      fontSize: isTablet
+        ? Typography.fontSize.medium
+        : Typography.fontSize.small,
+      color: Colors.textSecondary,
+      lineHeight: isTablet ? 22 : 20,
+    },
+    footer: {
+      paddingHorizontal: Spacing.screenPadding,
+      paddingTop: Spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: Colors.border,
+      backgroundColor: "rgba(15, 17, 41, 0.5)",
+    },
+    errorContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.screenPadding,
+      width: "100%",
+      gap: Spacing.xl,
+      maxWidth: maxContentWidth,
+      alignSelf: "center",
+    },
+    errorTitle: {
+      fontSize: isTablet
+        ? Typography.fontSize.h1Tablet
+        : Typography.fontSize.h2,
+      fontWeight: Typography.fontWeight.bold,
+      color: Colors.text,
+      marginTop: Spacing.xl,
+      marginBottom: Spacing.lg,
+      textAlign: "center",
+      fontFamily: Typography.fontFamily.primary,
+    },
+    errorMessage: {
+      fontSize: isTablet
+        ? Typography.fontSize.large
+        : Typography.fontSize.medium,
+      color: Colors.textSecondary,
+      textAlign: "center",
+      lineHeight: isTablet ? 28 : 24,
+      marginBottom: Spacing.xxl,
+      width: errorTextWidth,
+      alignSelf: "center",
+    },
+    creditActions: {
+      marginTop: Spacing.xl,
+      alignItems: "center",
+      width: "100%",
+      gap: Spacing.md,
+    },
+    buyCreditsButton: {
+      minWidth: 200,
+    },
+    orText: {
+      fontSize: Typography.fontSize.small,
+      color: Colors.textSecondary,
+      fontWeight: Typography.fontWeight.medium,
+    },
+    checklistContainer: {
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.1)",
+      borderRadius: BorderRadius.large,
+      padding: Spacing.lg,
+      marginBottom: Spacing.xl,
+      gap: Spacing.md,
+      width: isLandscape ? "100%" : checklistWidth,
+      maxWidth: isLandscape ? maxContentWidth * 0.48 : checklistWidth,
+      alignSelf: isLandscape ? "center" : "center",
+    },
+    checklistItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.sm,
+      paddingVertical: Spacing.xs,
+    },
+    checklistIcon: {
+      width: 24,
+      height: 24,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyCircle: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: Colors.textSecondary,
+      opacity: 0.3,
+    },
+    checklistLabel: {
+      fontSize: isTablet
+        ? Typography.fontSize.medium
+        : Typography.fontSize.small,
+      color: Colors.text,
+      lineHeight: isTablet ? 22 : 18,
+      fontWeight: Typography.fontWeight.medium,
+      flex: 1,
+      flexWrap: "wrap",
+    },
+    checklistLabelWarning: {
+      color: Colors.warning,
+      fontWeight: Typography.fontWeight.medium,
+    },
+  } as const;
+};

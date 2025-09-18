@@ -6,6 +6,7 @@ import { StarsDecorations } from "@/components/credits/StarsDecorations";
 import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
 import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
+import { useResponsiveCardMetrics } from "@/components/credits/useResponsiveCardMetrics";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import {
   BorderRadius,
@@ -18,8 +19,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
-import { logger } from "@/utils/logger";
 import { Analytics } from "@/utils/analytics";
+import { logger } from "@/utils/logger";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,6 +30,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { PurchasesOffering, PurchasesPackage } from "react-native-purchases";
@@ -42,6 +44,17 @@ interface CreditsScreenProps {
   isModal?: boolean;
   onPurchaseSuccess?: () => void;
 }
+
+const VIEWPORT_BREAKPOINTS = {
+  COMPACT_HEIGHT: 720,
+  VERY_SMALL_HEIGHT: 650,
+} as const;
+
+const BOTTOM_SPACER_HEIGHTS = {
+  COMPACT: 72,
+  VERY_SMALL: 60,
+  REGULAR: 110,
+} as const;
 
 // Helper function to get product information
 const getProductInfo = (
@@ -201,6 +214,12 @@ export default function CreditsScreen({
 }: CreditsScreenProps = {}) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const {
+    horizontalPadding: responsiveHorizontalPadding,
+    landscapeClearance,
+    isLandscape,
+  } = useResponsiveCardMetrics();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
@@ -220,6 +239,26 @@ export default function CreditsScreen({
 
   // Track if screen view has been logged
   const screenViewLogged = useRef(false);
+
+  const isCompactHeight = windowHeight < VIEWPORT_BREAKPOINTS.COMPACT_HEIGHT;
+  const isVerySmallHeight =
+    windowHeight < VIEWPORT_BREAKPOINTS.VERY_SMALL_HEIGHT;
+  const scrollHorizontalPadding = responsiveHorizontalPadding;
+  const scrollTopPadding =
+    insets.top + (isCompactHeight ? Spacing.md : Spacing.screenPadding);
+  const scrollBottomPadding =
+    insets.bottom +
+    (isLandscape
+      ? landscapeClearance
+      : isCompactHeight
+        ? Spacing.massive
+        : Spacing.massive + Spacing.md);
+  const bottomSpacerHeight = (() => {
+    if (isLandscape) return landscapeClearance;
+    if (isVerySmallHeight) return BOTTOM_SPACER_HEIGHTS.VERY_SMALL;
+    if (isCompactHeight) return BOTTOM_SPACER_HEIGHTS.COMPACT;
+    return BOTTOM_SPACER_HEIGHTS.REGULAR;
+  })();
 
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {
@@ -726,9 +765,9 @@ export default function CreditsScreen({
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingTop:
-                  insets.top +
-                  (isVerySmallScreen() ? Spacing.md : Spacing.screenPadding),
+                paddingTop: scrollTopPadding,
+                paddingBottom: scrollBottomPadding,
+                paddingHorizontal: scrollHorizontalPadding,
               },
             ]}
             contentInsetAdjustmentBehavior="never"
@@ -876,8 +915,11 @@ export default function CreditsScreen({
                 </TouchableOpacity>
               </>
             )}
-
-            <View style={{ height: isVerySmallScreen() ? 60 : 100 }} />
+            <View
+              style={{
+                height: bottomSpacerHeight,
+              }}
+            />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -914,17 +956,14 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding,
-    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.screenPadding,
-  },
+  scrollContent: {},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Plan grid
+  // Plan grid - Always 2x2 grid
   planGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
