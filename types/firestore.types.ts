@@ -43,7 +43,7 @@ export interface CachedUserData {
 }
 
 // Validation helper type guards with stricter security checks
-export function isFirestoreUserData(data: any): data is FirestoreUserData {
+function isFirestoreUserData(data: any): data is FirestoreUserData {
   // Basic type check
   if (typeof data !== "object" || data === null) {
     return false;

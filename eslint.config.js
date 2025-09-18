@@ -3,6 +3,7 @@ const js = require("@eslint/js");
 const typescriptEslint = require("@typescript-eslint/eslint-plugin");
 const typescriptParser = require("@typescript-eslint/parser");
 const reactNative = require("eslint-plugin-react-native");
+const reactHooks = require("eslint-plugin-react-hooks");
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -10,10 +11,12 @@ const compat = new FlatCompat({
 });
 
 module.exports = [
+  // Extend Expo's ESLint configuration (provides React, React Native, and accessibility rules)
   ...compat.extends("expo"),
   {
     // Ignore Firebase Functions directory - it has its own linting setup
-    ignores: ["functions/**/*"],
+    // Also ignore coverage directory and other generated files
+    ignores: ["functions/**/*", "coverage/**/*", "node_modules/**/*"],
   },
   {
     // ESLint config file itself
@@ -65,6 +68,7 @@ module.exports = [
     plugins: {
       "@typescript-eslint": typescriptEslint,
       "react-native": reactNative,
+      "react-hooks": reactHooks,
     },
     rules: {
       // TypeScript unused vars (catches unused imports too)
@@ -82,6 +86,9 @@ module.exports = [
       ],
       // Disable base rule in favor of TypeScript rule
       "no-unused-vars": "off",
+      // React Hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       // React Native specific rules
       "react-native/no-unused-styles": "warn",
     },

@@ -1,0 +1,13 @@
+{
+  "workspaces": {
+    ".": {
+      "ignore": [
+        "functions/**",
+        "constants/ReferralConfig.ts",
+        "services/cache/referralCache.ts"
+      ],
+      "ignoreDependencies": ["@expo/metro-config", "eslint-config-expo"]
+    },
+    "functions": {}
+  }
+}

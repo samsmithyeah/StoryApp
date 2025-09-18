@@ -1,24 +1,3 @@
-export interface CreditPack {
-  id: string;
-  credits: number;
-  price: number;
-  productId: string;
-  name: string;
-  description?: string;
-  mostPopular?: boolean;
-}
-
-export interface Subscription {
-  id: string;
-  name: string;
-  monthlyCredits: number;
-  price: number;
-  interval: "monthly" | "annual";
-  productId: string;
-  description?: string;
-  savings?: string;
-}
-
 export interface UserCredits {
   userId: string;
   balance: number;
@@ -59,19 +38,4 @@ export interface PurchaseHistory {
     | "refunded"
     | "pending_credits"
     | "validation_failed";
-}
-
-export interface RevenueCatCustomerInfo {
-  activeSubscriptions: string[];
-  allPurchasedProductIdentifiers: string[];
-  entitlements: {
-    active: Record<string, any>;
-    all: Record<string, any>;
-  };
-  firstSeen: string;
-  lastSeen: string;
-  managementURL: string | null;
-  originalAppUserId: string;
-  originalApplicationVersion: string | null;
-  originalPurchaseDate: string | null;
 }

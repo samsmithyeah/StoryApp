@@ -1,6 +1,6 @@
 import { logger } from "../../utils/logger";
 
-export interface AuthErrorNotification {
+interface AuthErrorNotification {
   id: string;
   type: "warning" | "error" | "info";
   message: string;

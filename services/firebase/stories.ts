@@ -73,45 +73,6 @@ export const getStories = async (): Promise<Story[]> => {
   }
 };
 
-export interface ThemeSuggestion {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-}
-
-export interface ChildInfo {
-  preferences: string;
-  age: number;
-}
-
-export const generateThemeSuggestions = async (
-  childrenInfo: ChildInfo[]
-): Promise<ThemeSuggestion[]> => {
-  try {
-    // Ensure user is authenticated
-    const currentUser = authService.currentUser;
-    if (!currentUser) {
-      throw new Error("User must be authenticated to generate themes");
-    }
-
-    const generateThemesFn = httpsCallable(
-      functionsService,
-      "generateThemeSuggestions"
-    );
-    const result = await generateThemesFn({ childrenInfo });
-
-    if ((result.data as any).success) {
-      return (result.data as any).themes;
-    } else {
-      throw new Error("Theme generation failed");
-    }
-  } catch (error) {
-    logger.error("Error calling generateThemeSuggestions function", error);
-    throw error;
-  }
-};
-
 export const getStory = async (storyId: string): Promise<Story> => {
   try {
     const getStoryFn = httpsCallable(functionsService, "getStory");

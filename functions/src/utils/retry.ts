@@ -2,19 +2,19 @@
 import { logger } from "./logger";
 
 // Helper functions for error classification
-export const isRateLimitError = (error: any): boolean =>
+const isRateLimitError = (error: any): boolean =>
   typeof error === "object" && error !== null && error.status === 429;
 
 export const isJsonParseError = (error: any): boolean =>
   error instanceof SyntaxError;
 
-export const isImageGenerationError = (error: any): boolean =>
+const isImageGenerationError = (error: any): boolean =>
   typeof error === "object" &&
   error !== null &&
   typeof error.message === "string" &&
   error.message.includes("No image data in Gemini response");
 
-export const isContentPolicyError = (error: any): boolean =>
+const isContentPolicyError = (error: any): boolean =>
   typeof error === "object" &&
   error !== null &&
   error.status === 400 &&

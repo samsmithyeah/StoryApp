@@ -17,21 +17,12 @@ import {
   SignUpCredentials,
 } from "../types/auth.types";
 import { getAuthErrorMessage } from "../utils/authErrorMessages";
-import { isTestAccount as centralIsTestAccount } from "../constants/AuthConstants";
 
 /**
  * Helper function to manually update auth state after successful auth operations
  * This eliminates the need for arbitrary delays by immediately updating the store
  */
 // Removed updateAuthStateFromFirebase function - auth state is now handled by authStore Firebase listener
-
-// Helper function to check if this is a test account
-export const isTestAccount = (email: string | null | undefined): boolean => {
-  if (!email || !__DEV__) return false;
-
-  // Use the centralized, secure test account detection
-  return centralIsTestAccount(email);
-};
 
 export const useAuth = () => {
   const {

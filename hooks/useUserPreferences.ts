@@ -9,6 +9,10 @@ import { useEffect, useState } from "react";
 import { db } from "../services/firebase/config";
 import { logger } from "../utils/logger";
 import { useAuth } from "./useAuth";
+import { TEXT_MODELS, IMAGE_MODELS } from "../constants/Models";
+
+type TextModel = (typeof TEXT_MODELS)[keyof typeof TEXT_MODELS];
+type ImageModel = (typeof IMAGE_MODELS)[keyof typeof IMAGE_MODELS];
 
 // Note: Firestore security rules must allow read/write access to:
 // users/{userId}/preferences/{document}
@@ -19,18 +23,18 @@ import { useAuth } from "./useAuth";
 
 export interface UserPreferences {
   // Model preferences
-  textModel: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel: "gemini-2.5-flash-image-preview" | "gpt-image-1";
-  pageImageModel: "gemini" | "gpt-image-1";
+  textModel: TextModel;
+  coverImageModel: ImageModel;
+  pageImageModel: ImageModel;
   // Model generation settings
   temperature: number; // 0.0 to 2.0, controls randomness/creativity
   geminiThinkingBudget: number; // -1 for dynamic, 128-32768 for fixed budget
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  textModel: "gemini-2.5-pro",
-  coverImageModel: "gpt-image-1",
-  pageImageModel: "gpt-image-1",
+  textModel: TEXT_MODELS.GEMINI_2_5_PRO,
+  coverImageModel: IMAGE_MODELS.GPT_IMAGE_1,
+  pageImageModel: IMAGE_MODELS.GPT_IMAGE_1,
   temperature: 0.9,
   geminiThinkingBudget: -1, // Dynamic thinking
 };

@@ -2,7 +2,6 @@ import { authService, functionsService } from "@/services/firebase/config";
 import { creditsService } from "@/services/firebase/credits";
 import {
   generateStory,
-  generateThemeSuggestions,
   getStories,
   getStory,
 } from "@/services/firebase/stories";
@@ -263,83 +262,6 @@ describe("Story Service", () => {
       );
       expect(mockCallable).toHaveBeenCalledWith({ storyId: "story-123" });
       expect(result).toEqual(mockStory);
-    });
-  });
-
-  describe("generateThemeSuggestions", () => {
-    beforeEach(() => {
-      // Reset the current user for theme tests
-      (authService.currentUser as any) = { uid: "test-user-id" };
-    });
-
-    it("should successfully generate theme suggestions", async () => {
-      // Setup
-      const mockChildInfo = [
-        { preferences: "dinosaurs", age: 5 },
-        { preferences: "space", age: 7 },
-      ];
-      const mockThemes = [
-        {
-          id: "1",
-          name: "Dino Space Adventure",
-          description: "Dinosaurs in space!",
-          icon: "🦕",
-        },
-        {
-          id: "2",
-          name: "Prehistoric Planets",
-          description: "Ancient worlds",
-          icon: "🌍",
-        },
-      ];
-
-      const mockCallable = jest.fn().mockResolvedValue({
-        data: {
-          success: true,
-          themes: mockThemes,
-        },
-      });
-      mockHttpsCallable.mockReturnValue(mockCallable);
-
-      // Execute
-      const result = await generateThemeSuggestions(mockChildInfo);
-
-      // Assert
-      expect(mockHttpsCallable).toHaveBeenCalledWith(
-        functionsService,
-        "generateThemeSuggestions"
-      );
-      expect(mockCallable).toHaveBeenCalledWith({
-        childrenInfo: mockChildInfo,
-      });
-      expect(result).toEqual(mockThemes);
-    });
-
-    it("should throw error when user is not authenticated", async () => {
-      // Setup
-      (authService.currentUser as any) = null;
-      const mockChildInfo = [{ preferences: "dinosaurs", age: 5 }];
-
-      // Execute & Assert
-      await expect(generateThemeSuggestions(mockChildInfo)).rejects.toThrow(
-        "User must be authenticated to generate themes"
-      );
-    });
-
-    it("should throw error when theme generation fails", async () => {
-      // Setup
-      const mockChildInfo = [{ preferences: "dinosaurs", age: 5 }];
-      const mockCallable = jest.fn().mockResolvedValue({
-        data: {
-          success: false,
-        },
-      });
-      mockHttpsCallable.mockReturnValue(mockCallable);
-
-      // Execute & Assert
-      await expect(generateThemeSuggestions(mockChildInfo)).rejects.toThrow(
-        "Theme generation failed"
-      );
     });
   });
 });

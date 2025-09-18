@@ -2,7 +2,7 @@
  * Custom error types for RevenueCat service operations
  */
 
-export class RevenueCatError extends Error {
+class RevenueCatError extends Error {
   constructor(
     message: string,
     public code?: string
@@ -42,16 +42,3 @@ export class ConfigurationError extends RevenueCatError {
     this.name = "ConfigurationError";
   }
 }
-
-/**
- * User-facing error messages for different error scenarios
- */
-export const USER_ERROR_MESSAGES = {
-  USER_CONTEXT_MISMATCH: "Please try again after signing in",
-  SUBSCRIPTION_FAILED:
-    "Unable to process subscription. Please try again or contact support",
-  NETWORK_ERROR: "Network error. Please check your connection and try again",
-  CONFIGURATION_ERROR:
-    "Service temporarily unavailable. Please try again later",
-  PERMISSION_DENIED: "Operation not authorized for current user context",
-} as const;

@@ -35,8 +35,6 @@ export interface AuthState {
   justAppliedReferral?: boolean;
 }
 
-export type AuthProvider = "google" | "apple" | "email";
-
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -47,22 +45,13 @@ export interface SignUpCredentials extends LoginCredentials {
 }
 
 // Firebase user metadata types
-export interface FirebaseUserMetadata {
+interface FirebaseUserMetadata {
   creationTime?: string;
   lastSignInTime?: string;
 }
 
-export interface FirebaseUserWithMetadata {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
-  emailVerified: boolean;
-  metadata?: FirebaseUserMetadata;
-}
-
 // Firebase Auth Error type
-export interface FirebaseAuthError extends Error {
+interface FirebaseAuthError extends Error {
   code: string;
 }
 

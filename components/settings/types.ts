@@ -47,5 +47,3 @@ export interface AccountSectionProps {
   onSignOut: () => void;
   onDeleteAccount: () => void;
 }
-
-export type { UserPreferences };

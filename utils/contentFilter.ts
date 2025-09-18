@@ -17,7 +17,7 @@ const PROHIBITED_PATTERNS = [
 // Note: Some entries are partial matches due to how the obscenity package detects patterns
 const ALLOWED_NAMES = new Set(["dick", "dic"]);
 
-export interface ContentFilterResult {
+interface ContentFilterResult {
   isAppropriate: boolean;
   reason?: string;
   sanitizedText?: string;

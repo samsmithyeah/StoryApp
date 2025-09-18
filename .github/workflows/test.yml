@@ -6,30 +6,47 @@ on:
 
 jobs:
   test:
+    name: Main Project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci
-      - run: npm run type-check
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm test -- --watchAll=false
+      - name: Install dependencies
+        run: npm ci
+      - name: Check Expo configuration
+        run: npm run doctor
+      - name: Type check
+        run: npm run type-check
+      - name: Lint code
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+      - name: Check for unused code
+        run: npm run knip-check
+      - name: Run tests
+        run: npm test -- --watchAll=false
 
   functions-test:
+    name: Functions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-      - name: Install functions dependencies
+      - name: Install dependencies
         run: cd functions && npm ci
-      - name: Type check functions
+      - name: Type check
         run: cd functions && npm run build
-      - name: Test functions
+      - name: Check for unused code
+        run: cd functions && npm run knip-check
+      - name: Run tests
         run: cd functions && npm test

@@ -1,5 +1,5 @@
 // Test account configuration
-export const TEST_ACCOUNTS = {
+const TEST_ACCOUNTS = {
   DOMAIN_SUFFIX: "@test.dreamweaver",
   // Specific test emails - using exact matches only to avoid false positives
   EXACT_TEST_EMAILS: [
