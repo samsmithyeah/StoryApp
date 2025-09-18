@@ -22,8 +22,7 @@ export function CreditPackCard({
 
   const info = getProductInfo(pkg.product.identifier);
   const isCompactTypography = isVerySmallHeight || isCompactHeight;
-  const useCompactBadgeSpacing = isCompactTypography;
-  const badgeSpacingStyle = useCompactBadgeSpacing
+  const badgeSpacingStyle = isCompactTypography
     ? styles.badgeSpacingCompact
     : styles.badgeSpacingRegular;
 

@@ -255,8 +255,8 @@ export default function CreditsScreen({
         : Spacing.massive + Spacing.md);
   const bottomSpacerHeight = (() => {
     if (isLandscape) return landscapeClearance;
-    if (isCompactHeight) return BOTTOM_SPACER_HEIGHTS.COMPACT;
     if (isVerySmallHeight) return BOTTOM_SPACER_HEIGHTS.VERY_SMALL;
+    if (isCompactHeight) return BOTTOM_SPACER_HEIGHTS.COMPACT;
     return BOTTOM_SPACER_HEIGHTS.REGULAR;
   })();
 
@@ -956,10 +956,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.screenPadding,
-  },
+  scrollContent: {},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

@@ -31,8 +31,7 @@ export function SubscriptionCard({
       : `${pkg.product.priceString} / year`;
 
   const isCompactTypography = isVerySmallHeight || isCompactHeight;
-  const useCompactBadgeSpacing = isCompactTypography;
-  const badgeSpacingStyle = useCompactBadgeSpacing
+  const badgeSpacingStyle = isCompactTypography
     ? styles.badgeSpacingCompact
     : styles.badgeSpacingRegular;
 
