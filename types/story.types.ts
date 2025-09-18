@@ -1,3 +1,8 @@
+import { TEXT_MODELS, IMAGE_MODELS } from "../constants/Models";
+
+type TextModel = (typeof TEXT_MODELS)[keyof typeof TEXT_MODELS];
+type ImageModel = (typeof IMAGE_MODELS)[keyof typeof IMAGE_MODELS];
+
 interface StoryPage {
   page: number;
   text: string;
@@ -25,9 +30,9 @@ export interface StoryConfiguration {
   illustrationAiDescription?: string;
   illustrationAiDescriptionBackup1?: string;
   illustrationAiDescriptionBackup2?: string;
-  pageImageModel?: "gemini" | "gpt-image-1";
-  textModel?: "gpt-4o" | "gemini-2.5-pro";
-  coverImageModel?: "gemini-2.5-flash-image-preview" | "gpt-image-1";
+  pageImageModel?: ImageModel;
+  textModel?: TextModel;
+  coverImageModel?: ImageModel;
   targetAge?: number;
   storyId?: string;
   storyAbout?: string;

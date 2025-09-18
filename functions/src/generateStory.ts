@@ -381,7 +381,7 @@ Return the story in this JSON format:
               error_type: "json_parse_failure",
               error_message:
                 error instanceof Error ? error.message : "JSON parse failed",
-              model_attempted: "gemini",
+              model_attempted: TEXT_MODELS.GEMINI_2_5_PRO,
               generation_time_ms: Date.now() - generationStartTime,
               story_config: {
                 page_count: data.pageCount,
@@ -409,8 +409,8 @@ Return the story in this JSON format:
             );
 
             await logMetric("story_generation_safety_blocked", {
-              model_blocked: "gemini",
-              attempting_fallback: "gpt4o",
+              model_blocked: TEXT_MODELS.GEMINI_2_5_PRO,
+              attempting_fallback: TEXT_MODELS.GPT_4O,
               content_type: "story_text",
               story_config: {
                 theme: data.theme,
@@ -441,8 +441,8 @@ Return the story in this JSON format:
               logger.info("Successfully generated story using GPT-4o fallback");
             } catch (fallbackError: any) {
               await logMetric("story_generation_fallback_failed", {
-                primary_model: "gemini",
-                fallback_model: "gpt4o",
+                primary_model: TEXT_MODELS.GEMINI_2_5_PRO,
+                fallback_model: TEXT_MODELS.GPT_4O,
                 error_type: fallbackError.name,
                 both_models_failed: true,
                 generation_time_ms: Date.now() - generationStartTime,

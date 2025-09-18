@@ -203,7 +203,9 @@ REQUIREMENTS:
               imageGenerated = true;
               actualModelUsed = currentModel;
               finalPromptUsed = currentPrompt;
-            } else if (currentModel === IMAGE_MODELS.GEMINI) {
+            } else if (
+              currentModel === IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW
+            ) {
               const geminiClient = getGeminiClient();
 
               finalImageUrl = await retryWithBackoff(() =>

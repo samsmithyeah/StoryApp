@@ -268,17 +268,21 @@ export function AdvancedSettingsSection({
           <TouchableOpacity
             style={[
               styles.modelOption,
-              preferences.pageImageModel === IMAGE_MODELS.GEMINI &&
+              preferences.pageImageModel ===
+                IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW &&
                 styles.selectedModelOption,
             ]}
             onPress={() =>
-              onUpdatePreferences({ pageImageModel: IMAGE_MODELS.GEMINI })
+              onUpdatePreferences({
+                pageImageModel: IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+              })
             }
           >
             <Text
               style={[
                 styles.modelOptionText,
-                preferences.pageImageModel === IMAGE_MODELS.GEMINI &&
+                preferences.pageImageModel ===
+                  IMAGE_MODELS.GEMINI_2_5_FLASH_IMAGE_PREVIEW &&
                   styles.selectedModelOptionText,
               ]}
             >

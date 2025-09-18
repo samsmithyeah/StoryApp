@@ -5,9 +5,9 @@ import { Share, StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { Colors, Shadows, Spacing, Typography } from "../../constants/Theme";
 import { useReferrals } from "../../hooks/useReferrals";
+import { Analytics } from "../../utils/analytics";
 import { logger } from "../../utils/logger";
 import { Button } from "../ui/Button";
-import { Analytics } from "../../utils/analytics";
 
 interface ReferralCodeCardProps {
   showStats?: boolean;
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: Colors.cardBackground,
     overflow: "hidden",
-    ...Shadows.glow,
+    ...Shadows.glowIos,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },
