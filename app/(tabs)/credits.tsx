@@ -253,13 +253,12 @@ export default function CreditsScreen({
       : isCompactHeight
         ? Spacing.massive
         : Spacing.massive + Spacing.md);
-  const bottomSpacerHeight = isLandscape
-    ? landscapeClearance
-    : isCompactHeight
-      ? BOTTOM_SPACER_HEIGHTS.COMPACT
-      : isVerySmallHeight
-        ? BOTTOM_SPACER_HEIGHTS.VERY_SMALL
-        : BOTTOM_SPACER_HEIGHTS.REGULAR;
+  const bottomSpacerHeight = (() => {
+    if (isLandscape) return landscapeClearance;
+    if (isCompactHeight) return BOTTOM_SPACER_HEIGHTS.COMPACT;
+    if (isVerySmallHeight) return BOTTOM_SPACER_HEIGHTS.VERY_SMALL;
+    return BOTTOM_SPACER_HEIGHTS.REGULAR;
+  })();
 
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {

@@ -39,7 +39,48 @@ interface ChecklistItemProps {
   isLoading: boolean;
   showSpinner?: boolean;
   hasFailures?: boolean;
+  styles: ReturnType<typeof createStyles>;
 }
+
+const ChecklistItem: React.FC<ChecklistItemProps> = ({
+  label,
+  isCompleted,
+  showSpinner = false,
+  hasFailures = false,
+  styles,
+}) => {
+  return (
+    <View style={styles.checklistItem}>
+      <View style={styles.checklistIcon}>
+        {isCompleted && hasFailures ? (
+          <IconSymbol
+            name="exclamationmark.triangle.fill"
+            size={20}
+            color={Colors.warning}
+          />
+        ) : isCompleted ? (
+          <IconSymbol
+            name="checkmark.circle.fill"
+            size={20}
+            color={Colors.success}
+          />
+        ) : showSpinner ? (
+          <ActivityIndicator size="small" color={Colors.primary} />
+        ) : (
+          <View style={styles.emptyCircle} />
+        )}
+      </View>
+      <Text
+        style={[
+          styles.checklistLabel,
+          hasFailures && isCompleted && styles.checklistLabelWarning,
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+};
 
 const GENERATION_MESSAGES = [
   "Crafting your magical story...",
@@ -72,45 +113,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       }),
     [isTablet, isLandscape, width]
   );
-
-  const ChecklistItem: React.FC<ChecklistItemProps> = ({
-    label,
-    isCompleted,
-    showSpinner = false,
-    hasFailures = false,
-  }) => {
-    return (
-      <View style={styles.checklistItem}>
-        <View style={styles.checklistIcon}>
-          {isCompleted && hasFailures ? (
-            <IconSymbol
-              name="exclamationmark.triangle.fill"
-              size={20}
-              color={Colors.warning}
-            />
-          ) : isCompleted ? (
-            <IconSymbol
-              name="checkmark.circle.fill"
-              size={20}
-              color={Colors.success}
-            />
-          ) : showSpinner ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <View style={styles.emptyCircle} />
-          )}
-        </View>
-        <Text
-          style={[
-            styles.checklistLabel,
-            hasFailures && isCompleted && styles.checklistLabelWarning,
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
-    );
-  };
 
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const generationStartTime = useRef<number | null>(null);
@@ -438,6 +440,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   isCompleted={isStoryTextReady}
                   isLoading={isGenerating && !isStoryTextReady}
                   showSpinner={isGenerating && !isStoryTextReady}
+                  styles={styles}
                 />
                 <ChecklistItem
                   label="Cover illustration"
@@ -446,6 +449,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   showSpinner={
                     isGenerating && isStoryTextReady && !isCoverImageReady
                   }
+                  styles={styles}
                 />
                 <ChecklistItem
                   label={`Page illustrations${pageImageProgress}`}
@@ -455,6 +459,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                     isGenerating && isCoverImageReady && !arePageImagesReady
                   }
                   hasFailures={(storyData?.imagesFailed || 0) > 0}
+                  styles={styles}
                 />
               </View>
 
