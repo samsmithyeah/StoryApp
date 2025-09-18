@@ -49,6 +49,14 @@ export function CreditsHeader({
   );
 }
 
+const TITLE_FONT_SCALE = {
+  COMPACT_HEIGHT: 0.86,
+  NARROW_PHONE: 0.9,
+  H2_MIN_SCALE: 1.1,
+  LINE_HEIGHT_TABLET: 1.08,
+  LINE_HEIGHT_PHONE: 1.05,
+} as const;
+
 type StyleParams = {
   width: number;
   height: number;
@@ -65,15 +73,22 @@ const createStyles = ({ width, height }: StyleParams) => {
 
   if (!isTablet) {
     if (isCompactHeight) {
-      titleFontSize *= 0.86;
+      titleFontSize *= TITLE_FONT_SCALE.COMPACT_HEIGHT;
     }
     if (isNarrowPhone) {
-      titleFontSize *= 0.9;
+      titleFontSize *= TITLE_FONT_SCALE.NARROW_PHONE;
     }
-    titleFontSize = Math.max(titleFontSize, Typography.fontSize.h2 * 1.1);
+    titleFontSize = Math.max(
+      titleFontSize,
+      Typography.fontSize.h2 * TITLE_FONT_SCALE.H2_MIN_SCALE
+    );
   }
 
-  const titleLineHeight = titleFontSize * (isTablet ? 1.08 : 1.05);
+  const titleLineHeight =
+    titleFontSize *
+    (isTablet
+      ? TITLE_FONT_SCALE.LINE_HEIGHT_TABLET
+      : TITLE_FONT_SCALE.LINE_HEIGHT_PHONE);
   const titleMarginBottom = isCompactHeight ? Spacing.md : Spacing.lg;
   const headerPaddingTop = isCompactHeight ? Spacing.xs : Spacing.sm;
 

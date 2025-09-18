@@ -50,6 +50,12 @@ const VIEWPORT_BREAKPOINTS = {
   VERY_SMALL_HEIGHT: 650,
 } as const;
 
+const BOTTOM_SPACER_HEIGHTS = {
+  COMPACT: 72,
+  VERY_SMALL: 60,
+  REGULAR: 110,
+} as const;
+
 // Helper function to get product information
 const getProductInfo = (
   productId: string,
@@ -250,10 +256,10 @@ export default function CreditsScreen({
   const bottomSpacerHeight = isLandscape
     ? landscapeClearance
     : isCompactHeight
-      ? 72
+      ? BOTTOM_SPACER_HEIGHTS.COMPACT
       : isVerySmallHeight
-        ? 60
-        : 110;
+        ? BOTTOM_SPACER_HEIGHTS.VERY_SMALL
+        : BOTTOM_SPACER_HEIGHTS.REGULAR;
 
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {
