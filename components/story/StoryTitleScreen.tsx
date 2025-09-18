@@ -231,6 +231,42 @@ type StyleParams = {
   title: string;
 };
 
+const TITLE_LAYOUT_BREAKPOINTS = {
+  COMPACT_HEIGHT: 720,
+  VERY_COMPACT_HEIGHT: 660,
+  NARROW_PHONE_WIDTH: 380,
+  VERY_SMALL_HEIGHT: 650,
+} as const;
+
+const TITLE_LENGTH_THRESHOLDS = {
+  PHONE_SHORT: 35,
+  PHONE_MEDIUM: 45,
+  PHONE_LONG: 60,
+  TABLET_LONG: 70,
+} as const;
+
+const TITLE_FONT_SCALE = {
+  TABLET_BASE: 1.2,
+  PHONE_LONG: 0.72,
+  PHONE_MEDIUM: 0.78,
+  PHONE_SHORT: 0.85,
+  NARROW_PHONE: 0.92,
+  COMPACT_HEIGHT: 0.93,
+  TABLET_LONG: 0.9,
+} as const;
+
+const TITLE_LINE_HEIGHT_MULTIPLIER = {
+  TABLET: 1.12,
+  PHONE: 1.08,
+} as const;
+
+const PORTRAIT_CARD_SIZES = {
+  TABLET: 550,
+  VERY_COMPACT: 220,
+  COMPACT: 260,
+  DEFAULT: 300,
+} as const;
+
 const createStyles = ({
   width,
   height,
@@ -241,14 +277,17 @@ const createStyles = ({
   const supportsGap =
     Platform.OS !== "android" || Number(Platform.Version) >= 33;
 
-  const isCompactHeight = height < 720;
-  const isVeryCompactHeight = height < 660;
-  const isNarrowPhone = !isTablet && width < 380;
+  const isCompactHeight = height < TITLE_LAYOUT_BREAKPOINTS.COMPACT_HEIGHT;
+  const isVeryCompactHeight =
+    height < TITLE_LAYOUT_BREAKPOINTS.VERY_COMPACT_HEIGHT;
+  const isNarrowPhone =
+    !isTablet && width < TITLE_LAYOUT_BREAKPOINTS.NARROW_PHONE_WIDTH;
+  const isVerySmallHeight = height < TITLE_LAYOUT_BREAKPOINTS.VERY_SMALL_HEIGHT;
 
   // Calculate font size based on title length and available space
   const baseFontSize = isTablet
-    ? Typography.fontSize.h1Tablet * 1.2
-    : isVerySmallScreen()
+    ? Typography.fontSize.h1Tablet * TITLE_FONT_SCALE.TABLET_BASE
+    : isVerySmallHeight
       ? Typography.fontSize.h2
       : Typography.fontSize.h1Phone;
 
@@ -257,42 +296,46 @@ const createStyles = ({
   if (!isTablet) {
     const titleLength = title.trim().length;
 
-    if (titleLength > 60) {
-      titleFontSize *= 0.72;
-    } else if (titleLength > 45) {
-      titleFontSize *= 0.78;
-    } else if (titleLength > 35) {
-      titleFontSize *= 0.85;
+    if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_LONG) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_LONG;
+    } else if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_MEDIUM) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_MEDIUM;
+    } else if (titleLength > TITLE_LENGTH_THRESHOLDS.PHONE_SHORT) {
+      titleFontSize *= TITLE_FONT_SCALE.PHONE_SHORT;
     }
 
     if (isNarrowPhone) {
-      titleFontSize *= 0.92;
+      titleFontSize *= TITLE_FONT_SCALE.NARROW_PHONE;
     }
 
     if (isCompactHeight) {
-      titleFontSize *= 0.93;
+      titleFontSize *= TITLE_FONT_SCALE.COMPACT_HEIGHT;
     }
   } else {
     const titleLength = title.trim().length;
-    if (titleLength > 70) {
-      titleFontSize *= 0.9;
+    if (titleLength > TITLE_LENGTH_THRESHOLDS.TABLET_LONG) {
+      titleFontSize *= TITLE_FONT_SCALE.TABLET_LONG;
     }
   }
 
   titleFontSize = Math.max(titleFontSize, Typography.fontSize.h2);
-  const titleLineHeight = titleFontSize * (isTablet ? 1.12 : 1.08);
+  const titleLineHeight =
+    titleFontSize *
+    (isTablet
+      ? TITLE_LINE_HEIGHT_MULTIPLIER.TABLET
+      : TITLE_LINE_HEIGHT_MULTIPLIER.PHONE);
 
   const portraitSize = (() => {
     if (isTablet) {
-      return 550;
+      return PORTRAIT_CARD_SIZES.TABLET;
     }
     if (isVeryCompactHeight) {
-      return 220;
+      return PORTRAIT_CARD_SIZES.VERY_COMPACT;
     }
     if (isCompactHeight) {
-      return 260;
+      return PORTRAIT_CARD_SIZES.COMPACT;
     }
-    return 300;
+    return PORTRAIT_CARD_SIZES.DEFAULT;
   })();
 
   // Larger on phones in landscape; clamp by width so it doesn't overflow horizontally
@@ -309,6 +352,9 @@ const createStyles = ({
   const rowMarginBottom = isCompactHeight ? Spacing.huge : Spacing.massive;
   const portraitMarginBottom = isCompactHeight ? Spacing.xl : Spacing.xxl;
   const detailsMarginTop = isCompactHeight ? Spacing.md : Spacing.lg;
+  const detailFontSize = isVerySmallHeight
+    ? Typography.fontSize.small
+    : Typography.fontSize.medium;
 
   const commonImageFrame = {
     borderRadius: Spacing.xxl,
@@ -416,18 +462,14 @@ const createStyles = ({
       zIndex: 1,
     },
     detailsLine: {
-      fontSize: isVerySmallScreen()
-        ? Typography.fontSize.small
-        : Typography.fontSize.medium,
+      fontSize: detailFontSize,
       color: Colors.text,
       marginBottom: detailsMarginBottom,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },
     detailsLineBelowImage: {
-      fontSize: isVerySmallScreen()
-        ? Typography.fontSize.small
-        : Typography.fontSize.medium,
+      fontSize: detailFontSize,
       color: Colors.text,
       marginTop: detailsMarginTop,
       textAlign: "center",

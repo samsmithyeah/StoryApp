@@ -1,34 +1,8 @@
-import {
-  BorderRadius,
-  Colors,
-  isVerySmallScreen,
-  Spacing,
-  Typography,
-} from "@/constants/Theme";
+import { BorderRadius, Colors, Spacing, Typography } from "@/constants/Theme";
 import React from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CreditPackCardProps } from "./types";
-
-const { width, height } = Dimensions.get("window");
-const isCompactHeight = height < 720;
-const isNarrowPhone = width < 380;
-const sidePadding =
-  (isVerySmallScreen() || isCompactHeight
-    ? Spacing.lg
-    : Spacing.screenPadding) * 2;
-const interCardGap = isNarrowPhone ? Spacing.sm : Spacing.md;
-const cardWidth = (width - sidePadding - interCardGap) / 2;
-const cardPadding =
-  isVerySmallScreen() || isCompactHeight ? Spacing.md : Spacing.lg;
-const cardMarginBottom =
-  isVerySmallScreen() || isCompactHeight ? Spacing.md : Spacing.lg;
-const cardMinHeight = isVerySmallScreen() || isCompactHeight ? 132 : 160;
+import { useResponsiveCardMetrics } from "./useResponsiveCardMetrics";
 
 export function CreditPackCard({
   package: pkg,
@@ -36,88 +10,139 @@ export function CreditPackCard({
   onSelect,
   getProductInfo,
 }: CreditPackCardProps) {
+  const {
+    cardWidth,
+    cardPadding,
+    cardMarginBottom,
+    cardMinHeight,
+    isCompactHeight,
+    isVerySmallHeight,
+    cardHorizontalMargin,
+  } = useResponsiveCardMetrics();
+
   const info = getProductInfo(pkg.product.identifier);
+  const isCompactTypography = isVerySmallHeight || isCompactHeight;
+  const useCompactBadgeSpacing = isCompactTypography;
+  const badgeSpacingStyle = useCompactBadgeSpacing
+    ? styles.badgeSpacingCompact
+    : styles.badgeSpacingRegular;
 
   return (
     <TouchableOpacity
       style={[
         styles.creditPackCard,
+        {
+          width: cardWidth,
+          padding: cardPadding,
+          marginBottom: cardMarginBottom,
+          minHeight: cardMinHeight,
+          marginHorizontal: cardHorizontalMargin,
+        },
         isSelected && styles.creditPackCardSelected,
       ]}
       onPress={() => onSelect(pkg)}
     >
       {info.popular && (
-        <View style={styles.popularBadge}>
+        <View style={[styles.badge, styles.badgePrimary, badgeSpacingStyle]}>
           <Text style={styles.badgeText}>POPULAR</Text>
         </View>
       )}
 
-      <Text style={styles.cardTitle}>{info.displayName}</Text>
-      <Text style={styles.cardCredits}>{info.credits} credits</Text>
-      <Text style={styles.cardPrice}>{pkg.product.priceString}</Text>
+      <Text
+        style={[
+          styles.cardTitle,
+          isCompactTypography && styles.cardTitleCompact,
+        ]}
+      >
+        {info.displayName}
+      </Text>
+      <Text
+        style={[
+          styles.cardCredits,
+          isCompactTypography && styles.cardCreditsCompact,
+        ]}
+      >
+        {info.credits} credits
+      </Text>
+      <Text
+        style={[
+          styles.cardPrice,
+          isCompactTypography && styles.cardPriceCompact,
+        ]}
+      >
+        {pkg.product.priceString}
+      </Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   creditPackCard: {
-    width: cardWidth,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: BorderRadius.large,
-    padding: cardPadding,
-    marginBottom: cardMarginBottom,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
-    minHeight: cardMinHeight,
   },
   creditPackCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: "rgba(212, 175, 55, 0.15)",
   },
   cardTitle: {
-    fontSize:
-      isVerySmallScreen() || isCompactHeight
-        ? Typography.fontSize.small
-        : Typography.fontSize.medium,
+    fontSize: Typography.fontSize.medium,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
     textAlign: "center",
-    marginBottom:
-      isVerySmallScreen() || isCompactHeight ? Spacing.xs : Spacing.sm,
-    lineHeight: isVerySmallScreen() || isCompactHeight ? 18 : 22,
+    marginBottom: Spacing.sm,
+    lineHeight: 22,
+  },
+  cardTitleCompact: {
+    fontSize: Typography.fontSize.small,
+    marginBottom: Spacing.xs,
+    lineHeight: 18,
   },
   cardCredits: {
-    fontSize:
-      isVerySmallScreen() || isCompactHeight
-        ? Typography.fontSize.tiny
-        : Typography.fontSize.small,
+    fontSize: Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom:
-      isVerySmallScreen() || isCompactHeight ? Spacing.xs : Spacing.sm,
-    lineHeight: isVerySmallScreen() || isCompactHeight ? 16 : 18,
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
+  },
+  cardCreditsCompact: {
+    fontSize: Typography.fontSize.tiny,
+    marginBottom: Spacing.xs,
+    lineHeight: 16,
   },
   cardPrice: {
-    fontSize:
-      isVerySmallScreen() || isCompactHeight
-        ? Typography.fontSize.medium
-        : Typography.fontSize.large,
+    fontSize: Typography.fontSize.large,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary,
     textAlign: "center",
   },
-  popularBadge: {
+  cardPriceCompact: {
+    fontSize: Typography.fontSize.medium,
+  },
+  badge: {
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
-    paddingVertical: isVerySmallScreen() ? 2 : 4,
     borderTopRightRadius: BorderRadius.medium,
     borderBottomLeftRadius: BorderRadius.medium,
+    zIndex: 2,
+    elevation: 3,
+  },
+  badgePrimary: {
+    backgroundColor: Colors.primary,
+  },
+  badgeSpacingRegular: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+  },
+  badgeSpacingCompact: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
   },
   badgeText: {
     fontSize: Typography.fontSize.tiny,

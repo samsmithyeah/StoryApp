@@ -23,11 +23,7 @@ export function CreditsHeader({
 }: CreditsHeaderProps) {
   const { width, height } = useWindowDimensions();
   const styles = useMemo(
-    () =>
-      createStyles({
-        width,
-        height,
-      }),
+    () => StyleSheet.create(createStyles({ width, height })),
     [width, height]
   );
 
@@ -84,7 +80,7 @@ const createStyles = ({ width, height }: StyleParams) => {
   const badgePaddingHorizontal = isCompactHeight ? Spacing.xs : Spacing.sm;
   const badgePaddingVertical = isCompactHeight ? 4 : Spacing.xs;
 
-  return StyleSheet.create({
+  return {
     header: {
       marginBottom: titleMarginBottom,
       alignItems: "center",
@@ -101,7 +97,7 @@ const createStyles = ({ width, height }: StyleParams) => {
     headerBalance: {
       position: "absolute",
       top: isCompactHeight ? Spacing.xs : 0,
-      right: isNarrowPhone ? -4 : 0,
+      right: isNarrowPhone ? -Spacing.xs : 0,
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: "rgba(212, 175, 55, 0.1)",
@@ -119,5 +115,5 @@ const createStyles = ({ width, height }: StyleParams) => {
       color: Colors.primary,
       marginRight: Spacing.xs,
     },
-  });
+  } as const;
 };

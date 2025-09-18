@@ -6,6 +6,7 @@ import { StarsDecorations } from "@/components/credits/StarsDecorations";
 import { SubscriptionCard } from "@/components/credits/SubscriptionCard";
 import { TabSelector } from "@/components/credits/TabSelector";
 import type { ProductInfo } from "@/components/credits/types";
+import { useResponsiveCardMetrics } from "@/components/credits/useResponsiveCardMetrics";
 import { BackgroundContainer } from "@/components/shared/BackgroundContainer";
 import {
   BorderRadius,
@@ -18,8 +19,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { creditsService } from "@/services/firebase/credits";
 import { PRODUCT_IDS, revenueCatService } from "@/services/revenuecat";
 import type { UserCredits } from "@/types/monetization.types";
-import { logger } from "@/utils/logger";
 import { Analytics } from "@/utils/analytics";
+import { logger } from "@/utils/logger";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -43,6 +44,11 @@ interface CreditsScreenProps {
   isModal?: boolean;
   onPurchaseSuccess?: () => void;
 }
+
+const VIEWPORT_BREAKPOINTS = {
+  COMPACT_HEIGHT: 720,
+  VERY_SMALL_HEIGHT: 650,
+} as const;
 
 // Helper function to get product information
 const getProductInfo = (
@@ -202,7 +208,12 @@ export default function CreditsScreen({
 }: CreditsScreenProps = {}) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
+  const {
+    horizontalPadding: responsiveHorizontalPadding,
+    landscapeClearance,
+    isLandscape,
+  } = useResponsiveCardMetrics();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
@@ -223,16 +234,26 @@ export default function CreditsScreen({
   // Track if screen view has been logged
   const screenViewLogged = useRef(false);
 
-  const isCompactHeight = windowHeight < 720;
-  const isNarrowPhone = windowWidth < 380;
-  const scrollHorizontalPadding = isNarrowPhone
-    ? Spacing.lg
-    : Spacing.screenPadding;
+  const isCompactHeight = windowHeight < VIEWPORT_BREAKPOINTS.COMPACT_HEIGHT;
+  const isVerySmallHeight =
+    windowHeight < VIEWPORT_BREAKPOINTS.VERY_SMALL_HEIGHT;
+  const scrollHorizontalPadding = responsiveHorizontalPadding;
   const scrollTopPadding =
     insets.top + (isCompactHeight ? Spacing.md : Spacing.screenPadding);
   const scrollBottomPadding =
     insets.bottom +
-    (isCompactHeight ? Spacing.massive : Spacing.massive + Spacing.md);
+    (isLandscape
+      ? landscapeClearance
+      : isCompactHeight
+        ? Spacing.massive
+        : Spacing.massive + Spacing.md);
+  const bottomSpacerHeight = isLandscape
+    ? landscapeClearance
+    : isCompactHeight
+      ? 72
+      : isVerySmallHeight
+        ? 60
+        : 110;
 
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {
@@ -891,7 +912,7 @@ export default function CreditsScreen({
             )}
             <View
               style={{
-                height: isCompactHeight ? 72 : isVerySmallScreen() ? 60 : 110,
+                height: bottomSpacerHeight,
               }}
             />
           </ScrollView>
@@ -940,7 +961,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Plan grid
+  // Plan grid - Always 2x2 grid
   planGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

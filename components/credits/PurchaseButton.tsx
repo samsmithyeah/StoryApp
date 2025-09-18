@@ -8,7 +8,6 @@ import {
 import React from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
   StyleSheet,
   Text,
@@ -16,13 +15,14 @@ import {
   View,
 } from "react-native";
 import type { PurchaseButtonProps } from "./types";
+import { useResponsiveCardMetrics } from "./useResponsiveCardMetrics";
 
-const { width, height } = Dimensions.get("window");
-const isCompactHeight = height < 720;
-const isNarrowPhone = width < 380;
-const horizontalPadding = isNarrowPhone ? Spacing.lg : Spacing.screenPadding;
-const buttonPaddingVertical = isCompactHeight ? Spacing.md : Spacing.lg;
-const buttonMinHeight = isCompactHeight ? 52 : 56;
+const BUTTON_MIN_HEIGHT = {
+  COMPACT: 52,
+  REGULAR: 56,
+} as const;
+
+const ANDROID_BUTTON_MARGIN = -12;
 
 export function PurchaseButton({
   selectedPackage,
@@ -33,6 +33,17 @@ export function PurchaseButton({
   getProductInfo,
   insets,
 }: PurchaseButtonProps) {
+  const { isCompactHeight, horizontalPadding } = useResponsiveCardMetrics();
+
+  const buttonPaddingVertical = isCompactHeight ? Spacing.md : Spacing.lg;
+  const buttonMinHeight = isCompactHeight
+    ? BUTTON_MIN_HEIGHT.COMPACT
+    : BUTTON_MIN_HEIGHT.REGULAR;
+  const purchaseButtonBottomMargin = Platform.select({
+    android: ANDROID_BUTTON_MARGIN,
+    ios: isCompactHeight ? Spacing.xl : Spacing.xxl,
+  });
+
   return (
     <View
       style={[
@@ -44,12 +55,19 @@ export function PurchaseButton({
               android: 0,
               ios: 37, // Keep original padding on iOS
             }),
+          paddingHorizontal: horizontalPadding,
+          paddingTop: isCompactHeight ? Spacing.sm : Spacing.md,
         },
       ]}
     >
       <TouchableOpacity
         style={[
           styles.purchaseButton,
+          {
+            paddingVertical: buttonPaddingVertical,
+            minHeight: buttonMinHeight,
+            marginBottom: purchaseButtonBottomMargin,
+          },
           !(purchasing || !selectedPackage) && styles.purchaseButtonEnabled,
           (purchasing || !selectedPackage) && styles.purchaseButtonDisabled,
         ]}
@@ -101,23 +119,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.background,
-    paddingHorizontal: horizontalPadding,
-    paddingTop: isCompactHeight ? Spacing.sm : Spacing.md,
     borderTopWidth: 1,
     borderTopColor: "rgba(212, 175, 55, 0.2)",
   },
   purchaseButton: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.medium,
-    paddingVertical: buttonPaddingVertical,
     paddingHorizontal: Spacing.xl,
-    marginBottom: Platform.select({
-      android: -12,
-      ios: isCompactHeight ? Spacing.xl : Spacing.xxl,
-    }),
     alignItems: "center",
     justifyContent: "center",
-    minHeight: buttonMinHeight,
   },
   purchaseButtonEnabled: {
     ...Shadows.glow,
