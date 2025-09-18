@@ -241,6 +241,10 @@ const createStyles = ({
   const supportsGap =
     Platform.OS !== "android" || Number(Platform.Version) >= 33;
 
+  const isCompactHeight = height < 720;
+  const isVeryCompactHeight = height < 660;
+  const isNarrowPhone = !isTablet && width < 380;
+
   // Calculate font size based on title length and available space
   const baseFontSize = isTablet
     ? Typography.fontSize.h1Tablet * 1.2
@@ -248,28 +252,48 @@ const createStyles = ({
       ? Typography.fontSize.h2
       : Typography.fontSize.h1Phone;
 
-  // Simple heuristic: reduce font size for long titles
-  // Based on title character length and screen characteristics
-  const shouldReduceFontSize = (() => {
-    const titleLength = title.length;
+  let titleFontSize = baseFontSize;
 
-    if (isTablet) {
-      // Tablets can handle longer titles
-      return titleLength > 60;
-    } else if (isVerySmallScreen()) {
-      // Small screens need earlier reduction
-      return titleLength > 25;
-    } else {
-      // Regular phone screens
-      return titleLength > 35;
+  if (!isTablet) {
+    const titleLength = title.trim().length;
+
+    if (titleLength > 60) {
+      titleFontSize *= 0.72;
+    } else if (titleLength > 45) {
+      titleFontSize *= 0.78;
+    } else if (titleLength > 35) {
+      titleFontSize *= 0.85;
     }
+
+    if (isNarrowPhone) {
+      titleFontSize *= 0.92;
+    }
+
+    if (isCompactHeight) {
+      titleFontSize *= 0.93;
+    }
+  } else {
+    const titleLength = title.trim().length;
+    if (titleLength > 70) {
+      titleFontSize *= 0.9;
+    }
+  }
+
+  titleFontSize = Math.max(titleFontSize, Typography.fontSize.h2);
+  const titleLineHeight = titleFontSize * (isTablet ? 1.12 : 1.08);
+
+  const portraitSize = (() => {
+    if (isTablet) {
+      return 550;
+    }
+    if (isVeryCompactHeight) {
+      return 220;
+    }
+    if (isCompactHeight) {
+      return 260;
+    }
+    return 300;
   })();
-
-  const titleFontSize = shouldReduceFontSize
-    ? baseFontSize * 0.85 // Reduce by 15% for long titles
-    : baseFontSize;
-
-  const portraitSize = isTablet ? 550 : isVerySmallScreen() ? 200 : 300;
 
   // Larger on phones in landscape; clamp by width so it doesn't overflow horizontally
   const baseShort = Math.min(width, height);
@@ -279,6 +303,12 @@ const createStyles = ({
   );
   const tabletLandscapeSize = Math.floor(baseShort * 0.55);
   const landscapeSize = isTablet ? tabletLandscapeSize : phoneLandscapeSize;
+
+  const titleMarginBottom = isCompactHeight ? Spacing.xl : Spacing.huge;
+  const detailsMarginBottom = isCompactHeight ? Spacing.lg : Spacing.huge;
+  const rowMarginBottom = isCompactHeight ? Spacing.huge : Spacing.massive;
+  const portraitMarginBottom = isCompactHeight ? Spacing.xl : Spacing.xxl;
+  const detailsMarginTop = isCompactHeight ? Spacing.md : Spacing.lg;
 
   const commonImageFrame = {
     borderRadius: Spacing.xxl,
@@ -332,7 +362,7 @@ const createStyles = ({
       alignItems: "center",
       justifyContent: isLandscape ? "space-evenly" : "center",
       width: "100%",
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.massive,
+      marginBottom: rowMarginBottom,
     },
     textBlock: {
       flex: isLandscape ? 1 : undefined,
@@ -344,9 +374,10 @@ const createStyles = ({
     title: {
       fontFamily: Typography.fontFamily.primary,
       fontSize: titleFontSize,
+      lineHeight: titleLineHeight,
       color: Colors.primary,
       textAlign: "center",
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
+      marginBottom: titleMarginBottom,
       textShadowColor: "rgba(0,0,0,0.3)",
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
@@ -355,7 +386,7 @@ const createStyles = ({
     imagePortrait: {
       width: portraitSize,
       height: portraitSize,
-      marginBottom: isVerySmallScreen() ? Spacing.lg : Spacing.xxl,
+      marginBottom: portraitMarginBottom,
       alignSelf: "center",
       ...commonImageFrame,
     },
@@ -389,7 +420,7 @@ const createStyles = ({
         ? Typography.fontSize.small
         : Typography.fontSize.medium,
       color: Colors.text,
-      marginBottom: isVerySmallScreen() ? Spacing.xl : Spacing.huge,
+      marginBottom: detailsMarginBottom,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },
@@ -398,7 +429,7 @@ const createStyles = ({
         ? Typography.fontSize.small
         : Typography.fontSize.medium,
       color: Colors.text,
-      marginTop: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+      marginTop: detailsMarginTop,
       textAlign: "center",
       fontWeight: Typography.fontWeight.medium,
     },

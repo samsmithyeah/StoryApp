@@ -29,6 +29,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { PurchasesOffering, PurchasesPackage } from "react-native-purchases";
@@ -201,6 +202,7 @@ export default function CreditsScreen({
 }: CreditsScreenProps = {}) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
@@ -220,6 +222,17 @@ export default function CreditsScreen({
 
   // Track if screen view has been logged
   const screenViewLogged = useRef(false);
+
+  const isCompactHeight = windowHeight < 720;
+  const isNarrowPhone = windowWidth < 380;
+  const scrollHorizontalPadding = isNarrowPhone
+    ? Spacing.lg
+    : Spacing.screenPadding;
+  const scrollTopPadding =
+    insets.top + (isCompactHeight ? Spacing.md : Spacing.screenPadding);
+  const scrollBottomPadding =
+    insets.bottom +
+    (isCompactHeight ? Spacing.massive : Spacing.massive + Spacing.md);
 
   // Animate credit counter when balance increases
   const animateCreditsIncrease = useCallback(() => {
@@ -726,9 +739,9 @@ export default function CreditsScreen({
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingTop:
-                  insets.top +
-                  (isVerySmallScreen() ? Spacing.md : Spacing.screenPadding),
+                paddingTop: scrollTopPadding,
+                paddingBottom: scrollBottomPadding,
+                paddingHorizontal: scrollHorizontalPadding,
               },
             ]}
             contentInsetAdjustmentBehavior="never"
@@ -876,8 +889,11 @@ export default function CreditsScreen({
                 </TouchableOpacity>
               </>
             )}
-
-            <View style={{ height: isVerySmallScreen() ? 60 : 100 }} />
+            <View
+              style={{
+                height: isCompactHeight ? 72 : isVerySmallScreen() ? 60 : 110,
+              }}
+            />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -915,8 +931,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding,
-    paddingVertical: isVerySmallScreen() ? Spacing.md : Spacing.screenPadding,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.screenPadding,
   },
   loadingContainer: {
     flex: 1,

@@ -16,7 +16,20 @@ import {
 } from "react-native";
 import type { SubscriptionCardProps } from "./types";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+const isCompactHeight = height < 720;
+const isNarrowPhone = width < 380;
+const sidePadding =
+  (isVerySmallScreen() || isCompactHeight
+    ? Spacing.lg
+    : Spacing.screenPadding) * 2;
+const interCardGap = isNarrowPhone ? Spacing.sm : Spacing.md;
+const cardWidth = (width - sidePadding - interCardGap) / 2;
+const cardPadding =
+  isVerySmallScreen() || isCompactHeight ? Spacing.md : Spacing.lg;
+const cardMarginBottom =
+  isVerySmallScreen() || isCompactHeight ? Spacing.md : Spacing.lg;
+const cardMinHeight = isVerySmallScreen() || isCompactHeight ? 132 : 160;
 
 export function SubscriptionCard({
   package: pkg,
@@ -78,20 +91,16 @@ export function SubscriptionCard({
 
 const styles = StyleSheet.create({
   subscriptionCard: {
-    width:
-      (width -
-        (isVerySmallScreen() ? Spacing.lg : Spacing.screenPadding) * 2 -
-        Spacing.md) /
-      2,
+    width: cardWidth,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: BorderRadius.large,
-    padding: isVerySmallScreen() ? Spacing.md : Spacing.lg,
-    marginBottom: isVerySmallScreen() ? Spacing.md : Spacing.lg,
+    padding: cardPadding,
+    marginBottom: cardMarginBottom,
     alignItems: "center",
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
-    minHeight: isVerySmallScreen() ? 120 : 160,
+    minHeight: cardMinHeight,
   },
   subscriptionCardActive: {
     borderColor: Colors.success,
@@ -119,28 +128,33 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.large,
   },
   cardTitle: {
-    fontSize: isVerySmallScreen()
-      ? Typography.fontSize.small
-      : Typography.fontSize.medium,
+    fontSize:
+      isVerySmallScreen() || isCompactHeight
+        ? Typography.fontSize.small
+        : Typography.fontSize.medium,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
     textAlign: "center",
-    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
-    lineHeight: isVerySmallScreen() ? 18 : 22,
+    marginBottom:
+      isVerySmallScreen() || isCompactHeight ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() || isCompactHeight ? 18 : 22,
   },
   cardCredits: {
-    fontSize: isVerySmallScreen()
-      ? Typography.fontSize.tiny
-      : Typography.fontSize.small,
+    fontSize:
+      isVerySmallScreen() || isCompactHeight
+        ? Typography.fontSize.tiny
+        : Typography.fontSize.small,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: isVerySmallScreen() ? Spacing.xs : Spacing.sm,
-    lineHeight: isVerySmallScreen() ? 16 : 18,
+    marginBottom:
+      isVerySmallScreen() || isCompactHeight ? Spacing.xs : Spacing.sm,
+    lineHeight: isVerySmallScreen() || isCompactHeight ? 16 : 18,
   },
   cardPrice: {
-    fontSize: isVerySmallScreen()
-      ? Typography.fontSize.medium
-      : Typography.fontSize.large,
+    fontSize:
+      isVerySmallScreen() || isCompactHeight
+        ? Typography.fontSize.medium
+        : Typography.fontSize.large,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary,
     textAlign: "center",
