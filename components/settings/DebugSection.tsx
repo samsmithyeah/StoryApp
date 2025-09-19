@@ -57,7 +57,10 @@ export function DebugSection({
         title="Test Sentry error"
         onPress={async () => {
           logger.debug("Testing Sentry...");
-          logger.debug("Sentry DSN:", process.env.EXPO_PUBLIC_SENTRY_DSN);
+          logger.debug(
+            "Sentry DSN is present:",
+            !!process.env.EXPO_PUBLIC_SENTRY_DSN
+          );
 
           try {
             // Test direct Sentry call with promise
