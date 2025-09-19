@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
-import { getAuthenticatedUrl } from "./firebase/storage";
-import { logger } from "../utils/logger";
+import * as FileSystem from "expo-file-system/legacy";
 import { CacheConfig } from "../constants/CacheConfig";
+import { logger } from "../utils/logger";
+import { getAuthenticatedUrl } from "./firebase/storage";
 
 const CACHE_DIR = `${FileSystem.documentDirectory}imageCache/`;
 const CACHE_INDEX_KEY = "imageCacheIndex";
